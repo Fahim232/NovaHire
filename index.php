@@ -48,7 +48,7 @@
 <html lang="en">
 <head>
     <title>NovaHire - Find Your Dream Job | Top Companies Hiring Now</title>
-    <?php include 'links.php' ?>
+    <?php include 'includes/links.php' ?>
     <script>
         (function() {
             var saved = localStorage.getItem('theme') || localStorage.getItem('company-theme');
@@ -614,13 +614,13 @@
                     <a class="nav-link active" href="index.php"><i class="fas fa-home mr-1"></i>Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="browse_jobs.php"><i class="fas fa-briefcase mr-1"></i>Jobs</a>
+                    <a class="nav-link" href="seeker/browse_jobs.php"><i class="fas fa-briefcase mr-1"></i>Jobs</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="available_companies.php"><i class="fas fa-building mr-1"></i>Companies</a>
+                    <a class="nav-link" href="seeker/available_companies.php"><i class="fas fa-building mr-1"></i>Companies</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="grooming.php"><i class="fas fa-user-graduate mr-1"></i>Skill Grooming</a>
+                    <a class="nav-link" href="seeker/grooming.php"><i class="fas fa-user-graduate mr-1"></i>Skill Grooming</a>
                 </li>
             </ul>
 
@@ -640,7 +640,7 @@
 
                 <?php if ($is_seeker_logged_in): ?>
                     <li class="nav-item mr-2">
-                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="seeker_dashboard.php" style="white-space: nowrap;">
+                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="seeker/seeker_dashboard.php" style="white-space: nowrap;">
                             <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
                         </a>
                     </li>
@@ -650,11 +650,11 @@
                             <span class="user-name-text"><?php echo htmlspecialchars($_SESSION['username']); ?></span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right user-menu-dropdown" aria-labelledby="userDropdown">
-                            <a class="dropdown-item" href="profile.php"><i class="fas fa-user-circle mr-2" style="color: var(--text-light);"></i> My Profile</a>
-                            <a class="dropdown-item" href="my_application.php"><i class="fas fa-file-alt mr-2" style="color: var(--text-light);"></i> Applications</a>
-                            <a class="dropdown-item" href="saved_jobs.php"><i class="fas fa-bookmark mr-2" style="color: var(--text-light);"></i> Saved Jobs</a>
+                            <a class="dropdown-item" href="seeker/profile.php"><i class="fas fa-user-circle mr-2" style="color: var(--text-light);"></i> My Profile</a>
+                            <a class="dropdown-item" href="seeker/my_application.php"><i class="fas fa-file-alt mr-2" style="color: var(--text-light);"></i> Applications</a>
+                            <a class="dropdown-item" href="seeker/saved_jobs.php"><i class="fas fa-bookmark mr-2" style="color: var(--text-light);"></i> Saved Jobs</a>
                             <div class="dropdown-divider" style="border-color: var(--border-light);"></div>
-                            <a class="dropdown-item" href="logout.php" style="color: var(--danger);"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+                            <a class="dropdown-item" href="auth/logout.php" style="color: var(--danger);"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                         </div>
                     </li>
                 <?php elseif ($is_company_logged_in): ?>
@@ -664,18 +664,18 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 font-weight-bold" href="logout.php" style="white-space: nowrap;">
+                        <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 font-weight-bold" href="auth/logout.php" style="white-space: nowrap;">
                             <i class="fas fa-sign-out-alt mr-1"></i>Logout
                         </a>
                     </li>
                 <?php else: ?>
                     <li class="nav-item mr-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold" href="login.php">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold" href="auth/login.php">
                             <i class="fas fa-sign-in-alt mr-1"></i>Login
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="registration.php">
+                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="auth/registration.php">
                             <i class="fas fa-user-plus mr-1"></i>Register
                         </a>
                     </li>
@@ -693,7 +693,7 @@
                 <h1 class="hero-title">Find Your <span style="color: #fbbf24;">Dream Job</span> Today</h1>
                 <p class="hero-subtitle">Discover thousands of job opportunities from top companies. Build your profile and get hired faster.</p>
                 
-                <form class="hero-search" action="browse_jobs.php" method="GET">
+                <form class="hero-search" action="seeker/browse_jobs.php" method="GET">
                     <input type="text" name="location" class="search-input" placeholder="Job title, keyword, or company...">
                     <select name="category" class="search-select">
                         <option value="all">All Categories</option>
@@ -804,7 +804,7 @@
             $style = isset($cat_styles[$cat_name]) ? $cat_styles[$cat_name] : ['icon' => 'fas fa-code', 'bg' => '#f1f5f9', 'color' => '#64748b'];
             ?>
             <div class="col-lg-3 col-md-4 col-6 mb-4">
-                <a href="browse_jobs.php?category=<?php echo urlencode($cat_name); ?>" class="category-card">
+                <a href="seeker/browse_jobs.php?category=<?php echo urlencode($cat_name); ?>" class="category-card">
                     <div class="category-icon" style="background: <?php echo $style['bg']; ?>; color: <?php echo $style['color']; ?>;">
                         <i class="<?php echo $style['icon']; ?>"></i>
                     </div>
@@ -823,7 +823,7 @@
     
     <div class="mb-5">
         <?php while ($job = mysqli_fetch_assoc($latest_jobs_q)): ?>
-            <a href="job_details.php?id=<?php echo $job['id']; ?>" class="job-listing">
+            <a href="seeker/job_details.php?id=<?php echo $job['id']; ?>" class="job-listing">
                 <?php if (!empty($job['logo']) && file_exists('uploads/company_logos/' . $job['logo'])): ?>
                     <img src="uploads/company_logos/<?php echo htmlspecialchars($job['logo']); ?>" class="job-logo" alt="<?php echo htmlspecialchars($job['company_name']); ?>">
                 <?php else: ?>
@@ -859,7 +859,7 @@
         <?php endwhile; ?>
         
         <div class="text-center mt-4">
-            <a href="browse_jobs.php" class="btn btn-outline-primary rounded-pill px-5 py-3 font-weight-bold">
+            <a href="seeker/browse_jobs.php" class="btn btn-outline-primary rounded-pill px-5 py-3 font-weight-bold">
                 View All Jobs <i class="fas fa-arrow-right ml-2"></i>
             </a>
         </div>
@@ -874,7 +874,7 @@
     <div class="row mb-5">
         <?php while ($company = mysqli_fetch_assoc($featured_companies_q)): ?>
             <div class="col-lg-4 col-md-6 mb-4">
-                <a href="browse_jobs.php?company=<?php echo $company['id']; ?>" class="company-card">
+                <a href="seeker/browse_jobs.php?company=<?php echo $company['id']; ?>" class="company-card">
                     <?php if (!empty($company['logo']) && file_exists('uploads/company_logos/' . $company['logo'])): ?>
                         <img src="uploads/company_logos/<?php echo htmlspecialchars($company['logo']); ?>" class="company-card-logo" alt="<?php echo htmlspecialchars($company['company_name']); ?>">
                     <?php else: ?>
@@ -967,25 +967,25 @@
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-title">For Job Seekers</div>
                 <ul class="footer-links">
-                    <li><a href="browse_jobs.php">Browse Jobs</a></li>
-                    <li><a href="available_companies.php">Companies</a></li>
-                    <li><a href="profile.php">My Profile</a></li>
-                    <li><a href="my_application.php">My Applications</a></li>
+                    <li><a href="seeker/browse_jobs.php">Browse Jobs</a></li>
+                    <li><a href="seeker/available_companies.php">Companies</a></li>
+                    <li><a href="seeker/profile.php">My Profile</a></li>
+                    <li><a href="seeker/my_application.php">My Applications</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-title">For Employers</div>
                 <ul class="footer-links">
                     <li><a href="company_registration.php">Register Company</a></li>
-                    <li><a href="login.php">Employer Login</a></li>
-                    <li><a href="login.php">Post a Job</a></li>
+                    <li><a href="auth/login.php">Employer Login</a></li>
+                    <li><a href="auth/login.php">Post a Job</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-title">Resources</div>
                 <ul class="footer-links">
-                    <li><a href="browse_jobs.php">Browse Jobs</a></li>
-                    <li><a href="view_cv.php">Build Your CV</a></li>
+                    <li><a href="seeker/browse_jobs.php">Browse Jobs</a></li>
+                    <li><a href="seeker/view_cv.php">Build Your CV</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">

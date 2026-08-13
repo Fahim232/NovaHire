@@ -145,7 +145,7 @@ if (!$app) {
 </form>
 
 <div class="mt-3">
-    <a href="../view_cv.php?id=<?php echo $app['user_id']; ?>" target="_blank" class="btn btn-info btn-block">
+    <a href="../seeker/view_cv.php?id=<?php echo $app['user_id']; ?>" target="_blank" class="btn btn-info btn-block">
         <i class="fas fa-file-alt"></i> View Full CV
     </a>
 </div>

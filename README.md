@@ -1,64 +1,213 @@
-# Job Application Portal
+# NovaHire - Job Application Portal
 
-A modern, professional Job Application Portal built with PHP and MySQL. This project features a clean "Glassmorphism" aesthetic, an interactive assessment system, and a robust candidate management dashboard.
+A modern job application portal with AI-powered features, built with PHP and MySQL. Features a complete recruitment system for companies, job seekers, and administrators.
 
-## 🚀 Features
+## Features
 
-- **Premium UI/UX**: Professional minimalist design with glassmorphism effects and smooth animations.
-- **Skill Assessment**: Category-based quiz system (PHP, Java, Python) to evaluate candidates.
-- **Grooming Session**: Interactive learning module for candidates to improve before retaking assessments.
-- **Application Dashboard**: A dedicated area for users to track and update their applications.
-- **CV Generation**: Automatic PDF CV generation for registered candidates.
-- **Admin Panel**: Full control over candidate data, applications, and portal settings.
+**For Job Seekers**
+- Browse and search jobs with AI match scoring
+- Apply to jobs with CV upload and cover letter
+- Take job-specific skill assessments (quizzes)
+- Track application status in real-time
+- AI Career Center: resume analyzer, cover letter generator, mock interviews
+- Live chat with companies
 
-## 🛠️ Technologies Used
+**For Companies**
+- Register and manage company profile with logo
+- Post jobs with custom quiz questions
+- View and filter applicants by quiz performance
+- Download CVs and update application status
+- AI-powered job description generator
+- Real-time recruitment statistics dashboard
 
-- **Frontend**: HTML5, CSS3 (Vanilla), Bootstrap 4.6.1, Font Awesome.
-- **Backend**: PHP 7.4+.
-- **Database**: MySQL.
-- **Icons/Illustrations**: Font Awesome, Popsy Illustrations.
+**For Admin**
+- Manage users, companies, and applications
+- Configure AI engine settings (OpenAI/Gemini)
+- System-wide notifications
+- Dashboard with analytics
 
-## 📦 Installation Guide
+**AI Features (Hybrid - works offline + optional LLM)**
+- Job-candidate matching algorithm
+- Resume/CV scoring and analysis
+- Cover letter generation
+- Mock interview practice
+- Grooming coach with personalized study plans
+- AI chat assistant (floating widget)
 
-Follow these steps to set up the project locally:
+## Tech Stack
 
-### 1. Prerequisites
-Ensure you have **XAMPP** or a similar environment installed (PHP & MySQL).
+- **Backend**: PHP 7.4+
+- **Database**: MySQL 5.7+
+- **Frontend**: HTML5, CSS3, Bootstrap 4, Font Awesome 6
+- **JavaScript**: jQuery
+- **AI**: OpenAI / Google Gemini (optional, rule-based fallback included)
 
-### 2. Database Setup
-1. Open **phpMyAdmin**.
-2. Create a new database named **`projects`**.
-3. Import the `database.sql` file provided in the root directory:
-   - Select the `projects` database.
-   - Go to the **Import** tab.
-   - Choose `database.sql` and click **Go**.
+## Prerequisites
 
-### 3. File Configuration
-1. Clone or extract the project into your `htdocs` folder (e.g., `C:/xampp/htdocs/Job-Application-Portal-master`).
-2. Verify the database connection in `admin/dbcon.php`:
-   ```php
-   $database = 'projects';
-   ```
+- XAMPP (or any PHP/MySQL environment)
+- PHP 7.4 or higher
+- MySQL 5.7 or higher
+- Web browser
 
-### 4. Running the Project
-1. Start the Apache and MySQL modules in XAMPP.
-2. Open your browser and navigate to: `http://localhost/Job-Application-Portal-master/index.php`.
+## Installation
 
-## 🔑 Default Credentials
+### 1. Clone or Download
 
-### Admin Access
-- **URL**: `http://localhost/Job-Application-Portal-master/admin/admin_login.php`
+Copy the project to your XAMPP `htdocs` directory:
+
+```
+C:\xampp\htdocs\Job-portal-and-grooming\
+```
+
+### 2. Import Database
+
+Open **phpMyAdmin** (`http://localhost/phpmyadmin`) and import the SQL files in this order:
+
+```bash
+# Via MySQL CLI
+mysql -u root -p projects < database.sql
+mysql -u root -p projects < ai_db.sql
+mysql -u root -p projects < job_categories_v2.sql
+```
+
+Or via phpMyAdmin:
+1. Create database named `projects`
+2. Import `database.sql` first
+3. Import `ai_db.sql` second
+4. Import `job_categories_v2.sql` third
+
+### 3. Configure Database Connection
+
+Edit `admin/dbcon.php`:
+
+```php
+$host = 'localhost';
+$user = 'root';          // Your MySQL username
+$password = '';           // Your MySQL password
+$database = 'projects';  // Database name
+```
+
+### 4. Set File Permissions
+
+Ensure the `files/` and `uploads/` directories are writable:
+
+```bash
+chmod 755 files/
+chmod 755 uploads/
+chmod 755 uploads/company_logos/
+```
+
+### 5. Start the Application
+
+1. Start **Apache** and **MySQL** in XAMPP
+2. Open browser and navigate to:
+
+```
+http://localhost/Job-portal-and-grooming/index.php
+```
+
+## Default Credentials
+
+### Admin
+- **URL**: `http://localhost/Job-portal-and-grooming/admin/admin_login.php`
 - **Username**: `admin`
 - **Password**: `admin123`
 
-## 📂 Project Structure
+### Sample Companies
+- **Email**: `hr@techsolutions.com` / **Password**: `password`
+- **Email**: `jobs@digitalinnovations.com` / **Password**: `password`
 
-- `/admin`: Administrative panel and backend logic.
-- `/css`: Stylesheets including the core `style.css`.
-- `/files`: Storage for uploaded candidate CVs.
-- `/js`: Client-side scripts.
-- `index.php`: The main landing page.
-- `database.sql`: MySQL database schema and sample data.
+### Job Seeker
+Register a new account at `http://localhost/Job-portal-and-grooming/auth/registration.php`
 
----
-Developed with ❤️ for a professional job seeking experience.
+## Project Structure
+
+```
+Job-portal-and-grooming/
+├── index.php                 # Landing page
+├── landing.php               # Public welcome page
+├── auth/                     # Authentication (login, register, forgot password)
+├── seeker/                   # Job seeker portal
+│   ├── seeker_dashboard.php  # Dashboard
+│   ├── browse_jobs.php       # Browse all jobs
+│   ├── job_details.php       # Job detail view
+│   ├── profile.php           # User profile & CV
+│   ├── my_application.php    # Application tracking
+│   ├── ai_hub.php            # AI Career Center
+│   └── ...                   # Other seeker pages
+├── company/                  # Company portal
+│   ├── index.php             # Company dashboard
+│   ├── post_job.php          # Create job posting
+│   ├── my_jobs.php           # Manage jobs
+│   ├── manage_quiz.php       # Create quiz questions
+│   ├── view_applicants.php   # View applicants
+│   └── profile.php           # Company profile
+├── admin/                    # Admin portal
+│   ├── dbcon.php             # Database connection (EDIT THIS)
+│   ├── admin_dashboard.php   # Admin dashboard
+│   └── ai_settings.php       # AI configuration
+├── ai/                       # AI engine (offline + LLM)
+├── api/                      # AJAX endpoints (JSON)
+├── includes/                 # Shared code (bootstrap, headers, functions)
+├── assets/                   # CSS, JS files
+├── files/                    # CV uploads
+├── uploads/                  # Company logos, images
+├── database.sql              # Main database schema
+├── ai_db.sql                 # AI tables schema
+└── job_categories_v2.sql     # Job categories
+```
+
+## Key URLs
+
+| Page | URL |
+|------|-----|
+| Homepage | `/index.php` |
+| Browse Jobs | `/seeker/browse_jobs.php` |
+| Seeker Login | `/auth/login.php` |
+| Seeker Register | `/auth/registration.php` |
+| Company Login | `/company_login.php` |
+| Company Register | `/company_registration.php` |
+| Company Dashboard | `/company/index.php` |
+| Admin Login | `/admin/admin_login.php` |
+| Admin Dashboard | `/admin/admin_dashboard.php` |
+| AI Career Center | `/seeker/ai_hub.php` |
+
+## AI Configuration (Optional)
+
+The AI engine works offline by default. To enable live AI responses:
+
+1. Import `ai_db.sql` into your database
+2. Login to Admin Panel
+3. Go to **AI Settings**
+4. Select provider (OpenAI or Gemini)
+5. Enter your API key and select model
+6. Click **Save & Test Connection**
+
+Without an API key, all AI features use rule-based fallbacks.
+
+## Troubleshooting
+
+**"Connection Unsuccessful"**
+- Check `admin/dbcon.php` credentials
+
+**"Table doesn't exist"**
+- Import all SQL files in correct order: `database.sql` → `ai_db.sql` → `job_categories_v2.sql`
+
+**"Cannot upload CV"**
+- Check `files/` directory permissions (755 or 777)
+
+**"Session errors"**
+- Ensure PHP sessions are enabled in `php.ini`
+
+**"Page not found"**
+- Verify Apache document root points to `htdocs`
+- Check project folder name matches URL
+
+**AI features not working**
+- Run `ai_db.sql` import
+- Check Admin → AI Settings for API key configuration
+- Offline features work without any configuration
+
+## License
+
+This project is for educational purposes.

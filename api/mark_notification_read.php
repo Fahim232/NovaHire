@@ -1,23 +1,39 @@
 <?php
-session_start();
-header('Content-Type: application/json');
+/**
+ * API Endpoint: Mark Single Notification Read
+ * 
+ * Validates ownership and marks a specific notification record as read.
+ */
 
-if (!isset($_SESSION['id'])) {
-    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
-    exit;
+// Initialize session if not active
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-include '../admin/dbcon.php';
-include '../includes/functions.php';
+// Set JSON output header
+header('Content-Type: application/json');
+
+// Validate authentication
+if (!isset($_SESSION['id'])) {
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+    exit();
+}
+
+// Include database & helpers
+include __DIR__ . '/../admin/dbcon.php';
+include __DIR__ . '/../includes/functions.php';
 
 $notif_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($notif_id > 0) {
     $uid = intval($_SESSION['id']);
+    
+    // Verify notification ownership using prepared statement
     $check = mysqli_prepare($con, "SELECT id FROM notifications WHERE id = ? AND recipient_type = 'user' AND recipient_id = ?");
     mysqli_stmt_bind_param($check, "ii", $notif_id, $uid);
     mysqli_stmt_execute($check);
-    $owned = mysqli_num_rows(mysqli_stmt_get_result($check)) > 0;
+    $res = mysqli_stmt_get_result($check);
+    $owned = mysqli_num_rows($res) > 0;
     mysqli_stmt_close($check);
 
     if ($owned) {

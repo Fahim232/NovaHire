@@ -99,18 +99,28 @@ img { max-width: 100%; height: auto; }
 
 /* ===== NAVBAR ===== */
 .glass-nav {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(255, 255, 255, 0.78) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
     border-bottom: 1px solid var(--border-light);
     padding: 12px 0;
-    transition: var(--transition);
-    box-shadow: var(--shadow-xs);
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.glass-nav.nav-scrolled {
+    padding: 8px 0;
+    box-shadow: 0 8px 28px -10px rgba(15, 23, 42, 0.14);
+    border-bottom-color: var(--border);
 }
 
 [data-theme="dark"] .glass-nav {
-    background: rgba(15, 23, 42, 0.9) !important;
+    background: rgba(15, 23, 42, 0.85) !important;
     border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .glass-nav.nav-scrolled {
+    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.6);
 }
 
 .custom-nav-container { max-width: 1280px; }
@@ -126,26 +136,55 @@ img { max-width: 100%; height: auto; }
     color: white;
     font-size: 0.95rem;
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s;
+}
+
+.navbar-brand:hover .brand-icon {
+    transform: rotate(-6deg) scale(1.06);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
 }
 
 .navbar-brand {
+    font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 1.3rem;
     font-weight: 800;
     letter-spacing: -0.5px;
     color: var(--text) !important;
 }
 
-.brand-highlight { color: var(--primary); }
+.brand-text { font-family: 'Plus Jakarta Sans', sans-serif; }
 
 .center-menu .nav-link {
+    font-family: 'Plus Jakarta Sans', sans-serif;
     color: var(--text) !important;
     font-weight: 500;
+    position: relative;
     padding: 8px 16px !important;
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     margin: 0 2px;
     transition: var(--transition);
-    position: relative;
+}
+
+.center-menu .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    width: 0;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transform: translateX(-50%);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.center-menu .nav-link:hover::after,
+.center-menu .nav-link.active::after { width: 55%; }
+
+.center-menu .nav-link.active {
+    color: var(--primary) !important;
+    background: rgba(79, 70, 229, 0.08);
 }
 
 .center-menu .nav-link:hover,
@@ -153,6 +192,46 @@ img { max-width: 100%; height: auto; }
 .center-menu .nav-link[aria-expanded="true"] {
     background: rgba(79, 70, 229, 0.08);
     color: var(--primary) !important;
+}
+
+/* Right icons stay in a row at every width (Bootstrap's navbar-nav
+   defaults to column below lg, which stacks/overlaps the icons) */
+.right-menu { flex-direction: row; align-items: center; }
+
+/* Desktop: the menu lives in a flex middle band between brand and the
+   right icons, so it can never slide under or overlap them */
+@media (min-width: 992px) {
+    .navbar-expand-lg .navbar-collapse { flex-grow: 1; justify-content: center; }
+    .center-menu { position: static; transform: none; }
+    .center-menu .nav-link { padding: 8px 12px !important; font-size: 0.85rem; margin: 0 1px; white-space: nowrap; }
+}
+
+.right-menu .nav-item { flex-shrink: 0; }
+
+.custom-toggler {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none !important;
+    box-shadow: var(--shadow-xs);
+    transition: all 0.25s;
+    padding: 0;
+    line-height: 1;
+}
+.custom-toggler:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+.custom-toggler:focus { box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+
+[data-theme="dark"] .custom-toggler {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 .nav-icon-btn {
@@ -203,6 +282,7 @@ img { max-width: 100%; height: auto; }
 }
 
 .user-name-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--text);
@@ -228,6 +308,32 @@ img { max-width: 100%; height: auto; }
 }
 
 .msg-badge { background: var(--secondary); }
+
+.lc-nav-badge {
+    position: absolute;
+    top: 2px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px -3px rgba(239, 68, 68, 0.6);
+    border: 2px solid var(--bg-card);
+    animation: lcBadgePop 0.3s ease;
+    line-height: 1;
+}
+@keyframes lcBadgePop {
+    0% { transform: scale(0.4); }
+    60% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
 
 .theme-dropdown,
 .user-menu-dropdown,
@@ -779,16 +885,29 @@ img { max-width: 100%; height: auto; }
 @media (max-width: 991px) {
     .navbar-collapse {
         background: var(--bg-card);
-        border-radius: var(--radius-lg);
-        padding: 20px;
-        margin-top: 12px;
-        box-shadow: var(--shadow-lg);
+        border-radius: 18px;
+        padding: 18px 14px;
+        margin-top: 14px;
+        box-shadow: 0 24px 60px -20px rgba(15, 23, 42, 0.28);
         position: absolute;
-        top: 60px;
+        top: 62px;
         left: 16px;
         right: 16px;
         z-index: 1000;
         border: 1px solid var(--border-light);
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
+
+    .navbar-collapse::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 18px;
+        right: 18px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
 
     [data-theme="dark"] .navbar-collapse {
@@ -797,29 +916,45 @@ img { max-width: 100%; height: auto; }
     }
 
     .center-menu {
+        position: static;
+        transform: none;
         flex-direction: column;
-        align-items: center;
-        margin-bottom: 16px;
+        align-items: stretch;
+        margin-bottom: 4px;
     }
 
     .center-menu .nav-link {
-        margin: 6px 0;
-        font-size: 1rem;
-        padding: 10px 20px !important;
+        margin: 3px 0;
+        font-size: 0.95rem;
+        padding: 11px 16px !important;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    .right-menu {
-        flex-direction: row;
-        justify-content: center;
-        border-top: 1px solid var(--border-light);
-        padding-top: 16px;
-        width: 100%;
-    }
+    .center-menu .nav-link::after { display: none; }
+
+    .right-menu { gap: 2px; }
+
+    .user-name-text { display: none; }
+    .user-pill { padding: 3px !important; }
 
     .custom-toggler {
         border: none;
-        outline: none !important;
+        box-shadow: none;
     }
+}
+
+@media (max-width: 575px) {
+    .nav-icon-btn { width: 34px; height: 34px; font-size: 0.92rem; }
+    .right-menu { gap: 4px; }
+    .custom-toggler { width: 38px; height: 38px; }
+    .brand-text { font-size: 1.12rem; }
+    .right-menu .mr-2 { margin-right: 4px !important; }
+}
+
+@media (max-width: 420px) {
+    .theme-nav-item { display: none !important; }
 }
 
 @media (max-width: 768px) {

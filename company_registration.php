@@ -1,23 +1,38 @@
 <?php
+/**
+ * Employer / Company Registration Portal
+ * 
+ * Handles company account registration, logo upload processing,
+ * email duplication check, BCrypt password hashing, and database insertion.
+ */
+
+// Include database connection
 include 'admin/dbcon.php';
 
+// Process company registration form submission
 if (isset($_POST['register'])) {
-    $company_name = mysqli_real_escape_string($con, $_POST['company_name']);
-    $email = mysqli_real_escape_string($con, $_POST['email']);
-    $phone = mysqli_real_escape_string($con, $_POST['phone']);
-    $address = mysqli_real_escape_string($con, $_POST['address']);
-    $website = mysqli_real_escape_string($con, $_POST['website']);
-    $industry = mysqli_real_escape_string($con, $_POST['industry']);
-    $company_size = mysqli_real_escape_string($con, $_POST['company_size']);
-    $description = mysqli_real_escape_string($con, $_POST['description']);
-    $password = $_POST['password'];
-    $cpassword = $_POST['cpassword'];
-    $terms = isset($_POST['terms']) ? 1 : 0;
+    // Extract and sanitize company form fields
+    $company_name = trim($_POST['company_name'] ?? '');
+    $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+    $phone        = trim($_POST['phone'] ?? '');
+    $address      = trim($_POST['address'] ?? '');
+    $website      = trim($_POST['website'] ?? '');
+    $industry     = trim($_POST['industry'] ?? '');
+    $company_size = trim($_POST['company_size'] ?? '');
+    $description  = trim($_POST['description'] ?? '');
+    $password     = $_POST['password'] ?? '';
+    $cpassword    = $_POST['cpassword'] ?? '';
+    $terms        = isset($_POST['terms']) ? 1 : 0;
 
-    $email_check = "SELECT * FROM companies WHERE company_email='$email'";
-    $query = mysqli_query($con, $email_check);
+    // 1. Check for duplicate company email using prepared statement
+    $email_stmt = mysqli_prepare($con, "SELECT id FROM companies WHERE company_email = ?");
+    mysqli_stmt_bind_param($email_stmt, "s", $email);
+    mysqli_stmt_execute($email_stmt);
+    $email_res  = mysqli_stmt_get_result($email_stmt);
+    $email_exists = mysqli_num_rows($email_res) > 0;
+    mysqli_stmt_close($email_stmt);
 
-    if (mysqli_num_rows($query) > 0) {
+    if ($email_exists) {
         $error_msg = 'Company email already registered!';
     } elseif ($password !== $cpassword) {
         $error_msg = 'Passwords do not match!';
@@ -26,32 +41,41 @@ if (isset($_POST['register'])) {
     } elseif (!$terms) {
         $error_msg = 'You must agree to the Terms of Service!';
     } else {
+        // Hash company account password securely
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        $logo_name = '';
+        // Process company logo file upload if attached
+        $logo_name = null;
         if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
             $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             $file_type = $_FILES['logo']['type'];
             if (in_array($file_type, $allowed) && $_FILES['logo']['size'] <= 5 * 1024 * 1024) {
                 $ext = pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION);
                 $logo_name = 'logo_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-                move_uploaded_file($_FILES['logo']['tmp_name'], 'uploads/company_logos/' . $logo_name);
+                
+                $upload_path = __DIR__ . '/uploads/company_logos/';
+                if (!is_dir($upload_path)) {
+                    mkdir($upload_path, 0755, true);
+                }
+                move_uploaded_file($_FILES['logo']['tmp_name'], $upload_path . $logo_name);
             } else {
                 $error_msg = 'Logo must be JPG, PNG, GIF or WebP (max 5MB).';
                 $error = true;
             }
         }
 
+        // Insert new active company account into database using prepared statement
         if (!isset($error)) {
-            $logo_sql = $logo_name ? "'$logo_name'" : "NULL";
-            $insert_query = "INSERT INTO companies (company_name, company_email, company_phone, company_address, company_website, industry, company_size, description, logo, password, status)
-                            VALUES ('$company_name', '$email', '$phone', '$address', '$website', '$industry', '$company_size', '$description', $logo_sql, '$hashed_password', 'active')";
-
-            if (mysqli_query($con, $insert_query)) {
+            $status = 'active';
+            $ins_stmt = mysqli_prepare($con, "INSERT INTO companies (company_name, company_email, company_phone, company_address, company_website, industry, company_size, description, logo, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($ins_stmt, "sssssssssss", $company_name, $email, $phone, $address, $website, $industry, $company_size, $description, $logo_name, $hashed_password, $status);
+            
+            if (mysqli_stmt_execute($ins_stmt)) {
                 $success_msg = 'Company registered successfully!';
             } else {
                 $error_msg = 'Registration failed! Please try again.';
             }
+            mysqli_stmt_close($ins_stmt);
         }
     }
 }
@@ -459,7 +483,7 @@ if (isset($_POST['register'])) {
                     <div class="alert-msg success"><i class="fas fa-check-circle"></i><?php echo $success_msg; ?>
                         Redirecting to login... <i class="fas fa-spinner fa-spin ml-2"></i>
                     </div>
-                    <script>setTimeout(function(){ window.location.href='login.php'; }, 2000);</script>
+                    <script>setTimeout(function(){ window.location.href='auth/login.php'; }, 2000);</script>
                 <?php endif; ?>
 
                 <form method="POST" action="" enctype="multipart/form-data" id="regForm">
@@ -619,10 +643,7 @@ if (isset($_POST['register'])) {
                 </form>
 
                 <div class="login-link">
-                    Already have an account? <a href="login.php">Sign in here</a>
-                </div>
-                <div class="login-link" style="margin-top: 8px;">
-                    <a href="index.php"><i class="fas fa-arrow-left mr-1"></i> Back to Home</a>
+                    Already have an account? <a href="auth/login.php">Sign in here</a>
                 </div>
             </div>
         </div>

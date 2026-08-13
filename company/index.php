@@ -211,7 +211,7 @@
 <html lang="en">
 <head>
     <title>Company Dashboard | NovaHire</title>
-    <?php include '../links.php'; ?>
+    <?php include '../includes/links.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* ══════════════ MODERN FONT ══════════════ */
@@ -862,7 +862,7 @@
                 <div class="nd-card">
                     <div class="nd-card-head">
                         <h5><span class="nd-ico" style="background:rgba(59,130,246,.1);color:#2563eb;"><i class="fas fa-stream"></i></span>Recent Activity</h5>
-                        <a class="nd-link-more" href="../notifications.php">View All</a>
+                        <a class="nd-link-more" href="../seeker/notifications.php">View All</a>
                     </div>
                     <div class="nd-card-body" style="padding-top:16px;">
                         <?php if (count($activity) > 0): ?>

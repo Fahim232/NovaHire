@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NovaHire - Welcome</title>
-    <?php include 'links.php'; ?>
+    <?php include 'includes/links.php'; ?>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -200,10 +200,10 @@
                         <i class="fas fa-user-graduate"></i>
                         <h3>Job Seeker</h3>
                         <p>Find your dream job, take skill assessments, and apply to top companies</p>
-                        <a href="login.php" class="btn-role">Login</a>
-                        <a href="registration.php" class="btn-role secondary">Register</a>
+                        <a href="auth/login.php" class="btn-role">Login</a>
+                        <a href="auth/registration.php" class="btn-role secondary">Register</a>
                         <div class="mt-3">
-                            <a href="browse_jobs.php" class="btn-role secondary" style="width: 100%;">
+                            <a href="seeker/browse_jobs.php" class="btn-role secondary" style="width: 100%;">
                                 <i class="fas fa-search mr-2"></i>Browse Jobs
                             </a>
                         </div>
@@ -283,11 +283,11 @@
         <div class="container text-center">
             <h4 style="margin-bottom: 20px;">Ready to Get Started?</h4>
             <div class="mb-4">
-                <a href="registration.php" class="btn-role mr-3">Job Seeker Signup</a>
+                <a href="auth/registration.php" class="btn-role mr-3">Job Seeker Signup</a>
                 <a href="company_registration.php" class="btn-role">Company Signup</a>
             </div>
             <div class="mt-4">
-                <a href="browse_jobs.php" style="color: white; text-decoration: underline;">
+                <a href="seeker/browse_jobs.php" style="color: white; text-decoration: underline;">
                     <i class="fas fa-search mr-2"></i>Browse Available Jobs
                 </a>
             </div>

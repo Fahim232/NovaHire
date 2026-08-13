@@ -88,7 +88,7 @@
 <html lang="en">
 <head>
     <title>Manage Quiz | Company Dashboard</title>
-    <?php include '../links.php'; ?>
+    <?php include '../includes/links.php'; ?>
     <style>
         /* Theme tokens */
         :root {
@@ -120,7 +120,6 @@
         }
 
         body {
-            padding-top: 70px;
             min-height: 100vh;
             background: var(--bg-accent-1), var(--bg-accent-2), var(--bg-main);
             color: var(--text-primary);
@@ -321,52 +320,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <?php if (!empty($_SESSION['company_logo']) && file_exists('../' . $_SESSION['company_logo'])): ?>
-                    <img src="../<?php echo $_SESSION['company_logo']; ?>" alt="<?php echo $company_name; ?>" 
-                         style="height: 35px; width: auto; object-fit: contain; margin-right: 10px; background: white; padding: 3px; border-radius: 5px;">
-                <?php else: ?>
-                    <i class="fas fa-building mr-2"></i>
-                <?php endif; ?>
-                <?php echo $company_name; ?>
-            </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php"><i class="fas fa-home mr-1"></i>Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="my_jobs.php"><i class="fas fa-briefcase mr-1"></i>My Jobs</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="post_job.php"><i class="fas fa-plus-circle mr-1"></i>Post Job</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_applicants.php"><i class="fas fa-users mr-1"></i>Job Applicants</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="category_applicants.php"><i class="fas fa-user-graduate mr-1"></i>Category Applicants</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="profile.php"><i class="fas fa-user mr-1"></i>Profile</a>
-                    </li>
-                    <li class="nav-item d-flex align-items-center mx-2">
-                        <button class="theme-toggle" id="themeToggle" type="button">
-                            <i class="fas fa-moon mr-1"></i><span id="themeLabel">Dark</span>
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-logout ml-3" href="logout.php"><i class="fas fa-sign-out-alt mr-1"></i>Logout</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php require_once __DIR__ . '/company_header.php'; ?>
 
     <div class="container">
         <!-- Job Info Card -->
@@ -515,38 +469,6 @@
     </footer>
 
     <script>
-        // Theme persistence and toggle
-        (function() {
-            const root = document.documentElement;
-            const themeToggle = document.getElementById('themeToggle');
-            const themeLabel = document.getElementById('themeLabel');
-            const storageKey = 'company-theme';
-
-            function apply(theme) {
-                root.setAttribute('data-theme', theme);
-                if (theme === 'dark') {
-                    themeLabel.textContent = 'Dark';
-                    themeToggle.innerHTML = '<i class="fas fa-moon mr-1"></i><span id="themeLabel">Dark</span>';
-                } else {
-                    themeLabel.textContent = 'Light';
-                    themeToggle.innerHTML = '<i class="fas fa-sun mr-1"></i><span id="themeLabel">Light</span>';
-                }
-                localStorage.setItem(storageKey, theme);
-            }
-
-            // Apply stored theme on load
-            const storedTheme = localStorage.getItem(storageKey) || 'dark';
-            apply(storedTheme);
-
-            // Toggle theme on button click
-            themeToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                const currentTheme = root.getAttribute('data-theme') || 'dark';
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                apply(newTheme);
-            });
-        })();
-
         // Auto-populate correct answer select based on typed options
         document.getElementById('correct_answer').addEventListener('change', function() {
             const selectedOption = this.value;
