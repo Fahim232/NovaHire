@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════
+   NovaHire AI - Shared Styles
+   Used by all AI feature pages & widgets
+   ═══════════════════════════════════════════════ */
+
+:root {
+    --ai-primary: #4f46e5;
+    --ai-secondary: #7c3aed;
+    --ai-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+    --ai-bg-card: #ffffff;
+    --ai-text: #1e293b;
+    --ai-text-muted: #64748b;
+    --ai-border: #e2e8f0;
+    --ai-radius: 16px;
+    --ai-success: #059669;
+    --ai-warning: #d97706;
+    --ai-danger: #dc2626;
+}
+
+/* ── Shared Hero ── */
+.ai-hero {
+    background: var(--ai-gradient);
+    color: white;
+    padding: 60px 0 40px;
+    margin-top: -80px;
+    position: relative;
+    overflow: hidden;
+}
+.ai-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -15%;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.ai-hero h1 { font-weight: 800; font-size: 2rem; }
+.ai-hero p { opacity: 0.85; font-size: 1.05rem; }
+.ai-hero .badge-ai {
+    background: rgba(255,255,255,0.2);
+    padding: 5px 15px; border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+/* ── Cards ── */
+.ai-card {
+    background: var(--ai-bg-card);
+    border: 1px solid var(--ai-border);
+    border-radius: var(--ai-radius);
+    padding: 26px;
+    box-shadow: 0 4px 18px rgba(79,70,229,0.06);
+}
+.ai-card h4 { font-weight: 700; color: var(--ai-text); font-size: 1.1rem; }
+
+/* ── Score Ring ── */
+.ai-score-ring { position: relative; width: 130px; height: 130px; }
+.ai-score-ring svg { transform: rotate(-90deg); width: 130px; height: 130px; }
+.ai-score-ring .ring-bg { fill: none; stroke: #e2e8f0; stroke-width: 9; }
+.ai-score-ring .ring-fill {
+    fill: none; stroke: var(--ai-primary); stroke-width: 9;
+    stroke-linecap: round; transition: stroke-dashoffset 1s ease;
+}
+.ai-score-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+}
+.ai-score-center .val { font-size: 1.6rem; font-weight: 800; color: var(--ai-text); line-height: 1; }
+.ai-score-center .lbl { font-size: 0.6rem; font-weight: 700; color: var(--ai-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+/* ── Progress bars ── */
+.ai-bar { background: #eef2f7; border-radius: 50px; height: 9px; overflow: hidden; }
+.ai-bar > div { height: 100%; border-radius: 50px; background: var(--ai-gradient); transition: width 0.8s ease; }
+
+/* ── Dimension rows ── */
+.ai-dim { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.ai-dim .ai-dim-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(79,70,229,0.1); color: var(--ai-primary); flex-shrink: 0;
+}
+.ai-dim .ai-dim-info { flex: 1; min-width: 0; }
+.ai-dim .ai-dim-info .t { font-weight: 600; font-size: 0.85rem; color: var(--ai-text); }
+.ai-dim .ai-dim-info .n { font-size: 0.75rem; color: var(--ai-text-muted); }
+
+/* ── Chips / tags ── */
+.ai-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #eef2ff; color: #4338ca;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600; margin: 3px;
+}
+.ai-chip.good { background: #d1fae5; color: #065f46; }
+.ai-chip.bad  { background: #fee2e2; color: #991b1b; }
+
+/* ── Buttons ── */
+.btn-ai {
+    background: var(--ai-gradient); color: white; border: none;
+    padding: 12px 24px; border-radius: 50px;
+    font-weight: 600; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 6px 18px rgba(79,70,229,0.3);
+}
+.btn-ai:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(79,70,229,0.4); color: white; text-decoration: none; }
+.btn-ai-outline {
+    background: white; color: var(--ai-primary); border: 2px solid var(--ai-primary);
+    padding: 11px 22px; border-radius: 50px; font-weight: 600;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.25s;
+}
+.btn-ai-outline:hover { background: var(--ai-primary); color: white; text-decoration: none; }
+
+/* ── Chat widget ── */
+.ai-chat-widget {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9990;
+}
+.ai-chat-toggle {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--ai-gradient); border: none; color: white;
+    font-size: 1.4rem; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(79,70,229,0.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+}
+.ai-chat-toggle:hover { transform: scale(1.08); }
+.ai-chat-toggle .ai-chat-ping {
+    position: absolute; top: -2px; right: -2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #ef4444; border: 2px solid white;
+    animation: aiPulse 1.5s ease-in-out infinite;
+}
+@keyframes aiPulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.7; }
+}
+.ai-chat-panel {
+    position: fixed; bottom: 96px; right: 24px; z-index: 9991;
+    width: 380px; max-width: calc(100vw - 32px);
+    height: 540px; max-height: calc(100vh - 130px);
+    background: white; border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: translateY(16px); opacity: 0; pointer-events: none;
+    transition: all 0.25s ease;
+}
+.ai-chat-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.ai-chat-head {
+    background: var(--ai-gradient); color: white;
+    padding: 16px 18px; display: flex; align-items: center; gap: 12px;
+}
+.ai-chat-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.ai-chat-head .nm { font-weight: 700; font-size: 0.95rem; }
+.ai-chat-head .st { font-size: 0.72rem; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
+.ai-chat-head .dot-on { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+.ai-chat-close { margin-left: auto; background: rgba(255,255,255,0.15); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+.ai-chat-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    background: #f8fafc; display: flex; flex-direction: column; gap: 10px;
+}
+.ai-msg { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 0.85rem; line-height: 1.5; word-wrap: break-word; }
+.ai-msg.bot { background: white; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; align-self: flex-start; }
+.ai-msg.user { background: var(--ai-primary); color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
+.ai-msg .ai-quick {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.ai-msg .ai-quick button {
+    background: #eef2ff; color: #4338ca; border: none;
+    padding: 5px 11px; border-radius: 16px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+}
+.ai-msg .ai-quick button:hover { background: #c7d2fe; }
+.ai-chat-foot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px; border-top: 1px solid #e2e8f0; background: white;
+}
+.ai-chat-foot input {
+    flex: 1; border: 1px solid #e2e8f0; border-radius: 24px;
+    padding: 10px 16px; font-size: 0.85rem; outline: none;
+}
+.ai-chat-foot input:focus { border-color: var(--ai-primary); }
+.ai-chat-foot button {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--ai-gradient); color: white; border: none; cursor: pointer;
+}
+.ai-typing { display: inline-flex; gap: 4px; align-items: center; }
+.ai-typing span { width: 6px; height: 6px; border-radius: 50%; background: #94a3b8; animation: aiBlink 1s infinite; }
+.ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+.ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiBlink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* ── Cover letter preview ── */
+.ai-letter-preview {
+    background: white; border: 1px solid var(--ai-border);
+    border-radius: var(--ai-radius); padding: 34px;
+    font-size: 0.92rem; line-height: 1.8; color: #334155;
+    white-space: pre-wrap; box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+}
+
+/* ── Mock interview Q&A ── */
+.ai-qa-box {
+    background: #f8fafc; border: 1px solid var(--ai-border);
+    border-radius: var(--ai-radius); padding: 20px; margin-bottom: 18px;
+}
+.ai-qa-box .q { font-weight: 700; color: var(--ai-text); margin-bottom: 12px; }
+.ai-qa-box textarea { width: 100%; border: 1px solid var(--ai-border); border-radius: 10px; padding: 12px; font-size: 0.85rem; }
+
+/* ── Responsive ── */
+@media (max-width: 575px) {
+    .ai-chat-panel { right: 16px; width: calc(100vw - 32px); }
+    .ai-hero { padding: 48px 0 30px; margin-top: -60px; }
+    .ai-hero h1 { font-size: 1.5rem; }
+    .ai-card { padding: 18px; }
+}
