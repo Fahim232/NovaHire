@@ -1,11 +1,12 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
-include 'admin/dbcon.php';
-include 'includes/functions.php';
+require_once __DIR__ . '/../admin/dbcon.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 $user_id = $_SESSION['id'];
 
@@ -66,7 +67,7 @@ $type_labels = [
 <html lang="en">
 <head>
     <title>Notifications | NovaHire</title>
-    <?php include 'links.php'; ?>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <style>
         .notif-container {
             max-width: 800px;
@@ -227,7 +228,7 @@ $type_labels = [
                     <a class="dropdown-item" href="profile.php"><i class="fas fa-user-circle mr-2 text-muted"></i> My Profile</a>
                     <a class="dropdown-item" href="my_application.php"><i class="fas fa-file-alt mr-2 text-muted"></i> Applications</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+                    <a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/auth/logout.php"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                 </div>
             </li>
         </ul>

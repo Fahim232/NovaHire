@@ -1,11 +1,12 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
 
-include 'admin/dbcon.php';
+require_once __DIR__ . '/../admin/dbcon.php';
 
 $user_id = $_SESSION['id'];
 
@@ -30,7 +31,7 @@ if (!$quiz_passed) {
     exit();
 }
 
-include 'header.php';
+require_once __DIR__ . '/../includes/header.php';
 
 $job_query = "SELECT cj.*, c.company_name, c.industry, c.logo,
                (SELECT COUNT(*) FROM company_job_questions WHERE job_id = cj.id) as quiz_count
@@ -140,376 +141,462 @@ if ($show_success_banner) {
 <html lang="en">
 <head>
     <title>Apply for <?php echo htmlspecialchars($job['job_title']); ?> | NovaHire</title>
-    <?php include 'links.php'; ?>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        :root {
+            --cfa-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%);
+            --cfa-grad-soft: linear-gradient(135deg, rgba(37,99,235,.12), rgba(56,189,248,.12));
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .cfa-wrap { background: var(--bg); min-height: 70vh; }
 
-        .app-container { max-width: 1100px; margin: 40px auto 60px; padding: 0 20px; }
+        /* ═══ Hero ═══ */
+        .cfa-hero {
+            position: relative;
+            background: var(--cfa-grad);
+            margin-top: -16px;
+            padding: 60px 0 170px;
+            overflow: hidden;
+            border-radius: 0 0 38px 38px;
+        }
+        .cfa-hero::before, .cfa-hero::after {
+            content: ''; position: absolute; border-radius: 50%; pointer-events: none;
+        }
+        .cfa-hero::before { top: -140px; right: -90px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); }
+        .cfa-hero::after { bottom: -180px; left: -70px; width: 380px; height: 380px; background: radial-gradient(circle, rgba(255,255,255,.12), transparent 70%); }
+        .cfa-hero-inner { position: relative; z-index: 2; }
 
-        .app-main-card {
-            background: white; border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.12); overflow: hidden;
+        .cfa-breadcrumb {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+            color: #fff; font-size: .76rem; font-weight: 700; letter-spacing: .04em;
+            padding: 7px 15px; border-radius: 999px; margin-bottom: 20px;
+        }
+        .cfa-breadcrumb i { font-size: .7rem; }
+
+        .cfa-hero h1 {
+            font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; color: #fff;
+            font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.15;
+            margin: 0 0 12px; letter-spacing: -0.02em;
+        }
+        .cfa-hero h1 span {
+            background: linear-gradient(90deg, #fde68a, #fbbf24);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .cfa-hero p.lead { color: rgba(255,255,255,.85); font-size: 1rem; font-weight: 500; max-width: 640px; margin: 0; }
+
+        .cfa-hero-meta { display: flex; align-items: center; gap: 18px; margin-top: 26px; flex-wrap: wrap; }
+        .cfa-stat {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+            backdrop-filter: blur(8px); border-radius: 16px; padding: 11px 18px;
+        }
+        .cfa-stat .num { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff; line-height: 1.15; }
+        .cfa-stat .lbl { font-size: .68rem; font-weight: 600; color: rgba(255,255,255,.78); }
+        .cfa-stat i { font-size: 1.1rem; color: #fde68a; }
+
+        /* quiz score ring */
+        .cfa-score-ring { position: relative; width: 74px; height: 74px; }
+        .cfa-score-ring svg { transform: rotate(-90deg); }
+        .cfa-score-ring .rbg { stroke: rgba(255,255,255,.25); }
+        .cfa-score-ring .rfg { stroke: url(#cfaGradRing); stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
+        .cfa-score-val {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1rem; color: #fff; line-height: 1;
+        }
+        .cfa-score-cap { font-size: .5rem; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .04em; margin-top: 2px; }
+
+        /* ═══ Floating card ═══ */
+        .cfa-card {
+            position: relative; z-index: 5;
+            max-width: 1080px; margin: -112px auto 0; 
+            background: var(--bg-card); border: 1px solid var(--border-light);
+            border-radius: 26px; box-shadow: 0 30px 70px -30px rgba(59,130,246,.45);
+            overflow: hidden;
         }
 
-        /* ── Success Banner ── */
-        .success-banner {
-            padding: 60px 40px; text-align: center; display: none;
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
-            position: relative; overflow: hidden;
+        /* success banner */
+        .cfa-success {
+            display: none; position: relative;
+            padding: 64px 40px; text-align: center;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 60%, #a7f3d0 100%);
+            overflow: hidden;
         }
-        .success-banner::before {
-            content: ''; position: absolute; top: -50%; right: -20%;
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%);
+        .cfa-success::before {
+            content: ''; position: absolute; top: -60%; right: -15%;
+            width: 420px; height: 420px;
+            background: radial-gradient(circle, rgba(16,185,129,.16), transparent 70%);
             border-radius: 50%;
         }
-        .success-banner::after {
-            content: ''; position: absolute; bottom: -30%; left: -10%;
-            width: 300px; height: 300px;
-            background: radial-gradient(circle, rgba(5,150,105,0.1) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .success-banner.show { display: block; animation: successFadeIn 0.5s ease-out; }
-        @keyframes successFadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes checkBounce {
+        .cfa-success.show { display: block; animation: cfaIn .5s ease-out; }
+        @keyframes cfaIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+        @keyframes cfaBounce {
             0% { transform: scale(0); }
-            50% { transform: scale(1.2); }
+            50% { transform: scale(1.18); }
             100% { transform: scale(1); }
         }
-        .success-banner .s-icon {
-            width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 24px;
-            background: white; display: flex; align-items: center; justify-content: center;
+        .cfa-success .s-ic {
+            width: 92px; height: 92px; border-radius: 50%; margin: 0 auto 24px;
+            background: #fff; display: flex; align-items: center; justify-content: center;
             font-size: 40px; color: #059669;
-            box-shadow: 0 8px 30px rgba(5,150,105,0.2);
+            box-shadow: 0 10px 30px rgba(5,150,105,.22);
             position: relative; z-index: 1;
-            animation: checkBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+            animation: cfaBounce .6s cubic-bezier(.34,1.56,.64,1) .2s both;
         }
-        .success-banner h2 {
-            font-size: 28px; font-weight: 800; color: #065f46; margin-bottom: 10px;
-            position: relative; z-index: 1; letter-spacing: -0.5px;
-        }
-        .success-banner p {
-            color: #047857; font-size: 16px; margin-bottom: 30px; max-width: 480px;
-            margin-left: auto; margin-right: auto; line-height: 1.6;
-            position: relative; z-index: 1;
-        }
-        .success-banner .btn-view-app {
+        .cfa-success h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: #065f46; margin-bottom: 10px; position: relative; z-index: 1; }
+        .cfa-success p { color: #047857; font-size: 15px; margin: 0 auto 28px; max-width: 500px; line-height: 1.65; position: relative; z-index: 1; }
+        .cfa-success .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
+        .cfa-success .btn-primary-x {
             display: inline-flex; align-items: center; gap: 8px;
-            background: #059669; color: white;
-            padding: 14px 36px; border-radius: 12px; text-decoration: none;
-            font-weight: 700; font-size: 15px; transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(5,150,105,0.3);
-            position: relative; z-index: 1;
+            background: linear-gradient(135deg, #059669, #10b981); color: #fff;
+            padding: 13px 28px; border-radius: 13px; text-decoration: none;
+            font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
+            box-shadow: 0 10px 24px -10px rgba(5,150,105,.6);
+            transition: transform .25s, box-shadow .3s;
         }
-        .success-banner .btn-view-app:hover {
-            background: #047857; color: white; text-decoration: none;
-            transform: translateY(-2px); box-shadow: 0 8px 25px rgba(5,150,105,0.4);
-        }
-        .success-banner .btn-back-home {
+        .cfa-success .btn-primary-x:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(16,185,129,.65); color: #fff; text-decoration: none; }
+        .cfa-success .btn-ghost-x {
             display: inline-flex; align-items: center; gap: 8px;
-            background: white; color: #059669;
-            padding: 14px 36px; border-radius: 12px; text-decoration: none;
-            font-weight: 700; font-size: 15px; transition: all 0.3s;
-            border: 2px solid #bbf7d0;
-            position: relative; z-index: 1; margin-left: 12px;
+            background: #fff; color: #047857;
+            padding: 13px 28px; border-radius: 13px; text-decoration: none;
+            font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
+            border: 2px solid #a7f3d0; transition: all .25s;
         }
-        .success-banner .btn-back-home:hover {
-            border-color: #059669; background: #f0fdf4; color: #047857;
-            text-decoration: none; transform: translateY(-2px);
-        }
+        .cfa-success .btn-ghost-x:hover { border-color: #10b981; transform: translateY(-2px); color: #047857; text-decoration: none; }
 
-        /* ── Header Section ── */
-        .app-header {
-            padding: 40px 44px 32px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .app-header .top-row {
-            display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;
-        }
-        .app-header .back-link {
-            color: #667eea; text-decoration: none; font-weight: 600; font-size: 14px;
-            display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;
-        }
-        .app-header .back-link:hover { color: #764ba2; text-decoration: none; }
-        .app-header h1 {
-            font-size: 28px; font-weight: 800; color: #1e293b; margin: 16px 0 6px;
-        }
-        .app-header .subtitle { color: #64748b; font-size: 15px; margin: 0; }
-        .quiz-pass-badge {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: #d1fae5; color: #065f46; padding: 8px 18px;
-            border-radius: 50px; font-weight: 700; font-size: 13px;
-        }
+        /* ═══ Content sections ═══ */
+        .cfa-body { padding: 34px 44px 44px; }
+        .cfa-section { margin-bottom: 34px; }
+        .cfa-section:last-child { margin-bottom: 0; }
 
-        /* ── Job Info Banner ── */
-        .job-info-banner {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px; padding: 24px 28px; margin: 0 44px 32px; color: white;
+        .cfa-sec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+        .cfa-sec-head .ic {
+            width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.05rem; background: var(--cfa-grad-soft);
+            border: 1px solid rgba(59,130,246,.22); color: var(--primary);
         }
-        .job-info-banner .job-title-row {
-            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-        }
-        .job-info-banner h3 {
-            font-size: 20px; font-weight: 800; margin: 0 0 12px 0;
-        }
-        .job-info-banner .meta-pills {
-            display: flex; flex-wrap: wrap; gap: 12px;
-        }
-        .job-info-banner .pill {
-            background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px;
-            font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
-        }
+        .cfa-sec-head h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.12rem; color: var(--text); margin: 0; }
+        .cfa-sec-head p { color: var(--text-muted); font-size: .82rem; margin: 2px 0 0; }
 
-        /* ── Section Layout ── */
-        .app-body { padding: 0 44px 44px; }
-        .section-block { margin-bottom: 36px; }
-        .section-title {
-            font-size: 18px; font-weight: 700; color: #1e293b;
-            margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
-            padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;
+        /* job banner inside card */
+        .cfa-jobbar {
+            display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+            background: var(--cfa-grad); border-radius: 18px; padding: 22px 26px;
+            color: #fff; margin-bottom: 34px;
         }
-        .section-title i {
-            width: 32px; height: 32px; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        .cfa-joblogo {
+            flex: 0 0 64px; height: 64px; border-radius: 15px; overflow: hidden;
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+            display: flex; align-items: center; justify-content: center; padding: 8px;
         }
-        .section-title .si-purple { background: #ede9fe; color: #7c3aed; }
-        .section-title .si-blue { background: #dbeafe; color: #2563eb; }
-        .section-title .si-green { background: #d1fae5; color: #059669; }
-        .section-title .si-amber { background: #fef3c7; color: #d97706; }
+        .cfa-joblogo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .cfa-joblogo .no-img { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.4rem; color: #fff; }
+        .cfa-jobinfo { flex: 1; min-width: 200px; }
+        .cfa-jobinfo h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.15rem; margin: 0 0 8px; color: #fff; }
+        .cfa-jobinfo .cfa-jmeta { display: flex; flex-wrap: wrap; gap: 8px; }
+        .cfa-jmeta .pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+            padding: 5px 13px; border-radius: 999px;
+            font-size: .76rem; font-weight: 700;
+        }
+        .cfa-jmeta .pill i { color: #fde68a; font-size: .78rem; }
+        .cfa-dl-badge {
+            flex-shrink: 0; text-align: right;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
+            border-radius: 14px; padding: 10px 16px;
+        }
+        .cfa-dl-badge .lbl { font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.75); }
+        .cfa-dl-badge .val { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: .95rem; color: #fff; }
 
-        /* ── Profile Fields ── */
-        .profile-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+        /* profile fields */
+        .cfa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .cfa-field label {
+            display: flex; align-items: center; gap: 7px;
+            font-size: .74rem; font-weight: 800; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px;
         }
-        .profile-field { }
-        .profile-field label {
-            display: block; font-size: 13px; font-weight: 700; color: #64748b;
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
-        }
-        .profile-field .field-value {
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-            padding: 12px 16px; font-size: 15px; color: #1e293b; font-weight: 500;
+        .cfa-field label i { color: var(--primary); font-size: .8rem; }
+        .cfa-field .val {
+            background: var(--bg-hover); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 13px 16px;
+            font-size: .92rem; color: var(--text); font-weight: 600;
             min-height: 46px; display: flex; align-items: center;
         }
-        .profile-field .field-value.editable {
-            background: white; border: 2px solid #e2e8f0; padding: 0;
+        .cfa-field.full { grid-column: 1 / -1; }
+        .cfa-skills { display: flex; flex-wrap: wrap; gap: 7px; }
+        .cfa-skill {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: #2563eb; background: rgba(37,99,235,.09);
+            border: 1px solid rgba(37,99,235,.16);
+            padding: 5px 13px; border-radius: 999px;
+            font-size: .78rem; font-weight: 700;
         }
-        .profile-field .field-value.editable input,
-        .profile-field .field-value.editable select {
-            border: none; outline: none; background: transparent; width: 100%;
-            padding: 12px 16px; font-size: 15px; color: #1e293b; font-weight: 500;
-        }
-        .profile-field .field-value.editable input:focus,
-        .profile-field .field-value.editable select:focus {
-            box-shadow: none;
-        }
-        .profile-field.full-width { grid-column: 1 / -1; }
+        [data-theme="dark"] .cfa-skill { color: #93c5fd; }
+        .cfa-muted-note { margin-top: 14px; font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+        .cfa-muted-note a { color: var(--primary); font-weight: 700; }
 
-        /* ── Compact CV Preview ── */
-        .cv-preview-wrap {
-            border: 2px solid #e2e8f0; border-radius: 16px; overflow: hidden;
-            background: white;
+        /* CV preview */
+        .cfa-cv-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 15px 20px; background: var(--bg-hover);
+            border: 1px solid var(--border-light); border-radius: 14px 14px 0 0;
+            cursor: pointer; transition: background .2s;
         }
-        .cv-preview {
+        .cfa-cv-toggle:hover { background: var(--border-light); }
+        .cfa-cv-toggle span { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem; color: var(--text); display: flex; align-items: center; gap: 9px; }
+        .cfa-cv-toggle span .tic {
+            width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            color: var(--primary); background: var(--cfa-grad-soft); font-size: .9rem;
+        }
+        .cfa-cv-toggle .chev { color: var(--primary); transition: transform .3s; }
+        .cfa-cv-toggle.collapsed .chev { transform: rotate(-90deg); }
+        .cfa-cv-wrap {
+            overflow: hidden; transition: max-height .45s cubic-bezier(.4,0,.2,1);
+        }
+        .cfa-cv {
             display: grid; grid-template-columns: 30% 70%; min-height: 380px;
+            border: 1px solid var(--border-light); border-top: 0; border-radius: 0 0 14px 14px;
+            background: var(--bg-card);
         }
-        .cv-sidebar-preview {
-            background: linear-gradient(135deg, #1a3a52, #2c3e50);
-            padding: 28px 20px; color: white;
-        }
-        .cv-sidebar-preview .cv-profile-img {
-            width: 80px; height: 80px; border-radius: 50%; border: 3px solid white;
+        .cfa-cv-side { background: linear-gradient(160deg, #1a2b4a, #2c3e50); padding: 28px 22px; color: #fff; }
+        .cfa-cv-side .cv-avatar {
+            width: 82px; height: 82px; border-radius: 50%; border: 3px solid #fff;
             margin: 0 auto 16px; object-fit: cover; display: block;
+            background: rgba(255,255,255,.2);
         }
-        .cv-sidebar-preview .cv-section-title {
-            font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
-            font-weight: 700; margin: 18px 0 10px; padding-bottom: 6px;
-            border-bottom: 2px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.9);
+        .cfa-cv-side .cv-stitle {
+            font-size: .62rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 700;
+            margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 2px solid rgba(255,255,255,.28);
+            color: rgba(255,255,255,.9);
         }
-        .cv-sidebar-preview .cv-contact-item {
+        .cfa-cv-side .cv-item {
             display: flex; align-items: flex-start; gap: 8px;
-            font-size: 11px; color: rgba(255,255,255,0.85); margin-bottom: 8px; line-height: 1.4;
+            font-size: .68rem; color: rgba(255,255,255,.85); margin-bottom: 8px; line-height: 1.45;
         }
-        .cv-sidebar-preview .cv-contact-item i { color: #e74c3c; font-size: 11px; margin-top: 2px; width: 14px; flex-shrink: 0; }
-        .cv-sidebar-preview .cv-skill-tag {
-            display: inline-block; background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.25); color: white;
-            padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600;
+        .cfa-cv-side .cv-item i { color: #38bdf8; font-size: .7rem; margin-top: 2px; width: 13px; flex-shrink: 0; }
+        .cfa-cv-side .cv-tag {
+            display: inline-block; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+            color: #fff; padding: 3px 10px; border-radius: 12px; font-size: .62rem; font-weight: 600;
             margin: 0 4px 6px 0;
         }
-        .cv-main-preview { padding: 28px 24px; }
-        .cv-main-preview .cv-name {
-            font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700;
-            color: #1a3a52; margin: 0 0 4px;
+        .cfa-cv-main { padding: 28px 26px; }
+        .cfa-cv-main .cv-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.35rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+        .cfa-cv-main .cv-role { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #2563eb; font-weight: 700; margin: 0 0 14px; }
+        .cfa-cv-main .cv-divider { width: 42px; height: 3px; background: var(--cfa-grad); margin-bottom: 20px; border-radius: 3px; }
+        .cfa-cv-main .cv-title {
+            font-family: 'Plus Jakarta Sans', sans-serif; font-size: .9rem; font-weight: 700; color: var(--text);
+            margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid #38bdf8;
+            display: flex; align-items: center;
         }
-        .cv-main-preview .cv-role {
-            font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
-            color: #2980b9; font-weight: 600; margin: 0 0 16px;
+        .cfa-cv-main .cv-title::before {
+            content: ''; width: 6px; height: 6px; background: #fbbf24;
+            border-radius: 50%; margin-right: 9px;
         }
-        .cv-main-preview .cv-divider {
-            width: 40px; height: 3px; background: linear-gradient(90deg, #2980b9, #e74c3c);
-            margin-bottom: 18px; border-radius: 2px;
+        .cfa-cv-main .cv-summary {
+            font-size: .76rem; line-height: 1.7; color: var(--text-muted);
+            background: var(--cfa-grad-soft); border-left: 3px solid #3b82f6;
+            padding: 14px; border-radius: 6px; margin-bottom: 20px;
         }
-        .cv-main-preview .cv-section-title {
-            font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700;
-            color: #1a3a52; margin: 0 0 12px; padding-bottom: 6px;
-            border-bottom: 2px solid #2980b9; display: flex; align-items: center;
-        }
-        .cv-main-preview .cv-section-title::before {
-            content: ''; display: inline-block; width: 5px; height: 5px;
-            background: #e74c3c; border-radius: 50%; margin-right: 8px;
-        }
-        .cv-main-preview .cv-summary {
-            font-size: 12px; line-height: 1.7; color: #4a5568;
-            background: linear-gradient(135deg, rgba(41,128,185,0.08), rgba(231,76,60,0.04));
-            padding: 14px; border-left: 3px solid #2980b9; border-radius: 4px;
-        }
-        .cv-main-preview .cv-edu-item { margin-bottom: 14px; }
-        .cv-main-preview .cv-edu-title { font-weight: 700; font-size: 13px; color: #1a3a52; margin: 0; }
-        .cv-main-preview .cv-edu-sub { color: #2980b9; font-size: 11px; font-weight: 600; margin: 3px 0; }
-        .cv-main-preview .cv-edu-desc { font-size: 11px; color: #64748b; line-height: 1.6; margin: 0; }
-        .cv-preview-toggle {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-            cursor: pointer; transition: background 0.2s;
-        }
-        .cv-preview-toggle:hover { background: #f1f5f9; }
-        .cv-preview-toggle span { font-weight: 700; font-size: 14px; color: #475569; display: flex; align-items: center; gap: 8px; }
-        .cv-preview-toggle i { color: #667eea; transition: transform 0.3s; }
-        .cv-preview-toggle.collapsed i { transform: rotate(-90deg); }
+        .cfa-cv-main .cv-edu-title { font-weight: 700; font-size: .82rem; color: var(--text); margin: 0; }
+        .cfa-cv-main .cv-edu-sub { color: #3b82f6; font-size: .7rem; font-weight: 700; margin: 3px 0; }
+        .cfa-cv-main .cv-edu-desc { font-size: .7rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
-        /* ── Cover Letter ── */
-        .cover-textarea {
-            width: 100%; min-height: 180px; border: 2px solid #e2e8f0; border-radius: 12px;
-            padding: 16px 18px; font-size: 15px; color: #1e293b; resize: vertical;
-            font-family: inherit; line-height: 1.7; transition: border-color 0.3s;
+        /* cover letter */
+        .cfa-textarea {
+            width: 100%; min-height: 190px;
+            border: 1.5px solid var(--border-light); border-radius: 14px;
+            background: var(--bg-hover); color: var(--text);
+            padding: 16px 18px; font-size: .92rem; resize: vertical;
+            font-family: 'Inter', sans-serif; line-height: 1.7;
+            transition: all .2s;
         }
-        .cover-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
-        .cover-textarea::placeholder { color: #94a3b8; }
-
-        /* ── Error ── */
-        .alert-error {
-            background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;
-            padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;
-            color: #991b1b; font-weight: 500;
+        .cfa-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.14); background: var(--bg-card); }
+        .cfa-textarea::placeholder { color: var(--text-light); }
+        .cfa-count-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 8px; }
+        .cfa-count {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: .78rem; font-weight: 700; color: var(--text-muted);
+            background: var(--bg-hover); border: 1px solid var(--border-light);
+            padding: 5px 12px; border-radius: 999px;
         }
-        .alert-error i { color: #dc2626; font-size: 20px; }
+        .cfa-count span { color: var(--primary); font-family: 'Plus Jakarta Sans', sans-serif; }
+        .cfa-tip { font-size: .78rem; font-weight: 600; color: var(--text-muted); display: inline-flex; align-items: center; gap: 7px; }
+        .cfa-tip i { color: #f59e0b; }
 
-        /* ── Submit Button ── */
-        .submit-section { text-align: center; padding-top: 8px; }
-        .btn-submit-app {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 16px 60px; border-radius: 50px; border: none;
-            font-size: 17px; font-weight: 700; cursor: pointer;
-            transition: all 0.3s; box-shadow: 0 8px 30px rgba(102,126,234,0.3);
-            letter-spacing: 0.3px;
+        /* error */
+        .cfa-error {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.22);
+            border-left: 4px solid #ef4444; border-radius: 13px;
+            padding: 14px 16px; margin-bottom: 24px;
         }
-        .btn-submit-app:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(102,126,234,0.4); }
-        .btn-submit-app:active { transform: translateY(-1px); }
-        .btn-submit-app:disabled { background: #cbd5e0; cursor: not-allowed; box-shadow: none; transform: none; }
-        .submit-note { color: #94a3b8; font-size: 13px; margin-top: 14px; }
+        .cfa-error .ic { color: #dc2626; font-size: 1.05rem; margin-top: 1px; }
+        .cfa-error span { color: var(--text); font-weight: 700; font-size: .86rem; }
 
-        /* ── Footer ── */
-        .app-footer {
-            text-align: center; padding: 24px; color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 10px;
+        /* submit */
+        .cfa-submit-zone { text-align: center; padding-top: 6px; }
+        .cfa-submit {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .98rem;
+            color: #fff; background: var(--cfa-grad); background-size: 150% 150%;
+            padding: 16px 62px; border-radius: 15px; border: 0; cursor: pointer;
+            box-shadow: 0 14px 30px -12px rgba(56,189,248,.65);
+            transition: transform .25s, box-shadow .3s, background-position .4s;
         }
+        .cfa-submit:hover { transform: translateY(-3px); background-position: 100% 50%; box-shadow: 0 20px 40px -14px rgba(56,189,248,.75); }
+        .cfa-submit:active { transform: translateY(-1px); }
+        .cfa-submit:disabled { background: var(--border-light); color: var(--text-light); cursor: not-allowed; box-shadow: none; transform: none; }
+        .cfa-note { color: var(--text-muted); font-size: .82rem; font-weight: 600; margin-top: 15px; }
+        .cfa-note i { color: var(--primary); }
 
-        @media (max-width: 768px) {
-            .app-header, .app-body { padding-left: 24px; padding-right: 24px; }
-            .job-info-banner { margin-left: 24px; margin-right: 24px; }
-            .app-header h1 { font-size: 22px; }
-            .profile-grid { grid-template-columns: 1fr; }
-            .cv-preview { grid-template-columns: 1fr; }
-            .cv-sidebar-preview { border-bottom: none; }
-            .btn-submit-app { width: 100%; padding: 14px; }
-            .success-banner { padding: 40px 24px; }
-            .success-banner h2 { font-size: 22px; }
-            .success-banner .btn-view-app,
-            .success-banner .btn-back-home { display: block; width: 100%; margin: 0 0 12px; justify-content: center; text-align: center; }
-            .success-banner .btn-back-home { margin-left: 0; }
+        .cfa-footer { text-align: center; padding: 30px 0 44px; color: var(--text-light); font-size: .82rem; font-weight: 600; }
+
+        .cfa-fade { opacity: 0; transform: translateY(16px); animation: cfaUp .5s ease forwards; }
+        @keyframes cfaUp { to { opacity: 1; transform: none; } }
+
+        /* ═══ Responsive ═══ */
+        @media (max-width: 860px) {
+            .cfa-hero { padding: 48px 0 150px; border-radius: 0 0 28px 28px; }
+            .cfa-card { margin-top: -100px; border-radius: 20px; }
+            .cfa-body { padding: 24px 22px 32px; }
+            .cfa-grid { grid-template-columns: 1fr; }
+            .cfa-cv { grid-template-columns: 1fr; }
+            .cfa-dl-badge { text-align: left; width: 100%; }
+        }
+        @media (max-width: 480px) {
+            .cfa-body { padding: 20px 16px 26px; }
+            .cfa-submit { width: 100%; padding: 15px; }
+            .cfa-success { padding: 44px 22px; }
+            .cfa-success .btn-primary-x, .cfa-success .btn-ghost-x { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="app-main-card">
-            <!-- Success Banner -->
-            <div class="success-banner" id="successBanner">
-                <div class="s-icon"><i class="fas fa-check"></i></div>
-                <h2>Application Submitted Successfully!</h2>
-                <p><?php echo $show_success_banner ? htmlspecialchars($banner_message) : 'Your application has been sent to the company. They will review your profile and quiz results.'; ?></p>
-                <div>
-                    <a href="my_application.php" class="btn-view-app"><i class="fas fa-list mr-2"></i>View My Applications</a>
-                    <a href="seeker_dashboard.php" class="btn-back-home"><i class="fas fa-home mr-2"></i>Back to Dashboard</a>
-                </div>
-            </div>
+<div class="cfa-wrap">
 
-            <!-- Header -->
-            <div class="app-header">
-                <div class="top-row">
-                    <div>
-                        <a href="job_details.php?id=<?php echo $job_id; ?>" class="back-link">
-                            <i class="fas fa-arrow-left"></i> Back to Job Details
-                        </a>
-                        <h1><i class="fas fa-paper-plane mr-2" style="color: #667eea;"></i>Submit Application</h1>
-                        <p class="subtitle">Complete your application for this position</p>
+    <!-- Hero -->
+    <div class="cfa-hero">
+        <div class="container cfa-hero-inner">
+            <a href="job_details.php?id=<?php echo $job_id; ?>" class="cfa-breadcrumb">
+                <i class="fas fa-arrow-left"></i> Dashboard <i class="fas fa-chevron-right"></i> Apply
+            </a>
+            <h1>Submit Your <span>Application</span></h1>
+            <p class="lead">You're one step away from joining <?php echo htmlspecialchars($job['company_name']); ?>. Your quiz score is shared with the employer.</p>
+
+            <div class="cfa-hero-meta">
+                <?php
+                $ring_c = 2 * 3.14159 * 30;
+                $ring_off = $ring_c - (min($quiz_score, 100) / 100) * $ring_c;
+                ?>
+                <div class="cfa-score-ring">
+                    <svg viewBox="0 0 74 74" width="74" height="74">
+                        <defs>
+                            <linearGradient id="cfaGradRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fde68a"/>
+                                <stop offset="100%" stop-color="#fbbf24"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="rbg" cx="37" cy="37" r="30" fill="none" stroke-width="6"/>
+                        <circle class="rfg" cx="37" cy="37" r="30" fill="none" stroke-width="6"
+                            stroke-dasharray="<?php echo $ring_c; ?>"
+                            stroke-dashoffset="<?php echo $ring_off; ?>"/>
+                    </svg>
+                    <div class="cfa-score-val"><?php echo $quiz_score; ?>%<span class="cfa-score-cap">Quiz</span></div>
+                </div>
+                <div class="cfa-stat"><i class="fas fa-building"></i><div><div class="num"><?php echo htmlspecialchars($job['company_name']); ?></div><div class="lbl">Company</div></div></div>
+                <div class="cfa-stat"><i class="fas fa-map-marker-alt"></i><div><div class="num"><?php echo htmlspecialchars($job['location']); ?></div><div class="lbl">Location</div></div></div>
+                <div class="cfa-stat"><i class="fas fa-clock"></i><div><div class="num"><?php echo htmlspecialchars($job['employment_type']); ?></div><div class="lbl">Type</div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main card -->
+    <div class="cfa-card cfa-fade" style="animation-delay:.1s">
+
+        <!-- Success Banner -->
+        <div class="cfa-success" id="successBanner">
+            <div class="s-ic"><i class="fas fa-check"></i></div>
+            <h2>Application Submitted Successfully!</h2>
+            <p><?php echo $show_success_banner ? htmlspecialchars($banner_message) : 'Your application has been sent to the company. They will review your profile and quiz results.'; ?></p>
+            <div class="btn-row">
+                <a href="my_application.php" class="btn-primary-x"><i class="fas fa-list mr-2"></i>View My Applications</a>
+                <a href="seeker_dashboard.php" class="btn-ghost-x"><i class="fas fa-home mr-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <form method="POST" id="applicationForm">
+            <div class="cfa-body" id="cfaFormBody">
+
+                <?php if (!empty($error_message)): ?>
+                    <div class="cfa-error">
+                        <i class="fas fa-exclamation-circle ic"></i>
+                        <span><?php echo htmlspecialchars($error_message); ?></span>
                     </div>
-                    <div class="quiz-pass-badge">
-                        <i class="fas fa-check-circle"></i> Quiz Passed &mdash; <?php echo $quiz_score; ?>%
+                <?php endif; ?>
+
+                <!-- Job banner -->
+                <div class="cfa-jobbar cfa-fade" style="animation-delay:.14s">
+                    <div class="cfa-joblogo">
+                        <?php if (!empty($job['logo'])): ?>
+                            <img src="<?php echo BASE_URL; ?>/uploads/company_logos/<?php echo htmlspecialchars($job['logo']); ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?>">
+                        <?php else: ?>
+                            <span class="no-img"><?php echo htmlspecialchars(substr($job['company_name'], 0, 1)); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="cfa-jobinfo">
+                        <h4><?php echo htmlspecialchars($job['job_title']); ?></h4>
+                        <div class="cfa-jmeta">
+                            <span class="pill"><i class="fas fa-building"></i><?php echo htmlspecialchars($job['company_name']); ?></span>
+                            <span class="pill"><i class="fas fa-map-marker-alt"></i><?php echo htmlspecialchars($job['location']); ?></span>
+                            <span class="pill"><i class="fas fa-briefcase"></i><?php echo htmlspecialchars($job['employment_type']); ?></span>
+                            <?php if ($job['salary_range']): ?>
+                                <span class="pill"><i class="fas fa-dollar-sign"></i><?php echo htmlspecialchars($job['salary_range']); ?></span>
+                            <?php endif; ?>
+                            <?php if (!empty($job['industry'])): ?>
+                                <span class="pill"><i class="fas fa-industry"></i><?php echo htmlspecialchars($job['industry']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="cfa-dl-badge">
+                        <div class="lbl">Deadline</div>
+                        <div class="val"><?php echo htmlspecialchars(date('M d, Y', strtotime($job['deadline']))); ?></div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Job Info Banner -->
-            <div class="job-info-banner">
-                <h3><i class="fas fa-briefcase mr-2"></i><?php echo htmlspecialchars($job['job_title']); ?></h3>
-                <div class="meta-pills">
-                    <span class="pill"><i class="fas fa-building"></i><?php echo htmlspecialchars($job['company_name']); ?></span>
-                    <span class="pill"><i class="fas fa-map-marker-alt"></i><?php echo htmlspecialchars($job['location']); ?></span>
-                    <span class="pill"><i class="fas fa-clock"></i><?php echo htmlspecialchars($job['employment_type']); ?></span>
-                    <?php if ($job['salary_range']): ?>
-                        <span class="pill"><i class="fas fa-dollar-sign"></i><?php echo htmlspecialchars($job['salary_range']); ?></span>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <form method="POST" id="applicationForm">
-                <div class="app-body">
-                    <?php if (!empty($error_message)): ?>
-                        <div class="alert-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <?php echo htmlspecialchars($error_message); ?>
+                <!-- Your Profile -->
+                <div class="cfa-section cfa-fade" style="animation-delay:.18s">
+                    <div class="cfa-sec-head">
+                        <div class="ic"><i class="fas fa-user"></i></div>
+                        <div>
+                            <h3>Your Profile Information</h3>
+                            <p>This information will be shared with the employer.</p>
                         </div>
-                    <?php endif; ?>
-
-                    <!-- Your Profile -->
-                    <div class="section-block">
-                        <div class="section-title">
-                            <i class="fas fa-user si-purple"></i> Your Profile Information
+                    </div>
+                    <div class="cfa-grid">
+                        <div class="cfa-field">
+                            <label><i class="fas fa-id-badge"></i> Full Name</label>
+                            <div class="val"><?php echo htmlspecialchars($user_data['username']); ?></div>
                         </div>
-                        <div class="profile-grid">
-                            <div class="profile-field">
-                                <label>Full Name</label>
-                                <div class="field-value"><?php echo htmlspecialchars($user_data['username']); ?></div>
-                            </div>
-                            <div class="profile-field">
-                                <label>Email Address</label>
-                                <div class="field-value"><?php echo htmlspecialchars($user_data['email']); ?></div>
-                            </div>
-                            <div class="profile-field">
-                                <label>Phone Number</label>
-                                <div class="field-value"><?php echo htmlspecialchars($user_data['phone'] ?: 'Not provided'); ?></div>
-                            </div>
-                            <div class="profile-field">
-                                <label>Degree / Education</label>
-                                <div class="field-value"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Not provided'); ?></div>
-                            </div>
-                            <div class="profile-field full-width">
-                                <label>Skills</label>
-                                <div class="field-value" style="flex-wrap: wrap; gap: 6px;">
+                        <div class="cfa-field">
+                            <label><i class="fas fa-envelope"></i> Email Address</label>
+                            <div class="val"><?php echo htmlspecialchars($user_data['email']); ?></div>
+                        </div>
+                        <div class="cfa-field">
+                            <label><i class="fas fa-phone-alt"></i> Phone Number</label>
+                            <div class="val"><?php echo htmlspecialchars($user_data['phone'] ?: 'Not provided'); ?></div>
+                        </div>
+                        <div class="cfa-field">
+                            <label><i class="fas fa-graduation-cap"></i> Degree / Education</label>
+                            <div class="val"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Not provided'); ?></div>
+                        </div>
+                        <div class="cfa-field full">
+                            <label><i class="fas fa-tools"></i> Skills</label>
+                            <div class="val">
+                                <div class="cfa-skills">
                                     <?php
                                     $skills = explode(',', $user_data['user_skills'] ?? '');
                                     $has_skills = false;
@@ -517,153 +604,194 @@ if ($show_success_banner) {
                                         $s = trim($s);
                                         if ($s !== '') {
                                             $has_skills = true;
-                                            echo '<span style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">' . htmlspecialchars($s) . '</span>';
+                                            echo '<span class="cfa-skill">' . htmlspecialchars($s) . '</span>';
                                         }
                                     }
-                                    if (!$has_skills) echo '<span style="color: #94a3b8;">Not provided</span>';
+                                    if (!$has_skills) echo '<span class="text-muted">Not provided</span>';
                                     ?>
                                 </div>
                             </div>
                         </div>
-                        <div style="margin-top: 12px; font-size: 13px; color: #94a3b8;">
-                            <i class="fas fa-info-circle mr-1"></i> To update your profile, visit your <a href="profile.php" style="color: #667eea; font-weight: 600;">profile page</a>.
-                        </div>
                     </div>
+                    <div class="cfa-muted-note">
+                        <i class="fas fa-info-circle mr-1"></i> To update your profile, visit your <a href="profile.php">profile page</a>.
+                    </div>
+                </div>
 
-                    <!-- Auto-Generated CV Preview -->
-                    <div class="section-block">
-                        <div class="cv-preview-toggle" id="cvToggle" onclick="toggleCvPreview()">
-                            <span><i class="fas fa-file-alt" style="color: #667eea;"></i> Auto-Generated CV Preview</span>
-                            <i class="fas fa-chevron-up" id="cvToggleIcon"></i>
-                        </div>
-                        <div class="cv-preview-wrap" id="cvPreviewWrap">
-                            <div class="cv-preview">
-                                <!-- Sidebar -->
-                                <div class="cv-sidebar-preview">
-                                    <?php if (!empty($user_data['profile'])): ?>
-                                        <img src="images/<?php echo htmlspecialchars($user_data['profile']); ?>" alt="Profile" class="cv-profile-img">
-                                    <?php else: ?>
-                                        <div class="cv-profile-img" style="background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 28px; color: rgba(255,255,255,0.6);">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                    <?php endif; ?>
+                <!-- Auto-Generated CV Preview -->
+                <div class="cfa-section cfa-fade" style="animation-delay:.22s">
+                    <div class="cfa-cv-toggle" id="cvToggle" onclick="toggleCvPreview()">
+                        <span>
+                            <span class="tic"><i class="fas fa-file-alt"></i></span>
+                            Auto-Generated CV Preview
+                        </span>
+                        <i class="fas fa-chevron-up chev" id="cvToggleIcon"></i>
+                    </div>
+                    <div class="cfa-cv-wrap" id="cvPreviewWrap">
+                        <div class="cfa-cv">
+                            <!-- Sidebar -->
+                            <div class="cfa-cv-side">
+                                <?php if (!empty($user_data['profile'])): ?>
+                                    <img src="images/<?php echo htmlspecialchars($user_data['profile']); ?>" alt="Profile" class="cv-avatar">
+                                <?php else: ?>
+                                    <div class="cv-avatar" style="display: flex; align-items: center; justify-content: center; font-size: 30px; color: rgba(255,255,255,.55);">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                <?php endif; ?>
 
-                                    <div class="cv-section-title">Contact</div>
-                                    <div class="cv-contact-item">
-                                        <i class="fas fa-envelope"></i>
-                                        <span><?php echo htmlspecialchars($user_data['email']); ?></span>
-                                    </div>
-                                    <div class="cv-contact-item">
-                                        <i class="fas fa-phone-alt"></i>
-                                        <span><?php echo htmlspecialchars($user_data['phone'] ?: 'N/A'); ?></span>
-                                    </div>
-                                    <div class="cv-contact-item">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <span>Bangladesh</span>
-                                    </div>
-
-                                    <div class="cv-section-title">Skills</div>
-                                    <div>
-                                        <?php foreach ($skills as $s): ?>
-                                            <?php if (trim($s) !== ''): ?>
-                                                <span class="cv-skill-tag"><?php echo htmlspecialchars(trim($s)); ?></span>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    </div>
+                                <div class="cv-stitle">Contact</div>
+                                <div class="cv-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span><?php echo htmlspecialchars($user_data['email']); ?></span>
+                                </div>
+                                <div class="cv-item">
+                                    <i class="fas fa-phone-alt"></i>
+                                    <span><?php echo htmlspecialchars($user_data['phone'] ?: 'N/A'); ?></span>
+                                </div>
+                                <div class="cv-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>Bangladesh</span>
                                 </div>
 
-                                <!-- Main -->
-                                <div class="cv-main-preview">
-                                    <h2 class="cv-name"><?php echo htmlspecialchars($user_data['username']); ?></h2>
-                                    <p class="cv-role"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Professional'); ?></p>
-                                    <div class="cv-divider"></div>
+                                <div class="cv-stitle">Skills</div>
+                                <div>
+                                    <?php foreach ($skills as $s): ?>
+                                        <?php if (trim($s) !== ''): ?>
+                                            <span class="cv-tag"><?php echo htmlspecialchars(trim($s)); ?></span>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
 
-                                    <div style="margin-bottom: 20px;">
-                                        <h3 class="cv-section-title">About</h3>
-                                        <p class="cv-summary">
-                                            Motivated and detail-oriented <?php echo htmlspecialchars($user_data['user_degree'] ?? 'professional'); ?> with a strong foundation in <?php echo htmlspecialchars($user_data['user_skills'] ?? 'relevant technologies'); ?>.
-                                            Eager to join the workforce and contribute to projects that require innovative thinking and problem-solving skills.
-                                        </p>
-                                    </div>
+                            <!-- Main -->
+                            <div class="cfa-cv-main">
+                                <h2 class="cv-name"><?php echo htmlspecialchars($user_data['username']); ?></h2>
+                                <p class="cv-role"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Professional'); ?></p>
+                                <div class="cv-divider"></div>
 
-                                    <div>
-                                        <h3 class="cv-section-title">Education</h3>
-                                        <div class="cv-edu-item">
-                                            <p class="cv-edu-title"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Degree'); ?></p>
-                                            <p class="cv-edu-sub">United International University</p>
-                                            <p class="cv-edu-desc">Successfully completed degree with focus on core computing principles.</p>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <h3 class="cv-title">About</h3>
+                                    <p class="cv-summary">
+                                        Motivated and detail-oriented <?php echo htmlspecialchars($user_data['user_degree'] ?? 'professional'); ?> with a strong foundation in <?php echo htmlspecialchars($user_data['user_skills'] ?? 'relevant technologies'); ?>.
+                                        Eager to join the workforce and contribute to projects that require innovative thinking and problem-solving skills.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h3 class="cv-title">Education</h3>
+                                    <p class="cv-edu-title"><?php echo htmlspecialchars($user_data['user_degree'] ?: 'Degree'); ?></p>
+                                    <p class="cv-edu-sub">United International University</p>
+                                    <p class="cv-edu-desc">Successfully completed degree with focus on core computing principles.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Cover Letter -->
-                    <div class="section-block">
-                        <div class="section-title">
-                            <i class="fas fa-pen si-blue"></i> Cover Letter
+                <!-- Cover Letter -->
+                <div class="cfa-section cfa-fade" style="animation-delay:.26s">
+                    <div class="cfa-sec-head">
+                        <div class="ic" style="background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.25); color: #2563eb;"><i class="fas fa-pen"></i></div>
+                        <div>
+                            <h3>Cover Letter</h3>
+                            <p>Tell the employer why you're the perfect fit.</p>
                         </div>
-                        <textarea
-                            name="cover_letter"
-                            class="cover-textarea"
-                            required
-                            placeholder="Tell <?php echo htmlspecialchars($job['company_name']); ?> why you're a great fit for the <?php echo htmlspecialchars($job['job_title']); ?> position. Mention your relevant experience, skills, and what excites you about this opportunity..."
-                        ></textarea>
                     </div>
+                    <textarea
+                        name="cover_letter"
+                        id="coverLetter"
+                        class="cfa-textarea"
+                        required
+                        maxlength="5000"
+                        placeholder="Tell <?php echo htmlspecialchars($job['company_name']); ?> why you're a great fit for the <?php echo htmlspecialchars($job['job_title']); ?> position. Mention your relevant experience, skills, and what excites you about this opportunity..."
+                    ></textarea>
+                    <div class="cfa-count-row">
+                        <span class="cfa-tip"><i class="fas fa-lightbulb"></i> Tip: Keep it personal and reference your quiz score (<?php echo $quiz_score; ?>%).</span>
+                        <span class="cfa-count"><i class="fas fa-text-width"></i> <span id="clCount">0</span> / 5000 chars</span>
+                    </div>
+                </div>
 
-                    <!-- Submit -->
-                    <div class="section-block submit-section">
-                        <button type="submit" name="submit_application" class="btn-submit-app" id="submitBtn">
-                            <i class="fas fa-paper-plane mr-2"></i>Submit Application
+                <!-- Submit -->
+                <div class="cfa-section cfa-fade" style="animation-delay:.3s">
+                    <div class="cfa-submit-zone">
+                        <button type="submit" name="submit_application" class="cfa-submit" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i>Submit Application
                         </button>
-                        <p class="submit-note">
+                        <p class="cfa-note">
                             <i class="fas fa-shield-alt mr-1"></i> Your quiz score (<?php echo $quiz_score; ?>%) will be shared with the employer.
                         </p>
                     </div>
                 </div>
-            </form>
-        </div>
 
-        <div class="app-footer">
-            <p class="mb-0">&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved.</p>
-        </div>
+            </div>
+        </form>
     </div>
 
-    <script>
-        function toggleCvPreview() {
-            const wrap = document.getElementById('cvPreviewWrap');
-            const icon = document.getElementById('cvToggleIcon');
-            const toggle = document.getElementById('cvToggle');
-            if (wrap.style.display === 'none') {
-                wrap.style.display = 'block';
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
-                toggle.classList.remove('collapsed');
-            } else {
-                wrap.style.display = 'none';
+    <div class="cfa-footer">
+        <p class="mb-0">&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved.</p>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Animate quiz ring on load
+        var ring = document.querySelector('.cfa-score-ring .rfg');
+        if (ring) {
+            var target = ring.getAttribute('stroke-dashoffset');
+            ring.style.strokeDashoffset = ring.getAttribute('stroke-dasharray');
+            requestAnimationFrame(function() {
+                setTimeout(function() {
+                    ring.style.strokeDashoffset = target;
+                }, 150);
+            });
+        }
+
+        // Cover letter character counter
+        var cl = document.getElementById('coverLetter');
+        var clCount = document.getElementById('clCount');
+        if (cl && clCount) {
+            cl.addEventListener('input', function() {
+                clCount.textContent = cl.value.length;
+            });
+        }
+
+        // Animated CV preview collapse
+        var wrap = document.getElementById('cvPreviewWrap');
+        var openHeight = wrap.scrollHeight;
+        wrap.style.maxHeight = openHeight + 'px';
+        wrap.style.transition = 'max-height .45s cubic-bezier(.4,0,.2,1)';
+
+        window.toggleCvPreview = function() {
+            var icon = document.getElementById('cvToggleIcon');
+            var toggle = document.getElementById('cvToggle');
+            if (wrap.style.maxHeight !== '0px') {
+                wrap.style.maxHeight = '0px';
                 icon.classList.remove('fa-chevron-up');
                 icon.classList.add('fa-chevron-down');
                 toggle.classList.add('collapsed');
+            } else {
+                wrap.style.maxHeight = openHeight + 'px';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+                toggle.classList.remove('collapsed');
             }
+        };
+    })();
+
+    document.getElementById('applicationForm').addEventListener('submit', function(e) {
+        if (!confirm('Are you sure you want to submit your application?')) {
+            e.preventDefault();
+            return;
         }
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+    });
 
-        document.getElementById('applicationForm').addEventListener('submit', function(e) {
-            if (!confirm('Are you sure you want to submit your application?')) {
-                e.preventDefault();
-                return;
-            }
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
-        });
-
-        <?php if ($show_success_banner): ?>
-            document.getElementById('successBanner').classList.add('show');
-            document.querySelector('.app-header').style.display = 'none';
-            document.querySelector('.job-info-banner').style.display = 'none';
-            document.querySelector('.app-body').style.display = 'none';
-        <?php endif; ?>
-    </script>
+    <?php if ($show_success_banner): ?>
+        document.getElementById('successBanner').classList.add('show');
+        document.getElementById('cfaFormBody').style.display = 'none';
+    <?php endif; ?>
+</script>
 </body>
 </html>

@@ -1,10 +1,11 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
-include 'admin/dbcon.php';
+require_once __DIR__ . '/../admin/dbcon.php';
 
 $category = isset($_GET['category']) && $_GET['category'] !== '' ? $_GET['category'] : 'PHP';
 $user_id = $_SESSION['id'];
@@ -155,7 +156,9 @@ $overall_progress = $total_videos > 0 ? ($completed_count / $total_videos) * 100
 
 $back_url = $from_company_quiz ? "job_details.php?id=$job_id" : "browse_jobs.php";
 
-include 'header.php';
+require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../ai/grooming.php';
+$ai_plan = ai_grooming_plan($category, $user_id);
 ?>
     <style>
         .grooming-container {
@@ -364,6 +367,46 @@ include 'header.php';
             .video-card { padding: 16px; }
             .video-header { flex-direction: column; }
         }
+
+        .ai-coach-card {
+            background: linear-gradient(135deg, #f8f7ff 0%, #eef2ff 100%);
+            border: 1px solid #e0e7ff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 28px;
+            box-shadow: 0 8px 24px rgba(124,58,237,0.08);
+        }
+        .ai-coach-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .ai-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px 4px 2px 0;
+        }
+        .ai-tag-warn { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .ai-tag-ok { background: #ecfdf5; color: #059669; border: 1px solid #d1fae5; }
+        .ai-coach-tips {
+            background: rgba(255,255,255,0.7);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .ai-coach-llm {
+            background: #7c3aed;
+            color: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
     </style>
 
     <div class="container grooming-container">
@@ -499,7 +542,66 @@ include 'header.php';
                         </div>
                     <?php endif; ?>
                 <?php endif; ?>
-                
+
+                <!-- AI Study Coach -->
+                <div class="ai-coach-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-robot" style="font-size:1.5rem; color:#7c3aed; background:rgba(139,92,246,0.12); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:14px;"></i>
+                        <div>
+                            <div style="font-weight:700; color:#1e293b;">AI Study Coach</div>
+                            <div style="font-size:0.8rem; color:#64748b;">Personalised plan for <?php echo htmlspecialchars($category); ?></div>
+                        </div>
+                    </div>
+
+                    <?php if (!empty($ai_plan['llm_summary'])): ?>
+                        <div class="ai-coach-llm">
+                            <i class="fas fa-magic mr-2"></i><?php echo nl2br(htmlspecialchars($ai_plan['llm_summary'])); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($ai_plan['weak_topics'])): ?>
+                        <div class="mb-3">
+                            <div class="ai-coach-label"><i class="fas fa-exclamation-triangle mr-1"></i> Focus On These Topics</div>
+                            <div class="job-tags">
+                                <?php foreach ($ai_plan['weak_topics'] as $t): ?>
+                                    <span class="ai-tag ai-tag-warn"><?php echo htmlspecialchars($t); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($ai_plan['strong_topics'])): ?>
+                        <div class="mb-3">
+                            <div class="ai-coach-label"><i class="fas fa-check-circle mr-1"></i> Strong Areas</div>
+                            <div class="job-tags">
+                                <?php foreach ($ai_plan['strong_topics'] as $t): ?>
+                                    <span class="ai-tag ai-tag-ok"><?php echo htmlspecialchars($t); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($ai_plan['tips'])): ?>
+                        <div class="ai-coach-tips">
+                            <?php foreach ($ai_plan['tips'] as $i => $tip): ?>
+                                <div class="d-flex mb-1">
+                                    <i class="fas fa-check-circle mr-2" style="color:#7c3aed; margin-top:3px;"></i>
+                                    <span style="font-size:0.88rem; color:#334155;"><?php echo htmlspecialchars($tip); ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mt-3">
+                        <a href="ai_mock_interview.php?category=<?php echo urlencode($category); ?>" class="btn btn-sm btn-outline-primary mr-2">
+                            <i class="fas fa-comments mr-1"></i>Practice Interview
+                        </a>
+                        <a href="ai_grooming_coach.php" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-graduation-cap mr-1"></i>Full Coaching Plan
+                        </a>
+                    </div>
+                </div>
+
                 <div class="text-center mt-4">
                     <a href="<?php echo $back_url; ?>" style="color: var(--text-muted); font-size: 0.9rem;"><i class="fas fa-arrow-left mr-2"></i>Back</a>
                 </div>

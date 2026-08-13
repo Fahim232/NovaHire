@@ -1,10 +1,11 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
-include 'admin/dbcon.php';
+require_once __DIR__ . '/../admin/dbcon.php';
 
 $category = isset($_GET['category']) ? $_GET['category'] : 'PHP';
 
@@ -84,7 +85,7 @@ $result = mysqli_query($con, $query);
 <html lang="en">
 <head>
     <title>Skill Assessment - <?php echo htmlspecialchars($category); ?></title>
-    <?php include 'links.php'; ?>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <style>
         .quiz-header {
             text-align: center;
@@ -152,7 +153,7 @@ $result = mysqli_query($con, $query);
     </style>
 </head>
 <body>
-    <?php include 'header.php'; ?>
+    <?php require_once __DIR__ . '/../includes/header.php'; ?>
     
     <div class="container" style="margin-top: 50px; padding-bottom: 50px;">
         <div class="quiz-header">
@@ -209,7 +210,7 @@ $result = mysqli_query($con, $query);
                 <?php endwhile; ?>
                 
                 <div class="text-center mt-5">
-                    <a href="index.php" class="btn btn-outline-light rounded-pill px-4 mr-3">Cancel</a>
+                    <a href="seeker_dashboard.php" class="btn btn-outline-light rounded-pill px-4 mr-3">Cancel</a>
                     <button type="submit" name="submit_quiz" class="btn btn-primary btn-lg rounded-pill px-5 shadow-lg">Submit Assessment <i class="fas fa-paper-plane ml-2"></i></button>
                 </div>
             </form>
@@ -218,7 +219,7 @@ $result = mysqli_query($con, $query);
                 <i class="fas fa-tools fa-3x mb-3"></i>
                 <h3>Assessment Setup In Progress</h3>
                 <p>Questions for this category are being updated. Please try again later.</p>
-                <a href="index.php" class="btn btn-light rounded-pill px-5 mt-3 text-primary font-weight-bold">Back to Dashboard</a>
+                <a href="seeker_dashboard.php" class="btn btn-light rounded-pill px-5 mt-3 text-primary font-weight-bold">Back to Dashboard</a>
             </div>
         <?php endif; ?>
     </div>

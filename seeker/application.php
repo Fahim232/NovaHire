@@ -1,11 +1,14 @@
-<?php 
-    session_start();
+<?php
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+ 
+
     if (!isset($_SESSION['id'])) {
-        header('location: login.php');
+        header('location: ' . BASE_URL . '/auth/login.php');
         exit();
     }
-    include 'admin/dbcon.php';
-    include 'header.php';
+    require_once __DIR__ . '/../admin/dbcon.php';
+    require_once __DIR__ . '/../includes/header.php';
 
     $quiz_passed = isset($_SESSION['quiz_passed']) && $_SESSION['quiz_passed'] === true;
     $quiz_category = isset($_SESSION['quiz_category']) ? $_SESSION['quiz_category'] : '';
@@ -243,7 +246,7 @@
                     Start Assessment <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </form>
-             <a href="index.php" class="btn btn-link text-muted mt-3">Cancel & Return</a>
+             <a href="<?php echo BASE_URL; ?>/index.php" class="btn btn-link text-muted mt-3">Cancel & Return</a>
         </div>
         
         <?php else: ?>
@@ -355,7 +358,7 @@
                 </div>
             </form>
             <div class="text-center mt-4">
-                 <a href="index.php" class="text-muted small">Cancel</a>
+                 <a href="<?php echo BASE_URL; ?>/index.php" class="text-muted small">Cancel</a>
             </div>
         </div>
         <?php endif; ?>

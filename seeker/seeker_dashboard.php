@@ -1,11 +1,12 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
 
-include 'header.php';
+require_once __DIR__ . '/../includes/header.php';
 
 $user_id = $_SESSION['id'];
 
@@ -107,48 +108,61 @@ function statusBadge($status) {
 ?>
 
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
     /* ═══════════════════════════════════════════
        DASHBOARD — MODERN RESPONSIVE STYLES
        ═══════════════════════════════════════════ */
+    :root {
+        --dash-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #38bdf8 100%);
+        --dash-grad-soft: linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10));
+        --dash-accent: #2563eb;
+        --dash-accent-2: #38bdf8;
+    }
+
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        letter-spacing: -0.015em;
+    }
 
     /* ── Hero Section ── */
     .dash-hero {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
-        padding: 76px 0 90px;
-        margin-top: -80px;
+        background: var(--dash-grad);
+        padding: 44px 0 58px;
         position: relative;
         overflow: hidden;
     }
     .dash-hero::before {
         content: '';
         position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
+        top: -55%;
+        right: -12%;
+        width: 620px;
+        height: 620px;
+        background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
         border-radius: 50%;
-        animation: heroFloat 8s ease-in-out infinite;
+        animation: heroFloat 9s ease-in-out infinite;
     }
     .dash-hero::after {
         content: '';
         position: absolute;
-        bottom: -40%;
-        left: -10%;
-        width: 450px;
-        height: 450px;
-        background: radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%);
+        bottom: -45%;
+        left: -8%;
+        width: 480px;
+        height: 480px;
+        background: radial-gradient(circle, rgba(56,189,248,0.22) 0%, transparent 70%);
         border-radius: 50%;
-        animation: heroFloat 10s ease-in-out infinite reverse;
+        animation: heroFloat 11s ease-in-out infinite reverse;
     }
     @keyframes heroFloat {
         0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-20px) scale(1.05); }
+        50% { transform: translateY(-22px) scale(1.05); }
     }
     .dash-welcome { position: relative; z-index: 2; }
     .dash-welcome h1 {
         color: white;
-        font-size: 2.2rem;
+        font-size: 2.05rem;
         font-weight: 800;
         margin-bottom: 6px;
         letter-spacing: -0.5px;
@@ -156,36 +170,93 @@ function statusBadge($status) {
         text-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     .dash-welcome .dash-subtitle {
-        color: rgba(255,255,255,0.85);
-        font-size: 1.05rem;
+        color: rgba(255,255,255,0.88);
+        font-size: 1rem;
         font-weight: 400;
-        margin: 0;
+        margin: 0 0 22px;
     }
-    .dash-hero-bottom { position: relative; z-index: 2; margin-top: 28px; }
+    .profile-avatar-hero {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 3px solid rgba(255,255,255,0.35);
+        object-fit: cover;
+    }
+    .profile-avatar-placeholder {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 3px solid rgba(255,255,255,0.35);
+        background: rgba(255,255,255,0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.85);
+        font-size: 1.4rem;
+        flex-shrink: 0;
+    }
+    .dash-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border-radius: 14px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+    }
+    .hero-cta-primary {
+        background: #fff;
+        color: #2563eb;
+        box-shadow: 0 10px 26px -10px rgba(15,23,42,.4);
+    }
+    .hero-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -10px rgba(15,23,42,.45); color: #1d4ed8; text-decoration: none; }
+    .hero-cta-ghost {
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.35);
+        color: #fff;
+        backdrop-filter: blur(8px);
+    }
+    .hero-cta-ghost:hover { background: rgba(255,255,255,0.24); transform: translateY(-3px); color: #fff; text-decoration: none; }
 
-    /* ── Profile Completion Ring ── */
+    /* ── Hero glass profile card ── */
+    .hero-profile-card {
+        background: rgba(255,255,255,0.13);
+        border: 1px solid rgba(255,255,255,0.28);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: 0 18px 44px -16px rgba(15,23,42,.35);
+        max-width: 340px;
+        margin-left: auto;
+    }
+    .hero-profile-card .hpc-row { display: flex; align-items: center; gap: 18px; }
     .profile-ring-wrap {
         position: relative;
-        width: 100px;
-        height: 100px;
+        width: 92px;
+        height: 92px;
         flex-shrink: 0;
     }
     .profile-ring-svg {
         transform: rotate(-90deg);
-        width: 100px;
-        height: 100px;
+        width: 92px;
+        height: 92px;
     }
     .profile-ring-bg {
         fill: none;
-        stroke: rgba(255,255,255,0.2);
-        stroke-width: 6;
+        stroke: rgba(255,255,255,0.25);
+        stroke-width: 7;
     }
     .profile-ring-fill {
         fill: none;
-        stroke: #fbbf24;
-        stroke-width: 6;
+        stroke: #fff;
+        stroke-width: 7;
         stroke-linecap: round;
-        transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .profile-ring-text {
         position: absolute;
@@ -196,66 +267,60 @@ function statusBadge($status) {
     }
     .profile-ring-text .pct {
         color: white;
-        font-size: 1.3rem;
+        font-size: 1.25rem;
         font-weight: 800;
         line-height: 1;
         display: block;
     }
     .profile-ring-text .lbl {
-        color: rgba(255,255,255,0.7);
-        font-size: 0.6rem;
-        font-weight: 600;
+        color: rgba(255,255,255,0.75);
+        font-size: 0.58rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    .profile-avatar-hero {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        border: 3px solid rgba(255,255,255,0.3);
-        object-fit: cover;
-    }
-    .profile-avatar-placeholder {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        border: 3px solid rgba(255,255,255,0.3);
-        background: rgba(255,255,255,0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255,255,255,0.7);
-        font-size: 1.4rem;
-    }
-    .completion-info-block {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
+    .completion-info-block { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .completion-info-block .label {
-        color: rgba(255,255,255,0.9);
-        font-weight: 600;
-        font-size: 0.95rem;
+        color: rgba(255,255,255,0.95);
+        font-weight: 700;
+        font-size: 0.92rem;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .completion-link {
-        color: #fbbf24;
+        color: #fde68a;
         font-weight: 600;
         text-decoration: none;
-        font-size: 0.88rem;
-        transition: var(--transition);
+        font-size: 0.84rem;
+        transition: all 0.25s;
         display: inline-flex;
         align-items: center;
         gap: 4px;
     }
-    .completion-link:hover { color: #fde68a; gap: 8px; text-decoration: none; }
+    .completion-link:hover { color: #fff; gap: 8px; text-decoration: none; }
     .completion-done {
-        color: #34d399;
+        color: #bbf7d0;
         font-weight: 600;
-        font-size: 0.88rem;
+        font-size: 0.84rem;
         display: inline-flex;
         align-items: center;
         gap: 5px;
     }
+    .hero-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.22); }
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #fff;
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 7px 13px;
+        border-radius: 999px;
+        transition: all .25s;
+    }
+    .hero-chip:hover { background: rgba(255,255,255,0.28); transform: translateY(-2px); }
+    .hero-chip i { font-size: 0.7rem; }
 
     /* ── Stat Cards ── */
     .stat-card {
@@ -315,10 +380,10 @@ function statusBadge($status) {
         margin: 5px 0 0;
         letter-spacing: 0.2px;
     }
-    .stat-card.stat-apps::before { background: var(--primary); }
+    .stat-card.stat-apps::before { background: #2563eb; }
     .stat-card.stat-interviews::before { background: #f59e0b; }
     .stat-card.stat-saved::before { background: #ec4899; }
-    .stat-card.stat-profile::before { background: var(--success); }
+    .stat-card.stat-profile::before { background: #10b981; }
 
     /* ── Quick Actions ── */
     .action-card {
@@ -367,10 +432,32 @@ function statusBadge($status) {
     .action-card:hover .action-icon { transform: scale(1.15) translateY(-3px); }
     .action-card h6 { font-weight: 700; color: var(--text); margin: 0 0 3px; font-size: 0.95rem; }
     .action-card small { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
-    .action-browse::after { background: var(--primary); }
+    .action-browse::after { background: #2563eb; }
     .action-profile::after { background: #ec4899; }
     .action-saved::after { background: #f59e0b; }
-    .action-apps::after { background: var(--success); }
+    .action-apps::after { background: #10b981; }
+
+    /* ── Scroll reveal + stat hover extras ── */
+    .reveal {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity .6s cubic-bezier(.4,0,.2,1), transform .6s cubic-bezier(.4,0,.2,1);
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .stat-card { position: relative; }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -80%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent);
+        transform: skewX(-20deg);
+        transition: left .6s ease;
+        pointer-events: none;
+    }
+    .stat-card:hover::after { left: 130%; }
 
     /* ── Section Title ── */
     .section-title {
@@ -410,42 +497,111 @@ function statusBadge($status) {
     .section-title a:hover { gap: 8px; color: var(--primary-dark); }
 
     /* ── Category Pills ── */
-    .cat-scroll {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
+    /* ── Browse by Category cards ── */
+    .cat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+        gap: 14px;
     }
-    .cat-scroll::-webkit-scrollbar { height: 5px; }
-    .cat-scroll::-webkit-scrollbar-track { background: var(--border-light); border-radius: 5px; }
-    .cat-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
-    .cat-pill {
+    .cat-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 16px 18px;
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-light);
+        border-radius: 18px;
+        text-decoration: none;
+        overflow: hidden;
+        transition: transform .28s cubic-bezier(.4, 0, .2, 1), box-shadow .28s, border-color .28s, background .28s;
+        animation: catIn .45s ease both;
+    }
+    @keyframes catIn {
+        from { transform: translateY(14px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .cat-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--cbg);
+        opacity: 0;
+        transition: opacity .28s;
+        pointer-events: none;
+    }
+    .cat-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--cc);
+        box-shadow: 0 18px 42px -16px var(--cc);
+        text-decoration: none;
+    }
+    .cat-card:hover::before { opacity: .55; }
+    .cat-card:active { transform: translateY(-2px) scale(.98); }
+    .cat-tile {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        box-shadow: 0 4px 12px -4px var(--cc);
+        transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+        position: relative;
+        z-index: 1;
+    }
+    .cat-card:hover .cat-tile { transform: scale(1.1) rotate(-8deg); }
+    .cat-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .cat-title {
+        font-size: .92rem;
+        font-weight: 700;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: -.01em;
+        transition: color .28s;
+    }
+    .cat-card:hover .cat-title { color: var(--cc); }
+    .cat-count {
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--text-muted);
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        padding: 9px 20px;
-        border-radius: var(--radius-full);
-        font-size: 0.88rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1.5px solid transparent;
-        white-space: nowrap;
-        scroll-snap-align: start;
+        gap: 5px;
+    }
+    .cat-count::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--cc);
+    }
+    .cat-arrow {
+        margin-left: auto;
+        font-size: .8rem;
+        opacity: 0;
+        transform: translateX(-6px);
+        transition: opacity .25s, transform .25s;
+        position: relative;
+        z-index: 1;
         flex-shrink: 0;
     }
-    .cat-pill:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        text-decoration: none;
-        filter: brightness(0.93);
-    }
-    .cat-pill .cat-count {
-        font-size: 0.68rem;
-        opacity: 0.7;
-        font-weight: 700;
+    .cat-card:hover .cat-arrow { opacity: 1; transform: translateX(0); }
+    @media (max-width: 480px) {
+        .cat-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .cat-card { padding: 13px 14px; }
+        .cat-tile { width: 40px; height: 40px; border-radius: 12px; font-size: 1rem; }
     }
 
     /* ── Recommended Job Cards ── */
@@ -459,13 +615,29 @@ function statusBadge($status) {
         flex-direction: column;
         height: 100%;
         position: relative;
+        overflow: hidden;
         box-shadow: var(--shadow-sm);
     }
+    .rec-job-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -85%;
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(105deg, transparent, rgba(255,255,255,0.5), transparent);
+        transform: skewX(-20deg);
+        transition: left .65s ease;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .rec-job-card:hover::before { left: 140%; }
     .rec-job-card:hover {
         transform: translateY(-6px);
         box-shadow: var(--shadow-xl);
-        border-color: var(--primary);
+        border-color: #bfdbfe;
     }
+    .rec-job-card:hover .btn-rec-apply { background: var(--dash-grad); box-shadow: 0 8px 20px -6px rgba(37,99,235,.45); }
     .rec-job-header {
         display: flex;
         align-items: flex-start;
@@ -571,12 +743,13 @@ function statusBadge($status) {
         border-color: rgba(22,101,52,0.1);
     }
     .btn-rec-apply {
-        background: var(--primary);
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
         color: white;
         border: none;
         padding: 12px 20px;
-        border-radius: var(--radius-sm);
-        font-weight: 600;
+        border-radius: 12px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
         font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -587,10 +760,11 @@ function statusBadge($status) {
         gap: 8px;
         margin-top: auto;
         width: 100%;
+        box-shadow: 0 6px 16px -6px rgba(37,99,235,.5);
     }
     .btn-rec-apply:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+        box-shadow: 0 10px 22px -6px rgba(37, 99, 235, 0.55);
         color: white;
         text-decoration: none;
     }
@@ -725,41 +899,150 @@ function statusBadge($status) {
 
     /* ── Footer ── */
     .site-footer {
-        background: var(--dark);
+        position: relative;
+        background: #0b1220;
         color: #94a3b8;
-        padding: 48px 0 24px;
+        padding: 56px 0 0;
         margin-top: 60px;
+        overflow: hidden;
     }
-    .footer-brand { font-size: 1.3rem; font-weight: 800; color: white; margin-bottom: 10px; }
-    .footer-brand span { color: var(--primary); }
+    .site-footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--dash-grad);
+    }
+    .site-footer::after {
+        content: '';
+        position: absolute;
+        width: 520px;
+        height: 520px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(109, 94, 252, 0.16), transparent 70%);
+        top: -220px;
+        right: -160px;
+        pointer-events: none;
+    }
+    .footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 14px;
+        letter-spacing: -0.02em;
+        position: relative;
+        z-index: 1;
+    }
+    .fb-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        flex-shrink: 0;
+        background: var(--dash-grad);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1rem;
+        box-shadow: 0 6px 18px -6px rgba(109, 94, 252, 0.65);
+    }
+    .footer-brand .fb-highlight {
+        background: var(--dash-grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+    }
+    .footer-desc {
+        color: #8b96ab;
+        font-size: 0.85rem;
+        line-height: 1.75;
+        max-width: 300px;
+        margin-bottom: 18px;
+        position: relative;
+        z-index: 1;
+    }
+    .footer-social { display: flex; gap: 9px; position: relative; z-index: 1; }
+    .footer-social a {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 0.82rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+    }
+    .footer-social a:hover {
+        background: var(--dash-grad);
+        border-color: transparent;
+        color: #fff;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 18px -6px rgba(109, 94, 252, 0.55);
+    }
     .footer-link {
         color: #94a3b8;
         font-size: 0.88rem;
+        font-weight: 500;
         text-decoration: none;
-        transition: var(--transition);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
     }
-    .footer-link:hover { color: white; text-decoration: none; gap: 6px; }
+    .footer-link i { font-size: 0.6rem; opacity: 0; transform: translateX(-4px); transition: all 0.2s; }
+    .footer-link:hover { color: #fff; }
+    .footer-link:hover i { opacity: 1; transform: translateX(0); }
     .footer-heading {
-        color: white;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #fff;
         font-weight: 700;
-        font-size: 0.92rem;
-        margin-bottom: 16px;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 18px;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    .footer-heading::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 26px;
+        height: 3px;
+        border-radius: 3px;
+        background: var(--dash-grad);
     }
     .footer-bottom {
-        border-top: 1px solid rgba(255,255,255,0.06);
-        margin-top: 28px;
-        padding-top: 18px;
-        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        margin-top: 34px;
+        padding: 20px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
     }
-    .footer-bottom p { color: #64748b; font-size: 0.85rem; margin: 0; }
+    .footer-bottom p { color: #64748b; font-size: 0.83rem; margin: 0; }
+    .footer-bottom .made-with i { color: #f43f5e; margin: 0 4px; }
 
     /* ── RESPONSIVE — TABLET ── */
     @media (max-width: 991px) {
-        .dash-hero { padding: 72px 0 75px; }
+        .dash-hero { padding: 36px 0 46px; }
         .dash-welcome h1 { font-size: 1.8rem; }
+        .hero-profile-card { margin-left: auto; }
         .stat-card { padding: 20px 18px; }
         .stat-icon { width: 50px; height: 50px; font-size: 1.15rem; }
         .stat-info h3 { font-size: 1.5rem; }
@@ -768,7 +1051,7 @@ function statusBadge($status) {
 
     /* ── RESPONSIVE — LANDSCAPE MOBILE ── */
     @media (max-width: 767px) {
-        .dash-hero { padding: 64px 0 65px; margin-top: -60px; }
+        .dash-hero { padding: 32px 0 42px; }
         .dash-welcome h1 { font-size: 1.5rem; }
         .dash-welcome .dash-subtitle { font-size: 0.95rem; }
         .profile-ring-wrap { width: 82px; height: 82px; }
@@ -776,6 +1059,7 @@ function statusBadge($status) {
         .profile-ring-text .pct { font-size: 1.1rem; }
         .profile-avatar-hero { width: 52px; height: 52px; }
         .profile-avatar-placeholder { width: 52px; height: 52px; font-size: 1.2rem; }
+        .hero-profile-card { max-width: 100%; margin-left: 0; padding: 18px; }
         .section-title h4 { font-size: 1.1rem; }
         .action-card { padding: 22px 14px; }
         .action-card h6 { font-size: 0.88rem; }
@@ -792,13 +1076,15 @@ function statusBadge($status) {
 
     /* ── RESPONSIVE — PORTRAIT MOBILE ── */
     @media (max-width: 575px) {
-        .dash-hero { padding: 58px 0 55px; margin-top: -50px; }
+        .dash-hero { padding: 28px 0 36px; }
         .dash-welcome h1 { font-size: 1.35rem; }
-        .dash-welcome .dash-subtitle { font-size: 0.88rem; }
+        .dash-welcome .dash-subtitle { font-size: 0.88rem; margin-bottom: 16px; }
         .profile-ring-wrap { width: 72px; height: 72px; }
         .profile-ring-svg { width: 72px; height: 72px; }
         .profile-ring-text .pct { font-size: 0.95rem; }
         .profile-ring-text .lbl { font-size: 0.5rem; }
+        .dash-hero-ctas .hero-cta { padding: 10px 16px; font-size: 0.82rem; }
+        .hero-chip { font-size: 0.7rem; padding: 6px 11px; }
         .stat-card { padding: 16px 14px; gap: 12px; border-radius: 12px; }
         .stat-icon { width: 44px; height: 44px; font-size: 1rem; border-radius: 10px; }
         .stat-info h3 { font-size: 1.25rem; }
@@ -810,7 +1096,6 @@ function statusBadge($status) {
         .section-title h4 { font-size: 1rem; }
         .section-title h4 i { width: 30px; height: 30px; font-size: 0.78rem; }
         .section-title a { font-size: 0.82rem; }
-        .cat-pill { padding: 8px 16px; font-size: 0.82rem; }
         .rec-job-card { padding: 18px; border-radius: 14px; }
         .rec-job-header { gap: 10px; margin-bottom: 12px; }
         .rec-job-logo, .rec-job-logo-placeholder { width: 44px; height: 44px; }
@@ -830,8 +1115,9 @@ function statusBadge($status) {
         .empty-state i { font-size: 2.2rem; }
         .empty-state p { font-size: 0.9rem; }
         .footer-brand { font-size: 1.15rem; }
-        .footer-heading { font-size: 0.85rem; }
+        .footer-heading { font-size: 0.72rem; }
         .footer-link { font-size: 0.82rem; }
+        .footer-bottom { justify-content: center; text-align: center; }
         .footer-bottom p { font-size: 0.8rem; }
     }
 
@@ -913,6 +1199,105 @@ function statusBadge($status) {
         transition: color 0.2s;
     }
     .app-toast-close:hover { color: var(--text); }
+
+    /* ── Theme Customizer ─────────────────────────── */
+    .dash-theme-btn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1200;
+        width: 54px;
+        height: 54px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--dash-grad);
+        color: #fff;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+        transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .dash-theme-btn:hover { transform: translateY(-3px) rotate(-8deg); box-shadow: 0 14px 30px rgba(37, 99, 235, 0.45); }
+    .dash-theme-panel {
+        position: fixed;
+        right: 24px;
+        bottom: 92px;
+        z-index: 1200;
+        width: 300px;
+        max-width: calc(100vw - 48px);
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        padding: 18px;
+        transform: translateY(12px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s, transform 0.25s, visibility 0.25s;
+    }
+    .dash-theme-panel.open { transform: translateY(0); opacity: 1; visibility: visible; }
+    .dash-theme-panel h6 {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-light);
+        margin: 0 0 10px;
+    }
+    .dash-theme-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .dash-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        background-size: cover;
+    }
+    .dash-swatch:hover { transform: scale(1.12); border-color: var(--primary); }
+    .dash-swatch.active { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .dash-theme-custom { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .dash-theme-custom label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; flex-shrink: 0; }
+    .dash-theme-custom input[type="color"] {
+        width: 44px;
+        height: 34px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 2px;
+        background: var(--bg-card);
+        cursor: pointer;
+    }
+    .dash-theme-mode { display: flex; gap: 8px; margin-bottom: 14px; }
+    .dash-theme-mode button {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--bg-card);
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .dash-theme-mode button:hover { border-color: var(--primary); color: var(--primary); }
+    .dash-theme-mode button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .dash-theme-reset {
+        width: 100%;
+        padding: 9px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .dash-theme-reset:hover { background: var(--primary); color: #fff; }
 </style>
 
 <?php if (!empty($_SESSION['app_success_msg'])): ?>
@@ -942,7 +1327,7 @@ setTimeout(function() {
 <div class="dash-hero">
     <div class="container dash-welcome">
         <div class="row align-items-center">
-            <div class="col-lg-8 col-md-9">
+            <div class="col-lg-7 mb-4 mb-lg-0">
                 <div class="d-flex align-items-center gap-4 mb-3">
                     <?php if (!empty($user['profile'])): ?>
                         <img src="images/<?php echo htmlspecialchars($user['profile']); ?>" alt="Profile" class="profile-avatar-hero">
@@ -956,12 +1341,18 @@ setTimeout(function() {
                         <p class="dash-subtitle">Here's what's happening with your job search today.</p>
                     </div>
                 </div>
+                <div class="dash-hero-ctas">
+                    <a href="browse_jobs.php" class="hero-cta hero-cta-primary">
+                        <i class="fas fa-briefcase"></i> Browse Jobs
+                    </a>
+                    <a href="profile.php" class="hero-cta hero-cta-ghost">
+                        <i class="fas fa-user-edit"></i> Complete Profile
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="dash-hero-bottom">
-            <div class="row align-items-center">
-                <div class="col-lg-6 col-md-7">
-                    <div class="d-flex align-items-center gap-4">
+            <div class="col-lg-5">
+                <div class="hero-profile-card">
+                    <div class="hpc-row">
                         <?php
                         $circumference = 2 * 3.14159 * 40;
                         $offset = $circumference - ($completion / 100) * $circumference;
@@ -987,6 +1378,11 @@ setTimeout(function() {
                             <?php endif; ?>
                         </div>
                     </div>
+                    <div class="hero-chips">
+                        <a href="my_application.php" class="hero-chip"><i class="fas fa-paper-plane"></i> <?php echo $total_apps; ?> Applications</a>
+                        <a href="saved_jobs.php" class="hero-chip"><i class="fas fa-bookmark"></i> <?php echo $saved_jobs_count; ?> Saved</a>
+                        <span class="hero-chip"><i class="fas fa-calendar-check"></i> <?php echo $total_interviews; ?> Interviews</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -996,39 +1392,39 @@ setTimeout(function() {
 <div class="container" style="margin-top: 24px;">
 
     <!-- Stats Cards -->
-    <div class="row mb-4" style="margin-top: -40px;">
-        <div class="col-lg-3 col-md-6 col-6 mb-3 anim-fade-in anim-delay-1">
+    <div class="row mb-4 reveal" style="margin-top: 28px;">
+        <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .05s;">
             <a href="my_application.php" class="stat-card stat-apps">
-                <div class="stat-icon" style="background: rgba(79,70,229,0.1); color: var(--primary);"><i class="fas fa-paper-plane"></i></div>
+                <div class="stat-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;"><i class="fas fa-paper-plane"></i></div>
                 <div class="stat-info">
-                    <h3><?php echo $total_apps; ?></h3>
+                    <h3 id="countTotalApps" data-count="<?php echo $total_apps; ?>"><?php echo $total_apps; ?></h3>
                     <p>Applications</p>
                 </div>
             </a>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3 anim-fade-in anim-delay-2">
+        <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .1s;">
             <div class="stat-card stat-interviews">
                 <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: #d97706;"><i class="fas fa-calendar-check"></i></div>
                 <div class="stat-info">
-                    <h3><?php echo $total_interviews; ?></h3>
+                    <h3 id="countInterviews" data-count="<?php echo $total_interviews; ?>"><?php echo $total_interviews; ?></h3>
                     <p>Interviews</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3 anim-fade-in anim-delay-3">
+        <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .15s;">
             <div class="stat-card stat-saved">
                 <div class="stat-icon" style="background: rgba(236,72,153,0.1); color: #db2777;"><i class="fas fa-bookmark"></i></div>
                 <div class="stat-info">
-                    <h3><?php echo $saved_jobs_count; ?></h3>
+                    <h3 id="countSaved" data-count="<?php echo $saved_jobs_count; ?>"><?php echo $saved_jobs_count; ?></h3>
                     <p>Saved Jobs</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3 anim-fade-in anim-delay-4">
+        <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .2s;">
             <div class="stat-card stat-profile">
-                <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: var(--success);"><i class="fas fa-user-check"></i></div>
+                <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: #10b981;"><i class="fas fa-user-check"></i></div>
                 <div class="stat-info">
-                    <h3><?php echo $completion; ?>%</h3>
+                    <h3 id="countProfile" data-count="<?php echo $completion; ?>"><?php echo $completion; ?><small style="font-size:.85rem;">%</small></h3>
                     <p>Profile Done</p>
                 </div>
             </div>
@@ -1036,14 +1432,14 @@ setTimeout(function() {
     </div>
 
     <!-- Quick Actions -->
-    <div class="mb-4 anim-fade-in">
+    <div class="mb-4 reveal">
         <div class="section-title">
             <h4><i class="fas fa-bolt" style="background: rgba(245,158,11,0.1); color: #d97706;"></i>Quick Actions</h4>
         </div>
         <div class="row">
             <div class="col-lg-3 col-md-6 col-6 mb-3">
                 <a href="browse_jobs.php" class="action-card action-browse">
-                    <div class="action-icon" style="background: rgba(79,70,229,0.1); color: var(--primary);"><i class="fas fa-search"></i></div>
+                    <div class="action-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;"><i class="fas fa-search"></i></div>
                     <h6>Browse Jobs</h6>
                     <small>Find opportunities</small>
                 </a>
@@ -1064,7 +1460,7 @@ setTimeout(function() {
             </div>
             <div class="col-lg-3 col-md-6 col-6 mb-3">
                 <a href="my_application.php" class="action-card action-apps">
-                    <div class="action-icon" style="background: rgba(16,185,129,0.1); color: var(--success);"><i class="fas fa-file-alt"></i></div>
+                    <div class="action-icon" style="background: rgba(16,185,129,0.1); color: #10b981;"><i class="fas fa-file-alt"></i></div>
                     <h6>Applications</h6>
                     <small>Track progress</small>
                 </a>
@@ -1073,49 +1469,55 @@ setTimeout(function() {
     </div>
 
     <!-- Browse by Category -->
-    <div class="mb-4 anim-fade-in">
+    <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-th-large" style="background: rgba(79,70,229,0.1); color: var(--primary);"></i>Browse by Category</h4>
+            <h4><i class="fas fa-th-large" style="background: rgba(37,99,235,0.1); color: #2563eb;"></i>Browse by Category</h4>
             <a href="browse_jobs.php">View All <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="cat-scroll">
+        <div class="cat-grid">
             <?php
             $all_cats_q = mysqli_query($con, "SELECT DISTINCT job_category, COUNT(*) as cnt FROM company_jobs WHERE status='active' GROUP BY job_category ORDER BY cnt DESC");
             $pill_styles = [
-                'PHP' => ['bg' => '#eef2ff', 'color' => '#4f46e5'],
-                'Java' => ['bg' => '#fef2f2', 'color' => '#dc2626'],
-                'Python' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
-                'Frontend' => ['bg' => '#fff7ed', 'color' => '#ea580c'],
-                'Finance' => ['bg' => '#ecfdf5', 'color' => '#059669'],
-                'Healthcare' => ['bg' => '#fef2f2', 'color' => '#dc2626'],
-                'Education' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
-                'Engineering' => ['bg' => '#f5f3ff', 'color' => '#7c3aed'],
-                'Sales' => ['bg' => '#fff7ed', 'color' => '#ea580c'],
-                'HR' => ['bg' => '#fdf2f8', 'color' => '#db2777'],
-                'Legal' => ['bg' => '#fefce8', 'color' => '#ca8a04'],
-                'Media' => ['bg' => '#f0fdf4', 'color' => '#16a34a'],
-                'Logistics' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
-                'Consulting' => ['bg' => '#ecfdf5', 'color' => '#059669'],
-                'Retail' => ['bg' => '#f0f9ff', 'color' => '#0284c7'],
-                'UI/UX' => ['bg' => '#fdf2f8', 'color' => '#db2777'],
-                'JavaScript' => ['bg' => '#fefce8', 'color' => '#ca8a04'],
-                'DB' => ['bg' => '#f0f9ff', 'color' => '#0284c7'],
-                'DataScience' => ['bg' => '#f0fdf4', 'color' => '#16a34a'],
-                'Marketing' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
+                'PHP' => ['bg' => '#eef2ff', 'color' => '#4f46e5', 'icon' => 'fa-brands fa-php'],
+                'Java' => ['bg' => '#fef2f2', 'color' => '#dc2626', 'icon' => 'fa-brands fa-java'],
+                'Python' => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => 'fa-brands fa-python'],
+                'Frontend' => ['bg' => '#fff7ed', 'color' => '#ea580c', 'icon' => 'fa-code'],
+                'Finance' => ['bg' => '#ecfdf5', 'color' => '#059669', 'icon' => 'fa-dollar-sign'],
+                'Healthcare' => ['bg' => '#fef2f2', 'color' => '#dc2626', 'icon' => 'fa-heart-pulse'],
+                'Education' => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => 'fa-graduation-cap'],
+                'Engineering' => ['bg' => '#f5f3ff', 'color' => '#7c3aed', 'icon' => 'fa-gears'],
+                'Sales' => ['bg' => '#fff7ed', 'color' => '#ea580c', 'icon' => 'fa-bullhorn'],
+                'HR' => ['bg' => '#fdf2f8', 'color' => '#db2777', 'icon' => 'fa-users'],
+                'Legal' => ['bg' => '#fefce8', 'color' => '#ca8a04', 'icon' => 'fa-gavel'],
+                'Media' => ['bg' => '#f0fdf4', 'color' => '#16a34a', 'icon' => 'fa-video'],
+                'Logistics' => ['bg' => '#fff1f2', 'color' => '#e11d48', 'icon' => 'fa-truck'],
+                'Consulting' => ['bg' => '#ecfdf5', 'color' => '#059669', 'icon' => 'fa-briefcase'],
+                'Retail' => ['bg' => '#f0f9ff', 'color' => '#0284c7', 'icon' => 'fa-store'],
+                'UI/UX' => ['bg' => '#fdf2f8', 'color' => '#db2777', 'icon' => 'fa-palette'],
+                'JavaScript' => ['bg' => '#fefce8', 'color' => '#ca8a04', 'icon' => 'fa-brands fa-js'],
+                'DB' => ['bg' => '#f0f9ff', 'color' => '#0284c7', 'icon' => 'fa-database'],
+                'DataScience' => ['bg' => '#f0fdf4', 'color' => '#16a34a', 'icon' => 'fa-chart-line'],
+                'Marketing' => ['bg' => '#fff1f2', 'color' => '#e11d48', 'icon' => 'fa-megaphone'],
             ];
+            $cat_index = 0;
             while ($cat = mysqli_fetch_assoc($all_cats_q)):
-                $style = isset($pill_styles[$cat['job_category']]) ? $pill_styles[$cat['job_category']] : ['bg' => '#f1f5f9', 'color' => '#64748b'];
+                $style = isset($pill_styles[$cat['job_category']]) ? $pill_styles[$cat['job_category']] : ['bg' => '#f1f5f9', 'color' => '#64748b', 'icon' => 'fa-tag'];
+                $cat_index++;
             ?>
-                <a href="browse_jobs.php?category=<?php echo urlencode($cat['job_category']); ?>" class="cat-pill" style="background: <?php echo $style['bg']; ?>; color: <?php echo $style['color']; ?>;">
-                    <?php echo htmlspecialchars($cat['job_category']); ?>
-                    <span class="cat-count"><?php echo $cat['cnt']; ?></span>
+                <a href="browse_jobs.php?category=<?php echo urlencode($cat['job_category']); ?>" class="cat-card" style="--cc: <?php echo $style['color']; ?>; --cbg: <?php echo $style['bg']; ?>; animation-delay: <?php echo $cat_index * 0.045; ?>s;">
+                    <span class="cat-tile" style="background: <?php echo $style['bg']; ?>; color: <?php echo $style['color']; ?>;"><i class="fas <?php echo $style['icon']; ?>"></i></span>
+                    <span class="cat-meta">
+                        <span class="cat-title"><?php echo htmlspecialchars($cat['job_category']); ?></span>
+                        <span class="cat-count"><?php echo $cat['cnt']; ?> open <?php echo $cat['cnt'] == 1 ? 'job' : 'jobs'; ?></span>
+                    </span>
+                    <i class="fas fa-arrow-right cat-arrow" style="color: <?php echo $style['color']; ?>;"></i>
                 </a>
             <?php endwhile; ?>
         </div>
     </div>
 
     <!-- Recommended Jobs -->
-    <div class="mb-4">
+    <div class="mb-4 reveal">
         <div class="section-title">
             <h4><i class="fas fa-star" style="background: rgba(245,158,11,0.1); color: #d97706;"></i><?php echo $has_user_skills ? 'Jobs Matching Your Skills' : 'Recommended Jobs'; ?></h4>
             <a href="browse_jobs.php">View All <i class="fas fa-arrow-right"></i></a>
@@ -1193,9 +1595,9 @@ setTimeout(function() {
 
     <!-- Scheduled Interviews -->
     <?php if ($interviews_list_q && mysqli_num_rows($interviews_list_q) > 0): ?>
-    <div class="mb-4">
+    <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-video" style="background: rgba(16,185,129,0.1); color: var(--success);"></i>Scheduled Interviews</h4>
+            <h4><i class="fas fa-video" style="background: rgba(16,185,129,0.1); color: #10b981;"></i>Scheduled Interviews</h4>
         </div>
         <div class="row">
             <?php while ($int = mysqli_fetch_assoc($interviews_list_q)): ?>
@@ -1227,9 +1629,9 @@ setTimeout(function() {
     <?php endif; ?>
 
     <!-- Recent Applications -->
-    <div class="mb-4">
+    <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-history" style="background: rgba(79,70,229,0.1); color: var(--primary);"></i>Recent Applications</h4>
+            <h4><i class="fas fa-history" style="background: rgba(37,99,235,0.1); color: #2563eb;"></i>Recent Applications</h4>
             <a href="my_application.php">View All <i class="fas fa-arrow-right"></i></a>
         </div>
         <?php if (mysqli_num_rows($recent_apps_q) > 0): ?>
@@ -1270,47 +1672,253 @@ setTimeout(function() {
     <div class="container">
         <div class="row">
             <div class="col-lg-4 mb-4">
-                <div class="footer-brand">Nova<span>Hire</span></div>
-                <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.7; max-width: 300px;">Your gateway to career success. Connect with top employers and find your dream job.</p>
+                <div class="footer-brand">
+                    <span class="fb-icon"><i class="fas fa-layer-group"></i></span>
+                    <span>Nova<span class="fb-highlight">Hire</span></span>
+                </div>
+                <p class="footer-desc">Your gateway to career success. Connect with top employers, sharpen your skills, and land your dream job.</p>
+                <div class="footer-social">
+                    <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                </div>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-heading">For Job Seekers</div>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:10px;"><a href="browse_jobs.php" class="footer-link">Browse Jobs</a></li>
-                    <li style="margin-bottom:10px;"><a href="available_companies.php" class="footer-link">Companies</a></li>
-                    <li style="margin-bottom:10px;"><a href="profile.php" class="footer-link">My Profile</a></li>
-                    <li style="margin-bottom:10px;"><a href="my_application.php" class="footer-link">My Applications</a></li>
+                    <li style="margin-bottom:11px;"><a href="browse_jobs.php" class="footer-link">Browse Jobs <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="available_companies.php" class="footer-link">Companies <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="profile.php" class="footer-link">My Profile <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="my_application.php" class="footer-link">My Applications <i class="fas fa-arrow-right"></i></a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-heading">For Employers</div>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:10px;"><a href="company_registration.php" class="footer-link">Register Company</a></li>
-                    <li style="margin-bottom:10px;"><a href="login.php" class="footer-link">Employer Login</a></li>
-                    <li style="margin-bottom:10px;"><a href="login.php" class="footer-link">Post a Job</a></li>
+                    <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/company_registration.php" class="footer-link">Register Company <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="footer-link">Employer Login <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="footer-link">Post a Job <i class="fas fa-arrow-right"></i></a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-heading">Resources</div>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:10px;"><a href="browse_jobs.php" class="footer-link">Browse Jobs</a></li>
-                    <li style="margin-bottom:10px;"><a href="view_cv.php" class="footer-link">Build Your CV</a></li>
+                    <li style="margin-bottom:11px;"><a href="browse_jobs.php" class="footer-link">Browse Jobs <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="view_cv.php" class="footer-link">Build Your CV <i class="fas fa-arrow-right"></i></a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-heading">Support</div>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:10px;"><a href="#" class="footer-link">Help Center</a></li>
-                    <li style="margin-bottom:10px;"><a href="#" class="footer-link">Privacy Policy</a></li>
-                    <li style="margin-bottom:10px;"><a href="#" class="footer-link">Contact Us</a></li>
+                    <li style="margin-bottom:11px;"><a href="#" class="footer-link">Help Center <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="#" class="footer-link">Privacy Policy <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="#" class="footer-link">Contact Us <i class="fas fa-arrow-right"></i></a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
             <p>&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved.</p>
+            <p class="made-with">Crafted with <i class="fas fa-heart"></i> for career growth</p>
         </div>
     </div>
 </footer>
+
+<!-- ═══ Theme Customizer ═══ -->
+<button class="dash-theme-btn" id="dashThemeBtn" title="Customize Theme">
+    <i class="fas fa-palette"></i>
+</button>
+<div class="dash-theme-panel" id="dashThemePanel">
+    <h6>Accent Theme</h6>
+    <div class="dash-theme-swatches" id="dashSwatches"></div>
+    <div class="dash-theme-custom">
+        <label for="dashCustomColor">Custom</label>
+        <input type="color" id="dashCustomColor" value="#2563eb">
+    </div>
+    <h6>Mode</h6>
+    <div class="dash-theme-mode">
+        <button type="button" id="dashModeLight">Light</button>
+        <button type="button" id="dashModeDark">Dark</button>
+    </div>
+    <button type="button" class="dash-theme-reset" id="dashThemeReset"><i class="fas fa-undo-alt mr-1"></i> Reset to Default</button>
+</div>
+
+<script>
+(function() {
+    var DEFAULT_GRAD = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%)';
+    var DEFAULT_SOFT = 'linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10))';
+    var DASH_ACCENT_KEY = 'dashAccent';
+
+    var PRESETS = [
+        { name: 'Blue', grad: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%)', soft: 'linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10))' },
+        { name: 'Purple', grad: 'linear-gradient(135deg, #6d5efc 0%, #8b5cf6 45%, #d946ef 100%)', soft: 'linear-gradient(135deg, rgba(109,94,252,.12), rgba(217,70,239,.12))' },
+        { name: 'Teal', grad: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 45%, #2dd4bf 100%)', soft: 'linear-gradient(135deg, rgba(13,148,136,.12), rgba(45,212,191,.12))' },
+        { name: 'Orange', grad: 'linear-gradient(135deg, #ea580c 0%, #f97316 45%, #fbbf24 100%)', soft: 'linear-gradient(135deg, rgba(234,88,12,.12), rgba(251,191,36,.12))' },
+        { name: 'Rose', grad: 'linear-gradient(135deg, #e11d48 0%, #ec4899 45%, #f472b6 100%)', soft: 'linear-gradient(135deg, rgba(225,29,72,.12), rgba(244,114,182,.12))' },
+        { name: 'Emerald', grad: 'linear-gradient(135deg, #059669 0%, #10b981 45%, #34d399 100%)', soft: 'linear-gradient(135deg, rgba(5,150,105,.12), rgba(52,211,153,.12))' }
+    ];
+
+    function hexToRgb(hex) {
+        hex = hex.replace('#', '');
+        var n = parseInt(hex, 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+    function lighten(hex, amt) {
+        var c = hexToRgb(hex);
+        var f = function(v) { return Math.min(255, Math.round(v + (255 - v) * amt)).toString(16).padStart(2, '0'); };
+        return '#' + f(c.r) + f(c.g) + f(c.b);
+    }
+    function buildGrad(hex) {
+        var soft = 'linear-gradient(135deg, rgba(' + (hexToRgb(hex).r) + ',' + (hexToRgb(hex).g) + ',' + (hexToRgb(hex).b) + ',.12), rgba(255,255,255,0) 100%)';
+        return {
+            grad: 'linear-gradient(135deg, ' + hex + ' 0%, ' + lighten(hex, 0.25) + ' 45%, ' + lighten(hex, 0.5) + ' 100%)',
+            soft: soft
+        };
+    }
+
+    var styleEl = document.getElementById('dashThemeVars');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dashThemeVars';
+        document.head.appendChild(styleEl);
+    }
+
+    var activeName = 'Blue';
+    function applyAccent(grad, soft, persist, swatchName) {
+        styleEl.textContent = ':root{--dash-grad:' + grad + ';--dash-grad-soft:' + soft + ';}';
+        if (persist !== false) {
+            localStorage.setItem(DASH_ACCENT_KEY, JSON.stringify({ grad: grad, soft: soft, name: swatchName || activeName }));
+        }
+        document.querySelectorAll('.dash-swatch').forEach(function(s) {
+            s.classList.toggle('active', s.getAttribute('data-name') === (swatchName || activeName));
+        });
+    }
+
+    var swatchBox = document.getElementById('dashSwatches');
+    PRESETS.forEach(function(p) {
+        var el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'dash-swatch';
+        el.setAttribute('data-name', p.name);
+        el.style.background = p.grad;
+        el.title = p.name;
+        el.onclick = function() { activeName = p.name; applyAccent(p.grad, p.soft, true, p.name); };
+        swatchBox.appendChild(el);
+    });
+
+    document.getElementById('dashCustomColor').addEventListener('input', function(e) {
+        var c = buildGrad(e.target.value);
+        activeName = 'Custom';
+        applyAccent(c.grad, c.soft, true, 'Custom');
+    });
+
+    document.getElementById('dashThemeReset').addEventListener('click', function() {
+        document.getElementById('dashCustomColor').value = '#2563eb';
+        activeName = 'Blue';
+        applyAccent(DEFAULT_GRAD, DEFAULT_SOFT, true, 'Blue');
+    });
+
+    document.getElementById('dashThemeBtn').addEventListener('click', function() {
+        document.getElementById('dashThemePanel').classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+        var panel = document.getElementById('dashThemePanel');
+        var btn = document.getElementById('dashThemeBtn');
+        if (!panel.contains(e.target) && !btn.contains(e.target)) {
+            panel.classList.remove('open');
+        }
+    });
+
+    /* Mode toggles reuse the global theme switcher */
+    var savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') document.getElementById('dashModeDark').classList.add('active');
+    else document.getElementById('dashModeLight').classList.add('active');
+    document.getElementById('dashModeLight').addEventListener('click', function() {
+        if (typeof setTheme === 'function') setTheme('default');
+        document.getElementById('dashModeLight').classList.add('active');
+        document.getElementById('dashModeDark').classList.remove('active');
+    });
+    document.getElementById('dashModeDark').addEventListener('click', function() {
+        if (typeof setTheme === 'function') setTheme('dark');
+        document.getElementById('dashModeDark').classList.add('active');
+        document.getElementById('dashModeLight').classList.remove('active');
+    });
+
+    /* Restore saved accent on load */
+    try {
+        var saved = JSON.parse(localStorage.getItem(DASH_ACCENT_KEY));
+        if (saved && saved.grad) {
+            activeName = saved.name || 'Custom';
+            if (saved.name && PRESETS.some(function(p) { return p.name === saved.name; })) {
+                document.getElementById('dashCustomColor').value = '#2563eb';
+            }
+            applyAccent(saved.grad, saved.soft, false, activeName);
+        } else {
+            applyAccent(DEFAULT_GRAD, DEFAULT_SOFT, false, 'Blue');
+        }
+    } catch (err) {
+        applyAccent(DEFAULT_GRAD, DEFAULT_SOFT, false, 'Blue');
+    }
+})();
+</script>
+
+<script>
+(function() {
+    /* ── Scroll reveal with stagger ── */
+    var revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window && revealEls.length) {
+        var obs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (!entry.isIntersecting) return;
+                var el = entry.target;
+                el.classList.add('in');
+                obs.unobserve(el);
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        revealEls.forEach(function(el, i) {
+            el.style.transitionDelay = (i % 4) * 0.09 + 's';
+            obs.observe(el);
+        });
+    } else {
+        revealEls.forEach(function(el) { el.classList.add('in'); });
+    }
+
+    /* ── Animated counters ── */
+    function animateCount(el) {
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        var dur = 1000;
+        var start = null;
+        function setText(v) {
+            var nodes = el.childNodes;
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].nodeType === 3) { nodes[i].nodeValue = v; return; }
+            }
+            el.textContent = v;
+        }
+        function step(ts) {
+            if (!start) start = ts;
+            var p = Math.min((ts - start) / dur, 1);
+            var eased = 1 - Math.pow(1 - p, 3);
+            setText(Math.round(target * eased));
+            if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+    var counters = document.querySelectorAll('[data-count]');
+    if ('IntersectionObserver' in window && counters.length) {
+        var cObs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (!entry.isIntersecting) return;
+                animateCount(entry.target);
+                cObs.unobserve(entry.target);
+            });
+        }, { threshold: 0.4 });
+        counters.forEach(function(c) { cObs.observe(c); });
+    } else {
+        counters.forEach(function(c) { animateCount(c); });
+    }
+})();
+</script>
 
 </body>
 </html>

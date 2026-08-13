@@ -1,11 +1,12 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
-include 'admin/dbcon.php';
-include 'includes/functions.php';
+require_once __DIR__ . '/../admin/dbcon.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 if (!isset($_GET['job_id'])) {
     header('location: browse_jobs.php');
@@ -249,7 +250,7 @@ mysqli_data_seek($questions_result, 0);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assessment Quiz - <?php echo htmlspecialchars($job['job_title']); ?></title>
-    <?php include 'links.php'; ?>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <style>
         .quiz-page-body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

@@ -1,6 +1,8 @@
 <?php
-include 'admin/dbcon.php';
-include('header.php');
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../admin/dbcon.php';
+require_once __DIR__ . '/../includes/header.php';
 
 $id = $_SESSION['id'];
 $selectquery = " select * from user_info where id='$id' ";
@@ -611,7 +613,7 @@ if (isset($_POST['btnUpdate'])) {
                 </div>
 
                 <div class="d-flex justify-content-end gap-3" style="gap: 12px; padding-top: 8px;">
-                    <button type="reset" class="btn-pro-cancel">Cancel</button>
+                    <a href="seeker_dashboard.php" class="btn-pro-cancel">Cancel</a>
                     <button type="submit" name="btnUpdate" class="btn-pro-save">
                         <i class="fas fa-check"></i> Save Changes
                     </button>

@@ -1,10 +1,11 @@
 <?php
-session_start();
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
     exit();
 }
-include 'admin/dbcon.php';
+require_once __DIR__ . '/../admin/dbcon.php';
 
 $user_id = $_SESSION['id'];
 $query = "SELECT * FROM user_info WHERE id = '$user_id'";
@@ -339,7 +340,7 @@ $user = mysqli_fetch_assoc($result);
 <body>
 
     <div class="print-controls">
-        <a href="profile.php" class="btn-fab btn-home" title="Back to Dashboard"><i class="fas fa-home"></i></a>
+        <a href="seeker_dashboard.php" class="btn-fab btn-home" title="Back to Dashboard"><i class="fas fa-home"></i></a>
         <button onclick="window.print()" class="btn-fab" title="Download PDF"><i class="fas fa-download"></i></button>
     </div>
 

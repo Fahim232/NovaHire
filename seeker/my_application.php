@@ -1,14 +1,30 @@
 <?php
-session_start();
-include 'admin/dbcon.php';
-include('header.php');
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../admin/dbcon.php';
+require_once __DIR__ . '/../includes/header.php';
 
 if (!isset($_SESSION['id'])) {
-    header('location: login.php');
+    header('location: ' . BASE_URL . '/auth/login.php');
 }
 
 $user_id = $_SESSION['id'];
 $user_email = $_SESSION['email'];
+
+// Hero stats
+$apps_stats = ['total' => 0, 'pending' => 0, 'shortlisted' => 0, 'avg_quiz' => 0];
+$stats_query = "SELECT COUNT(*) AS total,
+                COALESCE(SUM(application_status = 'pending'), 0) AS pending,
+                COALESCE(SUM(application_status = 'shortlisted'), 0) AS shortlisted,
+                ROUND(AVG(quiz_score)) AS avg_quiz
+                FROM job_applications WHERE user_id = '$user_id'";
+$stats_res = mysqli_query($con, $stats_query);
+if ($stats_res && $sr = mysqli_fetch_assoc($stats_res)) {
+    $apps_stats['total'] = (int) $sr['total'];
+    $apps_stats['pending'] = (int) $sr['pending'];
+    $apps_stats['shortlisted'] = (int) $sr['shortlisted'];
+    $apps_stats['avg_quiz'] = (int) $sr['avg_quiz'];
+}
 
 // Get legacy job application
 $selectquery = " select * from jobregistration where email='$user_email' "; 
@@ -83,616 +99,633 @@ if (isset($_POST['btnUpdate'])) {
         echo '<script>alert("Update Failed");</script>';
     }
 }
+
+$ma_status_style = [
+    'pending'     => ['st-pending', 'Pending'],
+    'reviewed'    => ['st-review', 'Reviewed'],
+    'shortlisted' => ['st-short', 'Shortlisted'],
+    'accepted'    => ['st-short', 'Accepted'],
+    'hired'       => ['st-hired', 'Hired'],
+    'rejected'    => ['st-rej', 'Rejected'],
+];
+$ma_quiz_style = [
+    'passed'   => 'q-passed',
+    'failed'   => 'q-failed',
+    'not_taken' => 'q-none',
+];
 ?>
 <style>
-    /* Minimalist colorful accents */
-    .dashboard-container {
-        max-width: 900px;
-        margin: 80px auto;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
-    .app-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(20px);
-        border-radius: 24px;
-        border: 1px solid rgba(255,255,255,0.8);
-        box-shadow: 0 20px 50px rgba(0,0,0,0.05);
-        overflow: hidden;
-        margin-bottom: 30px;
-        transition: transform 0.3s;
+    :root {
+        --ma-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%);
+        --ma-grad-soft: linear-gradient(135deg, rgba(37,99,235,.12), rgba(56,189,248,.12));
     }
+    body { font-family: 'Inter', sans-serif; }
+    .ma-wrap { background: var(--bg); min-height: 70vh; }
 
-    .app-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .status-header {
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        padding: 40px;
-        text-align: center;
+    /* ═══ Hero ═══ */
+    .ma-hero {
         position: relative;
+        background: var(--ma-grad);
+        margin-top: -16px;
+        padding: 62px 0 160px;
+        overflow: hidden;
+        border-radius: 0 0 38px 38px;
+    }
+    .ma-hero::before, .ma-hero::after {
+        content: ''; position: absolute; border-radius: 50%; pointer-events: none;
+    }
+    .ma-hero::before { top: -140px; right: -90px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); }
+    .ma-hero::after { bottom: -180px; left: -70px; width: 380px; height: 380px; background: radial-gradient(circle, rgba(255,255,255,.12), transparent 70%); }
+    .ma-hero-inner { position: relative; z-index: 2; }
+
+    .ma-breadcrumb {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+        color: #fff; font-size: .76rem; font-weight: 700; letter-spacing: .04em;
+        padding: 7px 15px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .ma-breadcrumb i { font-size: .7rem; }
+
+    .ma-hero h1 {
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; color: #fff;
+        font-size: clamp(1.8rem, 4.2vw, 2.7rem); line-height: 1.15;
+        margin: 0 0 12px; letter-spacing: -0.02em;
+    }
+    .ma-hero h1 span {
+        background: linear-gradient(90deg, #fde68a, #fbbf24);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .ma-hero p.lead { color: rgba(255,255,255,.85); font-size: 1rem; font-weight: 500; max-width: 620px; margin: 0; }
+
+    .ma-stats { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 28px; }
+    .ma-stat {
+        display: flex; align-items: center; gap: 12px;
+        background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+        backdrop-filter: blur(8px); border-radius: 16px; padding: 11px 18px;
+    }
+    .ma-stat .num { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.3rem; color: #fff; line-height: 1; }
+    .ma-stat .lbl { font-size: .7rem; font-weight: 600; color: rgba(255,255,255,.78); }
+    .ma-stat i { font-size: 1.1rem; color: #fde68a; }
+
+    /* ═══ Floating filter bar ═══ */
+    .ma-filters {
+        position: relative; z-index: 5;
+        max-width: 1080px; margin: -96px auto 0; padding: 20px 24px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 20px; box-shadow: 0 24px 50px -22px rgba(37,99,235,.4);
+    }
+    .ma-filters form { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .ma-input, .ma-select {
+        border: 1.5px solid var(--border-light); border-radius: 12px;
+        background: var(--bg-hover); color: var(--text);
+        font-family: 'Inter', sans-serif; font-size: .88rem; font-weight: 600;
+        padding: 11px 15px; transition: all .2s;
+    }
+    .ma-input { flex: 1; min-width: 220px; }
+    .ma-select { min-width: 160px; }
+    .ma-input:focus, .ma-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,.12); background: var(--bg-card); }
+    .ma-search-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .88rem;
+        color: #fff; background: var(--ma-grad); background-size: 150% 150%;
+        border: 0; border-radius: 12px; padding: 12px 26px; cursor: pointer;
+        box-shadow: 0 10px 22px -10px rgba(56,189,248,.6);
+        transition: transform .25s, box-shadow .3s, background-position .4s;
+    }
+    .ma-search-btn:hover { transform: translateY(-2px); background-position: 100% 50%; }
+    .ma-reset-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .88rem;
+        color: var(--text-muted); background: var(--bg-hover);
+        border: 1.5px solid var(--border-light); border-radius: 12px; padding: 12px 22px;
+        text-decoration: none; transition: all .2s;
+    }
+    .ma-reset-btn:hover { color: var(--primary); border-color: var(--primary); text-decoration: none; }
+
+    /* ═══ Body ═══ */
+    .ma-body { max-width: 1080px; padding-top: 34px; padding-bottom: 60px; }
+    .ma-sec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+    .ma-sec-head .ic {
+        width: 46px; height: 46px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--primary); font-size: 1.05rem; background: var(--ma-grad-soft);
+        border: 1px solid rgba(59,130,246,.22);
+    }
+    .ma-sec-head h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--text); margin: 0; letter-spacing: -.01em; }
+    .ma-sec-head p { color: var(--text-muted); font-size: .84rem; margin: 2px 0 0; }
+    .ma-sec-count {
+        margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+        background: var(--ma-grad-soft); border: 1px solid rgba(59,130,246,.22);
+        color: var(--primary); font-weight: 800; font-size: .82rem;
+        padding: 7px 16px; border-radius: 999px;
     }
 
-    .status-badge-lg {
-        background: white;
-        color: #2d3436;
-        padding: 10px 25px;
-        border-radius: 50px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 0.9rem;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-        display: inline-block;
-        margin-bottom: 20px;
+    /* application cards */
+    .ma-card {
+        position: relative;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 20px; padding: 24px;
+        margin-bottom: 18px; box-shadow: var(--shadow-sm);
+        transition: transform .3s, box-shadow .3s, border-color .3s, background .3s;
+        overflow: hidden;
+    }
+    .ma-card::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+        background: var(--ma-grad); opacity: 0; transition: opacity .3s;
+    }
+    .ma-card:hover { transform: translateY(-5px); box-shadow: 0 24px 48px -18px rgba(37,99,235,.35); border-color: rgba(56,189,248,.4); }
+    .ma-card:hover::before { opacity: 1; }
+
+    .ma-card-top { display: flex; align-items: flex-start; gap: 16px; }
+    .ma-tile {
+        flex: 0 0 56px; height: 56px; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1.15rem; background: var(--ma-grad);
+        box-shadow: 0 10px 20px -10px rgba(56,189,248,.6);
+    }
+    .ma-info { flex: 1; min-width: 0; }
+    .ma-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ma-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--text); margin: 0; letter-spacing: -.01em; }
+    .ma-company { display: inline-flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 700; color: var(--primary); margin-top: 5px; }
+    .ma-company i { font-size: .85rem; }
+
+    .ma-score {
+        flex-shrink: 0; text-align: center;
+        min-width: 74px; padding: 10px 14px;
+        border-radius: 14px;
+        background: var(--ma-grad-soft); border: 1px solid rgba(59,130,246,.25);
+    }
+    .ma-score .v { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--primary); line-height: 1; }
+    .ma-score .l { font-size: .58rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; display: block; }
+    [data-theme="dark"] .ma-score .v { color: #93c5fd; }
+
+    .ma-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 16px; }
+    .ma-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--bg-hover); border: 1px solid var(--border-light);
+        color: var(--text-muted); font-size: .78rem; font-weight: 700;
+        padding: 6px 12px; border-radius: 10px;
+    }
+    .ma-tag i { color: var(--primary); font-size: .8rem; width: 14px; text-align: center; }
+    .ma-tag.cat { color: var(--primary); background: var(--ma-grad-soft); border-color: rgba(59,130,246,.22); }
+
+    .ma-status, .ma-qpill {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: .72rem; font-weight: 800; padding: 6px 13px; border-radius: 999px;
+    }
+    .ma-status.st-pending { color: #b45309; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.28); }
+    .ma-status.st-review { color: #1d4ed8; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.28); }
+    .ma-status.st-short { color: #047857; background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.28); }
+    .ma-status.st-hired { color: #065f46; background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.4); }
+    .ma-status.st-rej { color: #b91c1c; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.28); }
+    .ma-qpill.q-passed { color: #047857; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.22); }
+    .ma-qpill.q-failed { color: #b91c1c; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.22); }
+    .ma-qpill.q-none { color: var(--text-muted); background: var(--bg-hover); border: 1px solid var(--border-light); }
+    [data-theme="dark"] .ma-status.st-pending { color: #fbbf24; }
+    [data-theme="dark"] .ma-status.st-review { color: #93c5fd; }
+    [data-theme="dark"] .ma-status.st-short, [data-theme="dark"] .ma-status.st-hired { color: #34d399; }
+    [data-theme="dark"] .ma-status.st-rej { color: #fca5a5; }
+    [data-theme="dark"] .ma-qpill.q-passed { color: #34d399; }
+    [data-theme="dark"] .ma-qpill.q-failed { color: #fca5a5; }
+
+    .ma-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ma-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .84rem;
+        color: var(--primary); background: var(--ma-grad-soft);
+        border: 1px solid rgba(59,130,246,.22); border-radius: 12px; padding: 10px 18px;
+        text-decoration: none; transition: all .25s;
+    }
+    .ma-link:hover { color: #fff; background: var(--ma-grad); border-color: transparent; transform: translateY(-2px); text-decoration: none; }
+    .ma-groom {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .84rem;
+        color: #fff; background: linear-gradient(135deg, #f6ad55, #ed8936); background-size: 150% 150%;
+        border: 0; border-radius: 12px; padding: 10px 18px; text-decoration: none;
+        box-shadow: 0 10px 22px -10px rgba(237,137,54,.6);
+        transition: transform .25s, box-shadow .3s, background-position .4s;
+    }
+    .ma-groom:hover { transform: translateY(-2px); background-position: 100% 50%; text-decoration: none; color: #fff; }
+    .ma-groom-done {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: .78rem; font-weight: 800; color: #047857;
+        background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.24);
+        border-radius: 999px; padding: 8px 16px;
     }
 
-    .app-details-grid {
-        padding: 40px;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 30px;
+    /* empty states */
+    .ma-empty {
+        text-align: center; background: var(--bg-card);
+        border: 1px dashed var(--border); border-radius: 22px; padding: 64px 30px;
     }
+    .ma-empty .ic {
+        width: 88px; height: 88px; margin: 0 auto 22px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; color: var(--primary); background: var(--ma-grad-soft);
+        border-radius: 26px;
+    }
+    .ma-empty h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; color: var(--text); }
+    .ma-empty p { color: var(--text-muted); }
+    .ma-empty .btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
+        color: #fff; background: var(--ma-grad); border: 0; border-radius: 13px; padding: 13px 26px;
+        box-shadow: 0 12px 24px -12px rgba(56,189,248,.6);
+        transition: transform .25s, box-shadow .3s;
+    }
+    .ma-empty .btn:hover { transform: translateY(-2px); text-decoration: none; color: #fff; }
+    .ma-empty .btn.ghost {
+        color: var(--primary); background: var(--ma-grad-soft); border: 1.5px solid rgba(59,130,246,.25);
+        box-shadow: none;
+    }
+    .ma-empty .btn.ghost:hover { border-color: var(--primary); }
 
-    .detail-item label {
-        display: block;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        color: #b2bec3;
-        font-weight: 700;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
+    /* ═══ Legacy application ═══ */
+    .ma-legacy {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 22px; overflow: hidden; box-shadow: var(--shadow-sm);
+        margin-top: 34px;
     }
+    .ma-legacy-head {
+        position: relative; text-align: center; padding: 40px 30px 34px;
+        background: var(--ma-grad); overflow: hidden;
+    }
+    .ma-legacy-head::before {
+        content: ''; position: absolute; top: -80px; right: -40px; width: 260px; height: 260px;
+        background: radial-gradient(circle, rgba(255,255,255,.16), transparent 70%); border-radius: 50%;
+    }
+    .ma-legacy-badge {
+        position: relative; display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+        color: #fff; font-weight: 800; font-size: .78rem; letter-spacing: .05em;
+        text-transform: uppercase; padding: 8px 18px; border-radius: 999px; margin-bottom: 16px;
+    }
+    .ma-legacy-head h2 { position: relative; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; color: #fff; font-size: 1.5rem; margin: 0 0 6px; }
+    .ma-legacy-head p { position: relative; color: rgba(255,255,255,.85); font-size: .86rem; margin: 0; }
 
-    .detail-item .value {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #2d3436;
+    .ma-legacy-grid {
+        padding: 30px 32px 26px;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px;
     }
+    .ma-detail label {
+        display: flex; align-items: center; gap: 7px;
+        font-size: .72rem; font-weight: 800; color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px;
+    }
+    .ma-detail label i { color: var(--primary); font-size: .8rem; }
+    .ma-detail .value {
+        background: var(--bg-hover); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 12px 15px;
+        font-size: .92rem; color: var(--text); font-weight: 700; min-height: 44px;
+        display: flex; align-items: center;
+    }
+    .ma-detail .value a { color: var(--primary); font-weight: 700; }
 
-    .action-bar {
-        padding: 20px 40px;
-        background: rgba(245, 246, 250, 0.5);
-        border-top: 1px solid rgba(0,0,0,0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .ma-legacy-bar {
+        display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 18px 32px; background: var(--bg-hover); border-top: 1px solid var(--border-light);
     }
+    .ma-bar-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .86rem;
+        border-radius: 12px; padding: 11px 22px; text-decoration: none;
+        transition: all .25s; cursor: pointer; border: 0;
+    }
+    .ma-bar-btn.ghost { color: var(--text-muted); background: var(--bg-card); border: 1.5px solid var(--border-light); }
+    .ma-bar-btn.ghost:hover { color: var(--primary); border-color: var(--primary); }
+    .ma-bar-btn.grad { color: #fff; background: var(--ma-grad); box-shadow: 0 10px 22px -10px rgba(56,189,248,.6); }
+    .ma-bar-btn.grad:hover { transform: translateY(-2px); }
 
-    /* Edit Form Styles */
-    .edit-panel {
-        background: white;
-        border-radius: 24px;
-        padding: 40px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        display: none; /* Hidden by default */
-        animation: fadeIn 0.5s ease;
-        margin-top: 20px;
+    /* edit panel */
+    .ma-edit {
+        background: var(--bg-card); border-top: 1px solid var(--border-light);
+        padding: 0; overflow: hidden; max-height: 0;
+        transition: max-height .5s cubic-bezier(.4,0,.2,1);
     }
+    .ma-edit.open { max-height: 2000px; }
+    .ma-edit-inner { padding: 30px 32px 34px; }
+    .ma-edit-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .ma-edit-head h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; color: var(--text); margin: 0; }
+    .ma-edit-close {
+        width: 36px; height: 36px; border-radius: 11px; border: 1.5px solid var(--border-light);
+        background: var(--bg-hover); color: var(--text-muted); cursor: pointer; transition: all .2s;
+    }
+    .ma-edit-close:hover { color: #ef4444; border-color: #ef4444; transform: rotate(90deg); }
+    .ma-edit label { font-size: .74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 7px; display: block; }
+    .ma-edit input[type="text"] {
+        width: 100%; border: 1.5px solid var(--border-light); border-radius: 12px;
+        background: var(--bg-hover); color: var(--text); font-family: 'Inter', sans-serif;
+        font-size: .9rem; font-weight: 600; padding: 12px 15px; transition: all .2s;
+    }
+    .ma-edit input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,.12); background: var(--bg-card); }
+    .ma-upload {
+        background: var(--bg-hover); border: 1.5px dashed var(--border);
+        border-radius: 14px; padding: 20px;
+    }
+    .ma-upload .custom-file-label { background: transparent; border: 0; }
+    .ma-save {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
+        color: #fff; background: var(--ma-grad); border: 0; border-radius: 12px; padding: 12px 30px;
+        box-shadow: 0 10px 22px -10px rgba(56,189,248,.6); transition: all .25s;
+    }
+    .ma-save:hover { transform: translateY(-2px); }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .ma-footer { text-align: center; padding: 26px 0 46px; color: var(--text-light); font-size: .82rem; font-weight: 600; }
 
-    .form-control-minimal {
-        border: none;
-        background: #f1f2f6;
-        border-radius: 12px;
-        padding: 15px 20px;
-        width: 100%;
-        font-weight: 500;
-        color: #2d3436;
-    }
+    .ma-fade { opacity: 0; transform: translateY(16px); animation: maUp .5s ease forwards; }
+    @keyframes maUp { to { opacity: 1; transform: none; } }
 
-    .form-control-minimal:focus {
-        background: white;
-        box-shadow: 0 0 0 2px var(--primary-color);
-        outline: none;
+    @media (max-width: 860px) {
+        .ma-hero { padding: 48px 0 140px; border-radius: 0 0 28px 28px; }
+        .ma-filters { margin-top: -88px; padding: 18px; }
+        .ma-filters form > * { width: 100%; }
+        .ma-reset-btn { justify-content: center; }
+        .ma-card-top { flex-wrap: wrap; }
+        .ma-score { margin-left: auto; }
+        .ma-legacy-grid { padding: 24px 20px 20px; }
+        .ma-legacy-bar { padding: 16px 20px; }
+        .ma-edit-inner { padding: 24px 20px 28px; }
     }
-    
-    /* Company Applications Section */
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #2d3436;
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 3px solid #667eea;
-    }
-    
-    .company-app-card {
-        background: white;
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-        border-left: 5px solid #667eea;
-    }
-    
-    .company-app-card:hover {
-        transform: translateX(5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    }
-    
-    .company-app-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-    
-    .app-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2d3436;
-        margin-bottom: 5px;
-    }
-    
-    .app-company {
-        color: #667eea;
-        font-weight: 600;
-        font-size: 1rem;
-    }
-    
-    .app-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin: 15px 0;
-    }
-    
-    .app-badge {
-        padding: 6px 15px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    
-    .badge-pending {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .badge-reviewed {
-        background: #d1ecf1;
-        color: #0c5460;
-    }
-    
-    .badge-shortlisted {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .badge-rejected {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    .badge-passed {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .badge-failed {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    .badge-not-taken {
-        background: #e2e3e5;
-        color: #383d41;
-    }
-    
-    .quiz-score {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 8px 20px;
-        border-radius: 25px;
-        font-weight: 700;
-        font-size: 1rem;
-    }
-    
-    .app-meta {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        color: #636e72;
-        font-size: 0.9rem;
-        margin-top: 15px;
-    }
-    
-    .app-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .app-actions {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    
-    .no-apps-placeholder {
-        text-align: center;
-        padding: 60px 20px;
-        background: rgba(255,255,255,0.5);
-        border-radius: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .no-apps-placeholder i {
-        font-size: 4rem;
-        color: #dfe6e9;
-        margin-bottom: 20px;
-    }
-
-    .search-filter-bar {
-        background: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        margin-bottom: 25px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .search-filter-bar input,
-    .search-filter-bar select {
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        padding: 1px 15px;
-        font-size: 0.95rem;
-        transition: all 0.3s;
-        margin-bottom: 5px;
-    }
-
-    .search-filter-bar input:focus,
-    .search-filter-bar select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        outline: none;
-    }
-
-    .search-filter-bar .btn {
-        padding: 10px 25px;
-        font-weight: 600;
-        border-radius: 8px;
-    }
-
-    .search-filter-bar .btn-secondary {
-        background: #f0f0f0;
-        color: #333;
-        border: none;
-    }
-
-    .search-filter-bar .btn-secondary:hover {
-        background: #e0e0e0;
+    @media (max-width: 480px) {
+        .ma-card { padding: 18px; }
+        .ma-search-btn, .ma-reset-btn { width: 100%; justify-content: center; }
+        .ma-sec-count { margin-left: 0; }
+        .ma-bar-btn { width: 100%; justify-content: center; }
     }
 </style>
 
-<div class="container dashboard-container">
-    <!-- Company Job Applications Section -->
-    <?php if ($has_company_apps): ?>
-    <div class="mb-5">
-        <h2 class="section-title">
-            <i class="fas fa-briefcase mr-2"></i>Company Job Applications
-            <span class="badge badge-primary ml-2"><?php echo mysqli_num_rows($company_apps_result); ?></span>
-        </h2>
-        
-        <!-- Search & Filter Bar -->
-        <div class="search-filter-bar">
-            <form method="GET" action="my_application.php" class="w-100 d-flex gap-2 flex-wrap align-items-center">
-                <input 
-                    type="text" 
-                    name="search_company" 
-                    class="form-control" 
-                    placeholder="Search by company or job title..."
-                    value="<?php echo isset($_GET['search_company']) ? htmlspecialchars($_GET['search_company']) : ''; ?>"
-                    style="flex: 1; min-width: 200px;"
-                >
-                
-                <select name="filter_status" class="form-control" style="min-width: 150px;">
-                    <option value="">All Status</option>
-                    <option value="pending" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'pending') ? 'selected' : ''; ?>>Pending</option>
-                    <option value="reviewed" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'reviewed') ? 'selected' : ''; ?>>Reviewed</option>
-                    <option value="shortlisted" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'shortlisted') ? 'selected' : ''; ?>>Shortlisted</option>
-                    <option value="rejected" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'rejected') ? 'selected' : ''; ?>>Rejected</option>
-                </select>
-                
-                <button type="submit" class="btn btn-primary" style="padding: 10px 30px;">
-                    <i class="fas fa-search mr-2"></i>Search
-                </button>
-                
-                <a href="my_application.php" class="btn btn-secondary">
-                    <i class="fas fa-redo mr-2"></i>Reset
-                </a>
-            </form>
+<div class="ma-wrap">
+
+    <!-- Hero -->
+    <div class="ma-hero">
+        <div class="container ma-hero-inner">
+            <div class="ma-breadcrumb"><i class="fas fa-home"></i> Dashboard <i class="fas fa-chevron-right"></i> My Applications</div>
+            <h1>My <span>Applications</span></h1>
+            <p class="lead">Track every application you've submitted, review your quiz scores, and follow up on company updates.</p>
+            <div class="ma-stats">
+                <div class="ma-stat"><i class="fas fa-paper-plane"></i><div><div class="num"><?php echo $apps_stats['total']; ?></div><div class="lbl">Total</div></div></div>
+                <div class="ma-stat"><i class="fas fa-hourglass-half"></i><div><div class="num"><?php echo $apps_stats['pending']; ?></div><div class="lbl">Pending</div></div></div>
+                <div class="ma-stat"><i class="fas fa-star"></i><div><div class="num"><?php echo $apps_stats['shortlisted']; ?></div><div class="lbl">Shortlisted</div></div></div>
+                <div class="ma-stat"><i class="fas fa-chart-line"></i><div><div class="num"><?php echo $apps_stats['avg_quiz']; ?>%</div><div class="lbl">Avg Quiz</div></div></div>
+            </div>
         </div>
-        
-        <?php 
-            // Apply search and filter
-            $filtered_apps = [];
-            mysqli_data_seek($company_apps_result, 0);
-            
-            $search_query = isset($_GET['search_company']) ? strtolower($_GET['search_company']) : '';
-            $status_filter = isset($_GET['filter_status']) ? $_GET['filter_status'] : '';
-            
-            while ($app = mysqli_fetch_assoc($company_apps_result)) {
-                $matches_search = true;
-                $matches_status = true;
-                
-                if (!empty($search_query)) {
-                    $job_text = strtolower($app['job_title'] . ' ' . $app['company_name'] . ' ' . $app['industry']);
-                    $matches_search = strpos($job_text, $search_query) !== false;
+    </div>
+
+    <?php if ($has_company_apps): ?>
+        <!-- Filter bar -->
+        <div class="container">
+            <div class="ma-filters ma-fade" style="animation-delay:.06s">
+                <form method="GET" action="my_application.php">
+                    <input type="text" name="search_company" class="ma-input"
+                           placeholder="Search by company or job title..."
+                           value="<?php echo isset($_GET['search_company']) ? htmlspecialchars($_GET['search_company']) : ''; ?>">
+                    <select name="filter_status" class="ma-select">
+                        <option value="">All Status</option>
+                        <option value="pending" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'pending') ? 'selected' : ''; ?>>Pending</option>
+                        <option value="reviewed" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'reviewed') ? 'selected' : ''; ?>>Reviewed</option>
+                        <option value="shortlisted" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'shortlisted') ? 'selected' : ''; ?>>Shortlisted</option>
+                        <option value="rejected" <?php echo (isset($_GET['filter_status']) && $_GET['filter_status'] === 'rejected') ? 'selected' : ''; ?>>Rejected</option>
+                    </select>
+                    <button type="submit" class="ma-search-btn"><i class="fas fa-search"></i>Search</button>
+                    <a href="my_application.php" class="ma-reset-btn"><i class="fas fa-redo"></i>Reset</a>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="container ma-body">
+        <!-- Company Job Applications Section -->
+        <?php if ($has_company_apps): ?>
+
+            <?php
+                // Apply search and filter
+                $filtered_apps = [];
+                mysqli_data_seek($company_apps_result, 0);
+
+                $search_query = isset($_GET['search_company']) ? strtolower($_GET['search_company']) : '';
+                $status_filter = isset($_GET['filter_status']) ? $_GET['filter_status'] : '';
+
+                while ($app = mysqli_fetch_assoc($company_apps_result)) {
+                    $matches_search = true;
+                    $matches_status = true;
+
+                    if (!empty($search_query)) {
+                        $job_text = strtolower($app['job_title'] . ' ' . $app['company_name'] . ' ' . $app['industry']);
+                        $matches_search = strpos($job_text, $search_query) !== false;
+                    }
+
+                    if (!empty($status_filter)) {
+                        $matches_status = $app['application_status'] === $status_filter;
+                    }
+
+                    if ($matches_search && $matches_status) {
+                        $filtered_apps[] = $app;
+                    }
                 }
-                
-                if (!empty($status_filter)) {
-                    $matches_status = $app['application_status'] === $status_filter;
-                }
-                
-                if ($matches_search && $matches_status) {
-                    $filtered_apps[] = $app;
-                }
-            }
-            
-            // Display filtered results or no results message
-            if (count($filtered_apps) > 0):
-        ?>
-        
-        <?php foreach ($filtered_apps as $app): ?>
-        <div class="company-app-card">
-            <div class="company-app-header">
+            ?>
+
+            <div class="ma-sec-head ma-fade" style="animation-delay:.12s">
+                <div class="ic"><i class="fas fa-briefcase"></i></div>
                 <div>
-                    <div class="app-title"><?php echo $app['job_title']; ?></div>
-                    <div class="app-company">
-                        <i class="fas fa-building mr-1"></i><?php echo $app['company_name']; ?> • <?php echo $app['industry']; ?>
+                    <h2>Company Job Applications</h2>
+                    <p>Your submissions to jobs posted by companies.</p>
+                </div>
+                <span class="ma-sec-count"><i class="fas fa-clipboard-list"></i> <?php echo count($filtered_apps); ?> shown</span>
+            </div>
+
+            <?php if (count($filtered_apps) > 0): ?>
+                <?php $ma_idx = 0; foreach ($filtered_apps as $app): $ma_idx++; ?>
+                    <?php $ms = $ma_status_style[$app['application_status']] ?? ['st-pending', ucfirst($app['application_status'])]; ?>
+                    <?php $mq = $ma_quiz_style[$app['quiz_status']] ?? 'q-none'; ?>
+                    <div class="ma-card ma-fade" style="animation-delay:<?php echo min($ma_idx * 0.06, 0.36); ?>s">
+                        <div class="ma-card-top">
+                            <div class="ma-tile"><i class="fas fa-briefcase"></i></div>
+                            <div class="ma-info">
+                                <div class="ma-title-row">
+                                    <h3 class="ma-title"><?php echo htmlspecialchars($app['job_title']); ?></h3>
+                                    <span class="ma-status <?php echo $ms[0]; ?>"><i class="fas fa-clipboard-check"></i><?php echo $ms[1]; ?></span>
+                                    <span class="ma-qpill <?php echo $mq; ?>"><i class="fas fa-question-circle"></i>Quiz: <?php echo ucfirst(str_replace('_', ' ', $app['quiz_status'] ?: 'Not taken')); ?></span>
+                                </div>
+                                <div class="ma-company"><i class="fas fa-building"></i><?php echo htmlspecialchars($app['company_name']); ?> &middot; <?php echo htmlspecialchars($app['industry']); ?></div>
+                            </div>
+                            <?php if ($app['quiz_score'] !== null): ?>
+                                <div class="ma-score">
+                                    <span class="v"><?php echo round($app['quiz_score']); ?>%</span>
+                                    <span class="l">Quiz</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="ma-tags">
+                            <span class="ma-tag cat"><i class="fas fa-tag"></i><?php echo htmlspecialchars($app['job_category']); ?></span>
+                            <span class="ma-tag"><i class="fas fa-map-marker-alt"></i><?php echo htmlspecialchars($app['location']); ?></span>
+                            <span class="ma-tag"><i class="fas fa-briefcase"></i><?php echo htmlspecialchars($app['employment_type']); ?></span>
+                            <span class="ma-tag"><i class="fas fa-calendar-alt"></i>Applied: <?php echo date('M d, Y', strtotime($app['applied_date'])); ?></span>
+                        </div>
+
+                        <div class="ma-foot">
+                            <a href="job_details.php?id=<?php echo $app['job_id']; ?>" class="ma-link"><i class="fas fa-eye"></i>View Job Details</a>
+                            <?php
+                                $groom_info = isset($grooming_status[$app['id']]) ? $grooming_status[$app['id']] : null;
+                                if ($groom_info && $groom_info['needs_grooming']):
+                            ?>
+                                <a href="grooming.php?category=<?php echo urlencode($groom_info['category']); ?>&job_id=<?php echo $groom_info['job_id']; ?>" class="ma-groom" title="Complete grooming session to improve your score">
+                                    <i class="fas fa-graduation-cap"></i>Complete Grooming
+                                </a>
+                            <?php elseif ($groom_info && $groom_info['grooming_completed']): ?>
+                                <span class="ma-groom-done"><i class="fas fa-check-circle"></i>Grooming Completed</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="ma-empty ma-fade">
+                    <div class="ic"><i class="fas fa-search"></i></div>
+                    <h3>No Applications Match Your Search</h3>
+                    <p>Try adjusting your search or filters.</p>
+                    <a href="my_application.php" class="btn"><i class="fas fa-redo"></i>Clear Filters</a>
+                </div>
+            <?php endif; ?>
+
+        <?php else: ?>
+            <div class="ma-empty ma-fade">
+                <div class="ic"><i class="fas fa-paper-plane"></i></div>
+                <h3>No Company Job Applications Yet</h3>
+                <p>Start applying for jobs posted by companies.</p>
+                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <a href="browse_jobs.php" class="btn"><i class="fas fa-search"></i>Browse Available Jobs</a>
+                    <a href="seeker_dashboard.php" class="btn ghost"><i class="fas fa-th-large"></i>Go to Dashboard</a>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Legacy Application Section -->
+        <?php if ($has_application): ?>
+            <div class="ma-legacy ma-fade" style="animation-delay:.2s">
+                <div class="ma-legacy-head">
+                    <span class="ma-legacy-badge"><i class="fas fa-satellite-dish"></i> Active Details</span>
+                    <h2>Developer Application</h2>
+                    <p>Submitted on <?php echo date("F j, Y"); ?></p>
+                </div>
+
+                <div class="ma-legacy-grid">
+                    <div class="ma-detail">
+                        <label><i class="fas fa-id-badge"></i> Full Name</label>
+                        <div class="value"><?php echo htmlspecialchars($result['name']); ?></div>
+                    </div>
+                    <div class="ma-detail">
+                        <label><i class="fas fa-phone-alt"></i> Phone</label>
+                        <div class="value"><?php echo htmlspecialchars($result['phone']); ?></div>
+                    </div>
+                    <div class="ma-detail">
+                        <label><i class="fas fa-graduation-cap"></i> Degree</label>
+                        <div class="value"><?php echo htmlspecialchars($result['degree']); ?></div>
+                    </div>
+                    <div class="ma-detail">
+                        <label><i class="fas fa-code"></i> Programming Language</label>
+                        <div class="value"><?php echo htmlspecialchars($result['planguage']); ?></div>
+                    </div>
+                    <div class="ma-detail">
+                        <label><i class="fas fa-user-plus"></i> Referral</label>
+                        <div class="value"><?php echo htmlspecialchars($result['refer']); ?></div>
+                    </div>
+                    <div class="ma-detail">
+                        <label><i class="fas fa-file-pdf"></i> CV Document</label>
+                        <div class="value">
+                            <a href="files/<?php echo $result['cv_doc']; ?>" target="_blank"><i class="fas fa-eye mr-1"></i>View File</a>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <?php if ($app['quiz_score'] !== null): ?>
-                        <div class="quiz-score">
-                            <i class="fas fa-chart-line"></i>
-                            Quiz: <?php echo round($app['quiz_score']); ?>%
+
+                <div class="ma-legacy-bar">
+                    <button class="ma-bar-btn ghost" onclick="toggleEdit()"><i class="fas fa-cog mr-1"></i>Settings</button>
+                    <button class="ma-bar-btn grad" onclick="toggleEdit()"><i class="fas fa-pen mr-1"></i>Edit Details</button>
+                </div>
+
+                <!-- Hidden Edit Form -->
+                <div class="ma-edit" id="editForm">
+                    <div class="ma-edit-inner">
+                        <div class="ma-edit-head">
+                            <h4><i class="fas fa-user-cog mr-2" style="color: var(--primary);"></i>Update Information</h4>
+                            <button type="button" class="ma-edit-close" onclick="toggleEdit()"><i class="fas fa-times"></i></button>
                         </div>
-                    <?php endif; ?>
+
+                        <form method="post" action="" enctype="multipart/form-data">
+                            <input type="hidden" name="id" value="<?php echo $result['id']; ?>" />
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label>Display Name</label>
+                                    <input type="text" name="name" value="<?php echo htmlspecialchars($result['name']); ?>" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Phone Number</label>
+                                    <input type="text" name="phone" value="<?php echo htmlspecialchars($result['phone']); ?>" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label>Qualification</label>
+                                    <input type="text" name="degree" value="<?php echo htmlspecialchars($result['degree']); ?>" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Tech Stack</label>
+                                    <input type="text" name="plang" value="<?php echo htmlspecialchars($result['planguage']); ?>" />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label>Referral</label>
+                                <input type="text" name="refer" value="<?php echo htmlspecialchars($result['refer']); ?>" />
+                            </div>
+
+                            <div class="ma-upload mb-4">
+                                <label>Update CV (Optional)</label>
+                                <div class="custom-file">
+                                    <input type="file" name="pdf_file" class="custom-file-input" id="cvFile" accept=".pdf">
+                                    <label class="custom-file-label border-0" for="cvFile" style="background: transparent;">Choose new PDF file...</label>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Leave empty to keep current CV.</small>
+                            </div>
+
+                            <div class="text-right">
+                                <button type="button" class="btn btn-link text-muted mr-3" onclick="toggleEdit()">Cancel</button>
+                                <button type="submit" name="btnUpdate" class="ma-save"><i class="fas fa-check mr-1"></i>Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="app-badges">
-                <span class="app-badge badge-<?php echo $app['application_status']; ?>">
-                    <i class="fas fa-clipboard-check mr-1"></i><?php echo ucfirst($app['application_status']); ?>
-                </span>
-                
-                <?php if ($app['quiz_status']): ?>
-                    <span class="app-badge badge-<?php echo str_replace('_', '-', $app['quiz_status']); ?>">
-                        <i class="fas fa-question-circle mr-1"></i>Quiz: <?php echo ucfirst(str_replace('_', ' ', $app['quiz_status'])); ?>
-                    </span>
-                <?php endif; ?>
-                
-                <span class="app-badge" style="background: #e3f2fd; color: #1565c0;">
-                    <i class="fas fa-tag mr-1"></i><?php echo $app['job_category']; ?>
-                </span>
-            </div>
-            
-            <div class="app-meta">
-                <div class="app-meta-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <?php echo $app['location']; ?>
-                </div>
-                <div class="app-meta-item">
-                    <i class="fas fa-briefcase"></i>
-                    <?php echo $app['employment_type']; ?>
-                </div>
-                <div class="app-meta-item">
-                    <i class="fas fa-calendar"></i>
-                    Applied: <?php echo date('M d, Y', strtotime($app['applied_date'])); ?>
-                </div>
-            </div>
-            
-            <div class="app-actions">
-                <a href="job_details.php?id=<?php echo $app['job_id']; ?>" class="btn btn-outline-primary btn-sm rounded-pill">
-                    <i class="fas fa-eye mr-1"></i>View Job Details
-                </a>
-                
-                <?php 
-                    $groom_info = isset($grooming_status[$app['id']]) ? $grooming_status[$app['id']] : null;
-                    if ($groom_info && $groom_info['needs_grooming']): 
-                ?>
-                    <a href="grooming.php?category=<?php echo urlencode($groom_info['category']); ?>&job_id=<?php echo $groom_info['job_id']; ?>" class="btn btn-warning btn-sm rounded-pill" title="Complete grooming session to improve your score">
-                        <i class="fas fa-graduation-cap mr-1"></i>Complete Grooming
-                    </a>
-                <?php elseif ($groom_info && $groom_info['grooming_completed']): ?>
-                    <span class="btn btn-success btn-sm rounded-pill disabled">
-                        <i class="fas fa-check mr-1"></i>Grooming Completed
-                    </span>
-                <?php endif; ?>
-            </div>
-        </div>
-        <?php endforeach; ?>
-        
-        <?php else: ?>
-            <div class="no-apps-placeholder">
-                <i class="fas fa-search"></i>
-                <h4 class="font-weight-bold text-dark">No Applications Match Your Search</h4>
-                <p class="text-muted mb-4">Try adjusting your search or filters</p>
-                <a href="my_application.php" class="btn btn-primary rounded-pill px-4 font-weight-bold">
-                    <i class="fas fa-redo mr-2"></i>Clear Filters
-                </a>
             </div>
         <?php endif; ?>
     </div>
-    <?php else: ?>
-    <div class="no-apps-placeholder">
-        <i class="fas fa-search"></i>
-        <h4 class="font-weight-bold text-dark">No Company Job Applications Yet</h4>
-        <p class="text-muted mb-4">Start applying for jobs posted by companies</p>
-        <a href="browse_jobs.php" class="btn btn-primary rounded-pill px-4 font-weight-bold">
-            <i class="fas fa-search mr-2"></i>Browse Available Jobs
-        </a>
+
+    <div class="ma-footer">
+        <p class="mb-0">&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved.</p>
     </div>
-    <?php endif; ?>
-    
-    <!-- Legacy Application Section -->
-    <?php if($has_application): ?>
-    <!-- Legacy Application Section -->
-    <?php if($has_application): ?>
-      <div class="mb-5">
-        <h2 class="section-title">
-            <i class="fas fa-clipboard-list mr-2"></i>Portal Application (Legacy)
-        </h2>
-      <!-- Main Application Card -->
-      <div class="app-card">
-          <div class="status-header">
-              <span class="status-badge-lg"><i class="fas fa-satellite-dish mr-2 text-primary"></i> Active Details</span>
-              <h2 class="mb-0 font-weight-bold text-dark">Developer Application</h2>
-              <p class="text-muted mt-2 mb-0">Submitted on <?php echo date("F j, Y"); ?></p>
-          </div>
-          
-          <div class="app-details-grid">
-             <div class="detail-item">
-                 <label>Full Name</label>
-                 <div class="value"><?php echo htmlspecialchars($result['name']); ?></div>
-             </div>
-             <div class="detail-item">
-                 <label>Phone</label>
-                 <div class="value"><?php echo htmlspecialchars($result['phone']); ?></div>
-             </div>
-             <div class="detail-item">
-                 <label>Degree</label>
-                 <div class="value"><?php echo htmlspecialchars($result['degree']); ?></div>
-             </div>
-             <div class="detail-item">
-                 <label>Programming Language</label>
-                 <div class="value"><?php echo htmlspecialchars($result['planguage']); ?></div>
-             </div>
-             <div class="detail-item">
-                 <label>Referral</label>
-                 <div class="value"><?php echo htmlspecialchars($result['refer']); ?></div>
-             </div>
-             <div class="detail-item">
-                 <label>CV Document</label>
-                 <div class="value">
-                    <a href="files/<?php echo $result['cv_doc']; ?>" target="_blank" class="text-primary font-weight-bold">
-                        <i class="fas fa-file-pdf mr-1"></i> View File
-                    </a>
-                 </div>
-             </div>
-          </div>
-
-          <div class="action-bar">
-              <button class="btn btn-light rounded-pill px-4 font-weight-bold text-muted" onclick="toggleEdit()">
-                  <i class="fas fa-cog mr-2"></i> Settings
-              </button>
-              <button class="btn btn-primary rounded-pill px-5 font-weight-bold shadow-sm" onclick="toggleEdit()">
-                  <i class="fas fa-pen mr-2"></i> Edit Details
-              </button>
-          </div>
-      </div>
-
-      <!-- Hidden Edit Form -->
-      <div class="edit-panel" id="editForm">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="font-weight-bold m-0">Update Information</h4>
-            <button class="btn btn-sm btn-light rounded-circle" onclick="toggleEdit()"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <form method="post" action="" enctype="multipart/form-data">
-            <input type="hidden" name="id" value="<?php echo $result['id']; ?>" />
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="small font-weight-bold text-muted ml-2">Display Name</label>
-                    <input type="text" name="name" class="form-control-minimal" value="<?php echo htmlspecialchars($result['name']); ?>" />
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="small font-weight-bold text-muted ml-2">Phone Number</label>
-                    <input type="text" name="phone" class="form-control-minimal" value="<?php echo htmlspecialchars($result['phone']); ?>" />
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="small font-weight-bold text-muted ml-2">Qualification</label>
-                    <input type="text" name="degree" class="form-control-minimal" value="<?php echo htmlspecialchars($result['degree']); ?>" />
-                </div>
-                 <div class="col-md-6 mb-3">
-                    <label class="small font-weight-bold text-muted ml-2">Tech Stack</label>
-                    <input type="text" name="plang" class="form-control-minimal" value="<?php echo htmlspecialchars($result['planguage']); ?>" />
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <label class="small font-weight-bold text-muted ml-2">Referral</label>
-                <input type="text" name="refer" class="form-control-minimal" value="<?php echo htmlspecialchars($result['refer']); ?>" />
-            </div>
-
-            <div class="p-4 rounded mb-4" style="background: #f8f9fa; border: 1px dashed #ced6e0;">
-                <label class="small font-weight-bold text-muted mb-2 d-block">Update CV (Optional)</label>
-                <div class="custom-file">
-                    <input type="file" name="pdf_file" class="custom-file-input" id="cvFile" accept=".pdf">
-                    <label class="custom-file-label border-0" for="cvFile" style="background: transparent;">Choose new PDF file...</label>
-                </div>
-                <small class="text-muted mt-2 d-block">Leave empty to keep current CV.</small>
-            </div>
-
-            <div class="text-right">
-                <button type="button" class="btn btn-link text-muted mr-3" onclick="toggleEdit()">Cancel</button>
-                <button type="submit" name="btnUpdate" class="btn btn-success rounded-pill px-5 font-weight-bold shadow">Save Changes</button>
-            </div>
-        </form>
-      </div>
-      </div>
-      
-    <?php endif; ?>
-    
-    <?php if (!$has_company_apps): ?>
-        <div class="text-center" style="padding: 100px 0;">
-            <div class="mb-4">
-                <span style="display: inline-block; padding: 30px; background: rgba(255,255,255,0.1); border-radius: 50%; backdrop-filter: blur(10px);">
-                    <i class="fas fa-folder-open fa-4x text-white-50"></i>
-                </span>
-            </div>
-            <h2 class="text-white font-weight-bold mb-3">No Active Applications</h2>
-            <p class="text-white-50 mb-4">Start your journey by selecting a role from the dashboard or browse company jobs.</p>
-            <a href="index.php" class="btn btn-light rounded-pill px-5 py-3 font-weight-bold text-primary shadow-lg hover-lift mr-2">
-                Browse Portal Openings
-            </a>
-            <a href="browse_jobs.php" class="btn btn-outline-light rounded-pill px-5 py-3 font-weight-bold shadow-lg hover-lift">
-                Browse Company Jobs
-            </a>
-        </div>
-        <?php endif; ?>
-        </div>
-    <?php endif; ?>
 </div>
 
 <script>
     function toggleEdit() {
         var x = document.getElementById("editForm");
-        if (x.style.display === "none" || x.style.display === "") {
-            x.style.display = "block";
-            // Scroll to edit form
-            x.scrollIntoView({behavior: "smooth"});
+        var isOpen = x.classList.contains("open");
+        if (!isOpen) {
+            x.classList.add("open");
+            setTimeout(function() {
+                x.scrollIntoView({behavior: "smooth", block: "nearest"});
+            }, 150);
         } else {
-            x.style.display = "none";
+            x.classList.remove("open");
         }
     }
 
     // Custom file input name display
     $(".custom-file-input").on("change", function() {
-      var fileName = $(this).val().split("\\").pop();
-      $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
     });
 </script>
 

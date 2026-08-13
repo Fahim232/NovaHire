@@ -1,11 +1,13 @@
 <?php
-    include 'admin/dbcon.php';
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+    require_once __DIR__ . '/../admin/dbcon.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Create Account | NovaHire</title>
-    <?php include 'links.php'; ?>
+    <?php include '../includes/links.php'; ?>
     <style>
         body {
             min-height: 100vh;
@@ -213,18 +215,27 @@
 </head>
 <body>
     <?php 
+        /**
+         * Candidate User Registration Logic
+         * 
+         * Handles candidate registration form submission, profile picture upload,
+         * password hashing, email duplication check, and user database insertion.
+         */
         if (isset($_POST['submit'])){
-            $username = mysqli_real_escape_string($con, $_POST['username']);
-            $email = mysqli_real_escape_string($con, $_POST['email']);
-            $phone = mysqli_real_escape_string($con, $_POST['phone']);
-            $password = mysqli_real_escape_string($con, $_POST['password']);
-            $cpassword = mysqli_real_escape_string($con, $_POST['cpassword']);
-            $degree = mysqli_real_escape_string($con, $_POST['degree']);
-            $skills = mysqli_real_escape_string($con, $_POST['user_skills']);
+            // Extract and sanitize candidate registration details
+            $username  = trim($_POST['username'] ?? '');
+            $email     = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+            $phone     = trim($_POST['phone'] ?? '');
+            $password  = $_POST['password'] ?? '';
+            $cpassword = $_POST['cpassword'] ?? '';
+            $degree    = trim($_POST['degree'] ?? '');
+            $skills    = trim($_POST['user_skills'] ?? '');
 
-            $passEncrypt = password_hash($password, PASSWORD_BCRYPT);
-            $cpassEncrypt = password_hash($password, PASSWORD_BCRYPT);
+            // Hash password securely using default BCrypt algorithm
+            $passEncrypt  = password_hash($password, PASSWORD_BCRYPT);
+            $cpassEncrypt = password_hash($cpassword, PASSWORD_BCRYPT);
 
+            // Handle candidate profile photo upload if provided
             $profile_name = '';
             if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK && $_FILES['profile_image']['size'] > 0) {
                 $allowed_exts = ['jpg','jpeg','png','gif','webp'];
@@ -232,7 +243,7 @@
                 if (in_array($ext, $allowed_exts)) {
                     $upload_dir = __DIR__ . '/images/';
                     if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0777, true);
+                        mkdir($upload_dir, 0755, true);
                     }
                     $profile_name = 'profile_' . time() . '_' . rand(1000,9999) . '.' . $ext;
                     $target = $upload_dir . $profile_name;
@@ -242,26 +253,32 @@
                 }
             }
 
-            $emailquery = " select * from user_info where email='$email' ";
-            $query = mysqli_query($con, $emailquery);
-            $emailcount = mysqli_num_rows($query);
+            // 1. Check for duplicate email using prepared statement
+            $email_stmt = mysqli_prepare($con, "SELECT id FROM user_info WHERE email = ?");
+            mysqli_stmt_bind_param($email_stmt, "s", $email);
+            mysqli_stmt_execute($email_stmt);
+            $email_result = mysqli_stmt_get_result($email_stmt);
+            $emailcount   = mysqli_num_rows($email_result);
+            mysqli_stmt_close($email_stmt);
 
-            if ($emailcount>0) {
+            if ($emailcount > 0) {
                 echo '<div class="alert alert-danger fixed-top text-center m-3 shadow rounded-pill">Email already exists! <button class="close" data-dismiss="alert">&times;</button></div>';
-            }else {
+            } else {
+                // 2. Validate password match and insert user record
                 if ($password === $cpassword) {
-                    $insertquery = " insert into user_info(username, email, phone, password, cpassword, user_degree, user_skills, profile) 
-                    values('$username','$email','$phone','$passEncrypt','$cpassEncrypt', '$degree', '$skills', '$profile_name') ";
-                    $iquery = mysqli_query($con, $insertquery);
+                    $ins_stmt = mysqli_prepare($con, "INSERT INTO user_info (username, email, phone, password, cpassword, user_degree, user_skills, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    mysqli_stmt_bind_param($ins_stmt, "ssssssss", $username, $email, $phone, $passEncrypt, $cpassEncrypt, $degree, $skills, $profile_name);
+                    $iquery = mysqli_stmt_execute($ins_stmt);
+                    mysqli_stmt_close($ins_stmt);
 
                     if ($iquery) {
                         echo "<script>alert('Account Created Successfully!'); window.location.href='login.php';</script>";
-                        exit;
-                    }else{
-                        echo "<script>alert('Registration Failed');</script>";
+                        exit();
+                    } else {
+                        echo "<script>alert('Registration Failed! Please try again.');</script>";
                     }
-                }else {
-                    echo "<script>alert('Password not matching!');</script>";
+                } else {
+                    echo "<script>alert('Passwords do not match!');</script>";
                 }
             }
         }
@@ -272,7 +289,7 @@
             <h2>Join Us</h2>
             <p>Start your professional journey with us today.</p>
             <a href="login.php" class="reg-btn-outline">Sign In</a>
-            <a href="index.php" class="text-white small mt-4 opacity-75"><i class="fas fa-home mr-1"></i> Back to Home</a>
+            <a href="login.php" class="text-white small mt-4 opacity-75"><i class="fas fa-arrow-left mr-1"></i> Back to Login</a>
         </div>
         
         <div class="reg-form-side">

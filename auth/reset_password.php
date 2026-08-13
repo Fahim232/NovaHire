@@ -1,6 +1,7 @@
 <?php
-session_start();
-include 'admin/dbcon.php';
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../admin/dbcon.php';
 
 $success_msg = '';
 $error_msg = '';
@@ -99,7 +100,7 @@ if (isset($_POST['reset_password'])) {
                 unset($_SESSION['code_verified']);
                 
                 // Redirect to login
-                $redirect_page = ($user_type === 'user') ? 'login.php' : 'company_login.php';
+                $redirect_page = ($user_type === 'user') ? BASE_URL . '/auth/login.php' : BASE_URL . '/company_login.php';
                 echo "<script>
                         alert('Password reset successful! Please login with your new password.');
                         window.location.href = '$redirect_page';
@@ -116,7 +117,7 @@ if (isset($_POST['reset_password'])) {
 <html lang="en">
 <head>
     <title>Reset Password | NovaHire</title>
-    <?php include './links.php'; ?>
+    <?php include '../includes/links.php'; ?>
     <style>
         body {
             min-height: 100vh;

@@ -1,50 +1,70 @@
 <?php
-session_start();
-include 'admin/dbcon.php';
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+/**
+ * Password Recovery Request Portal (Forgot Password)
+ * 
+ * Generates a 6-digit password reset verification code for users or companies,
+ * invalidating previous tokens and storing the active verification token in database.
+ */
 
-$success_msg = '';
-$error_msg = '';
-$code_sent = false;
-$user_type_param = isset($_GET['type']) ? $_GET['type'] : ''; // Get type from URL parameter
+// Initialize session if not active
+if (session_status() === PHP_SESSION_NONE) {
 
+}
+
+// Include database connection
+require_once __DIR__ . '/../admin/dbcon.php';
+
+$success_msg     = '';
+$error_msg       = '';
+$code_sent       = false;
+$user_type_param = isset($_GET['type']) ? trim($_GET['type']) : '';
+
+// Process reset code request
 if (isset($_POST['send_code'])) {
-    $email = mysqli_real_escape_string($con, $_POST['email']);
-    $user_type = mysqli_real_escape_string($con, $_POST['user_type']);
+    $email     = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+    $user_type = trim($_POST['user_type'] ?? '');
     
-    // Check if email exists
+    // 1. Verify existence of target account using prepared statement
     if ($user_type === 'user') {
-        $check_query = "SELECT * FROM user_info WHERE email = '$email'";
+        $check_stmt = mysqli_prepare($con, "SELECT id FROM user_info WHERE email = ?");
     } else {
-        $check_query = "SELECT * FROM companies WHERE company_email = '$email'";
+        $check_stmt = mysqli_prepare($con, "SELECT id FROM companies WHERE company_email = ?");
     }
+    mysqli_stmt_bind_param($check_stmt, "s", $email);
+    mysqli_stmt_execute($check_stmt);
+    $res = mysqli_stmt_get_result($check_stmt);
+    $account_exists = mysqli_num_rows($res) > 0;
+    mysqli_stmt_close($check_stmt);
     
-    $result = mysqli_query($con, $check_query);
-    
-    if (mysqli_num_rows($result) > 0) {
-        // Generate 6-digit code
+    if ($account_exists) {
+        // Generate secure 6-digit numerical pin
         $reset_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         
-        // Set expiration time (1 hour from now)
-        $current_time = time();
-        $expires_at = date('Y-m-d H:i:s', $current_time + 3600); // 3600 seconds = 1 hour
+        // Calculate expiration timestamp (valid for 1 hour)
+        $expires_at = date('Y-m-d H:i:s', time() + 3600);
         
-        // Delete old codes for this email
-        $delete_old = "DELETE FROM password_reset_codes WHERE email = '$email' AND user_type = '$user_type'";
-        mysqli_query($con, $delete_old);
+        // 2. Delete existing reset codes for this account using prepared statement
+        $del_stmt = mysqli_prepare($con, "DELETE FROM password_reset_codes WHERE email = ? AND user_type = ?");
+        mysqli_stmt_bind_param($del_stmt, "ss", $email, $user_type);
+        mysqli_stmt_execute($del_stmt);
+        mysqli_stmt_close($del_stmt);
         
-        // Insert new code
-        $insert_code = "INSERT INTO password_reset_codes (email, user_type, reset_code, expires_at) 
-                       VALUES ('$email', '$user_type', '$reset_code', '$expires_at')";
+        // 3. Insert newly generated reset code token
+        $ins_stmt = mysqli_prepare($con, "INSERT INTO password_reset_codes (email, user_type, reset_code, expires_at) VALUES (?, ?, ?, ?)");
+        mysqli_stmt_bind_param($ins_stmt, "ssss", $email, $user_type, $reset_code, $expires_at);
         
-        if (mysqli_query($con, $insert_code)) {
+        if (mysqli_stmt_execute($ins_stmt)) {
             $code_sent = true;
-            $_SESSION['reset_email'] = $email;
-            $_SESSION['reset_user_type'] = $user_type;
-            $_SESSION['reset_code_display'] = $reset_code; // For display only
+            $_SESSION['reset_email']        = $email;
+            $_SESSION['reset_user_type']    = $user_type;
+            $_SESSION['reset_code_display'] = $reset_code;
             $success_msg = "Reset code generated successfully! Code: <strong>$reset_code</strong> (Valid for 1 hour)";
         } else {
             $error_msg = "Error generating reset code. Please try again.";
         }
+        mysqli_stmt_close($ins_stmt);
     } else {
         $error_msg = "Email not found in our system.";
     }
@@ -54,7 +74,7 @@ if (isset($_POST['send_code'])) {
 <html lang="en">
 <head>
     <title>Forgot Password | NovaHire</title>
-    <?php include './links.php'; ?>
+    <?php include '../includes/links.php'; ?>
     <style>
         body {
             min-height: 100vh;

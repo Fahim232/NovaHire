@@ -1,7 +1,10 @@
-<?php 
-    session_start();
-    include 'admin/dbcon.php';
-    include('header.php');
+<?php
+// Core setup: session, DB, BASE_URL, helpers
+require_once __DIR__ . '/../includes/bootstrap.php';
+ 
+
+    require_once __DIR__ . '/../admin/dbcon.php';
+    require_once __DIR__ . '/../includes/header.php';
     
     // Get job ID
     if (!isset($_GET['id'])) {
@@ -26,6 +29,16 @@
     }
     
     $job = mysqli_fetch_assoc($job_result);
+
+    // AI match score for logged-in users
+    require_once __DIR__ . '/../ai/matching.php';
+    $ai_match = null;
+    if ($is_logged_in) {
+        $profile_res = mysqli_query($con, "SELECT * FROM user_info WHERE id = '" . intval($_SESSION['id']) . "'");
+        if ($profile_res && mysqli_num_rows($profile_res) > 0) {
+            $ai_match = ai_match_profile_job(mysqli_fetch_assoc($profile_res), $job);
+        }
+    }
     
     // Check if user is logged in
     $is_logged_in = isset($_SESSION['id']);
@@ -264,6 +277,22 @@
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             margin-bottom: 30px;
+        }
+
+        .ai-match-panel {
+            background: linear-gradient(135deg, #f8f7ff 0%, #eef2ff 100%);
+            border: 1px solid #e0e7ff;
+            border-radius: 20px;
+            padding: 28px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(124,58,237,0.08);
+        }
+        .ai-match-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #7c3aed;
         }
         
         .section-title {
@@ -582,7 +611,46 @@
                 </div>
             </div>
         </div>
-        
+
+        <?php if ($ai_match): ?>
+        <!-- AI Match Panel -->
+        <div class="ai-match-panel">
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <div class="d-flex align-items-center">
+                    <?php ai_score_ring($ai_match['score'], 'AI Match', 64); ?>
+                    <div class="ml-3">
+                        <div class="ai-match-label">AI Compatibility</div>
+                        <div style="font-weight:600; color:#1e293b; font-size:0.92rem;"><?php echo $ai_match['label']; ?></div>
+                        <div style="font-size:0.78rem; color:#64748b;">Based on your profile skills, experience & education</div>
+                    </div>
+                </div>
+                <a href="ai_resume_analyzer.php" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-lines mr-1"></i>Improve Score
+                </a>
+            </div>
+            <?php if (!empty($ai_match['matched_skills'])): ?>
+                <div class="mt-3">
+                    <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; margin-bottom:6px;">Skills You Match</div>
+                    <div class="job-tags">
+                        <?php foreach ($ai_match['matched_skills'] as $ms): ?>
+                            <span class="badge badge-success" style="background:#ecfdf5; color:#059669; border:1px solid #d1fae5;"><?php echo htmlspecialchars($ms); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($ai_match['missing_skills'])): ?>
+                <div class="mt-2">
+                    <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; margin-bottom:6px;">Skills To Add</div>
+                    <div class="job-tags">
+                        <?php foreach (array_slice($ai_match['missing_skills'], 0, 6) as $ms): ?>
+                            <span class="badge badge-warning" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;"><?php echo htmlspecialchars($ms); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <!-- Job Description -->
         <div class="content-section">
             <h2 class="section-title"><i class="fas fa-file-alt mr-2"></i>Job Description</h2>
@@ -677,11 +745,11 @@
                 <i class="fas fa-user-lock" style="font-size: 50px; color: #cbd5e0; margin-bottom: 20px;"></i>
                 <h3 style="color: #2d3748; margin-bottom: 15px;">Login Required</h3>
                 <p style="color: #718096; margin-bottom: 30px;">You need to login to continue</p>
-                <a href="login.php?redirect=job_details.php?id=<?php echo $job_id; ?>" class="apply-btn">
+                <a href="<?php echo BASE_URL; ?>/auth/login.php?redirect=<?php echo BASE_URL; ?>/seeker/job_details.php?id=<?php echo $job_id; ?>" class="apply-btn">
                     <i class="fas fa-sign-in-alt mr-2"></i>Login
                 </a>
                 <p class="mt-3">
-                    Don't have an account? <a href="registration.php" style="color: #667eea; font-weight: 600;">Register here</a>
+                    Don't have an account? <a href="<?php echo BASE_URL; ?>/auth/registration.php" style="color: #667eea; font-weight: 600;">Register here</a>
                 </p>
             <?php elseif ($has_applied): ?>
                 <i class="fas fa-check-circle" style="font-size: 50px; color: #48bb78; margin-bottom: 20px;"></i>
