@@ -6,10 +6,16 @@ if (!isset($_SESSION['id'])) {
     exit();
 }
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../ai/grooming.php';
 
 $user_id = $_SESSION['id'];
+
+require_once __DIR__ . '/../includes/premium.php';
+$access = nh_check_access($con, $user_id, 'ai_grooming_coach');
+if (!$access['allowed']) {
+    nh_render_pro_gate('ai_grooming_coach');
+    exit;
+}
 
 // Available categories (from grooming videos)
 $cats = array();
@@ -34,8 +40,8 @@ $plan = ai_grooming_plan($category, $user_id);
             border:1.5px solid #e2e8f0; color:#475569; background:white; cursor:pointer;
             text-decoration:none; transition:all 0.25s;
         }
-        .cat-tab:hover { border-color:#4f46e5; color:#4f46e5; text-decoration:none; }
-        .cat-tab.active { background:linear-gradient(135deg,#4f46e5,#7c3aed); color:white; border-color:transparent; }
+        .cat-tab:hover { border-color:#1a56db; color:#1a56db; text-decoration:none; }
+        .cat-tab.active { background:linear-gradient(135deg,#1a56db,#0ea5e9); color:white; border-color:transparent; }
     </style>
 </head>
 <body>
@@ -58,7 +64,7 @@ $plan = ai_grooming_plan($category, $user_id);
                 <h4 class="mb-3"><i class="fas fa-chart-line mr-2" style="color:#059669;"></i>Your <?php echo htmlspecialchars($category); ?> Progress</h4>
                 <div class="row">
                     <div class="col-4 text-center">
-                        <div class="v" style="font-size:1.6rem; font-weight:800; color:#4f46e5;"><?php echo $plan['progress']['videos_done']; ?>/<?php echo $plan['progress']['videos_total']; ?></div>
+                        <div class="v" style="font-size:1.6rem; font-weight:800; color:#1a56db;"><?php echo $plan['progress']['videos_done']; ?>/<?php echo $plan['progress']['videos_total']; ?></div>
                         <div style="font-size:0.75rem; color:#64748b;">Videos done</div>
                     </div>
                     <div class="col-4 text-center">
@@ -108,7 +114,7 @@ $plan = ai_grooming_plan($category, $user_id);
                 <?php endif; ?>
                 <?php foreach ($plan['tips'] as $i => $tip): ?>
                     <div class="d-flex align-items-start mb-3">
-                        <span class="badge badge-primary mr-2 mt-1" style="background:#4f46e5;"><?php echo $i + 1; ?></span>
+                        <span class="badge badge-primary mr-2 mt-1" style="background:#1a56db;"><?php echo $i + 1; ?></span>
                         <span style="font-size:0.88rem; color:#334155;"><?php echo $tip; ?></span>
                     </div>
                 <?php endforeach; ?>

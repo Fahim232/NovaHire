@@ -7,84 +7,115 @@ if (!isset($_SESSION['id'])) {
 }
 require_once __DIR__ . '/../admin/dbcon.php';
 
-$category = isset($_GET['category']) && $_GET['category'] !== '' ? $_GET['category'] : 'PHP';
-$user_id = $_SESSION['id'];
+$category = isset($_GET['category']) && $_GET['category'] !== '' ? trim((string)$_GET['category']) : 'PHP';
+if ($category === '') $category = 'PHP';
+$user_id = (int)$_SESSION['id'];
 $job_id = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
+
+/* The 'Frontend' track also covers videos filed under 'javascript'. Build the
+   category condition as a placeholder list so the values stay parameterized. */
+$cat_values = ($category === 'Frontend') ? ['Frontend', 'javascript'] : [$category];
+$cat_sql    = 'category IN (' . implode(',', array_fill(0, count($cat_values), '?')) . ')';
+$cat_types  = str_repeat('s', count($cat_values));
+
+/** How many videos exist in this track, and how many the user has finished. */
+function gr_video_counts($con, $user_id, $cat_sql, $cat_types, $cat_values) {
+    $total = 0;
+    $stmt = mysqli_prepare($con, "SELECT COUNT(*) AS total FROM grooming_videos WHERE $cat_sql");
+    mysqli_stmt_bind_param($stmt, $cat_types, ...$cat_values);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $total = (int)($row['total'] ?? 0);
+    mysqli_stmt_close($stmt);
+
+    $done = 0;
+    $stmt = mysqli_prepare($con, "SELECT COUNT(*) AS completed FROM user_video_progress
+                                  WHERE user_id = ? AND is_completed = 1
+                                    AND video_id IN (SELECT id FROM grooming_videos WHERE $cat_sql)");
+    mysqli_stmt_bind_param($stmt, 'i' . $cat_types, $user_id, ...$cat_values);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $done = (int)($row['completed'] ?? 0);
+    mysqli_stmt_close($stmt);
+
+    return [$total, $done];
+}
+
+/** Attempts already used against a specific company job. */
+function gr_attempt_count($con, $user_id, $job_id) {
+    $stmt = mysqli_prepare($con, "SELECT COUNT(*) AS cnt FROM job_quiz_attempts WHERE user_id = ? AND job_id = ?");
+    mysqli_stmt_bind_param($stmt, "ii", $user_id, $job_id);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+    return (int)($row['cnt'] ?? 0);
+}
 
 // Handle Video Progress Update via AJAX
 if (isset($_POST['update_progress'])) {
-    $video_id = intval($_POST['video_id']);
-    $watched_duration = intval($_POST['watched_duration']);
-    $is_completed = intval($_POST['is_completed']);
-    
-    $check_query = "SELECT * FROM user_video_progress WHERE user_id='$user_id' AND video_id='$video_id'";
-    $check_res = mysqli_query($con, $check_query);
-    
-    if (mysqli_num_rows($check_res) > 0) {
-        $update = "UPDATE user_video_progress SET watched_duration=GREATEST(watched_duration, '$watched_duration'), is_completed=GREATEST(is_completed, '$is_completed') WHERE user_id='$user_id' AND video_id='$video_id'";
-        mysqli_query($con, $update);
-    } else {
-        $insert = "INSERT INTO user_video_progress (user_id, video_id, watched_duration, is_completed) VALUES ('$user_id', '$video_id', '$watched_duration', '$is_completed')";
-        mysqli_query($con, $insert);
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Session expired. Please reload the page.']);
+        exit();
     }
-    echo json_encode(['success' => true]);
+
+    $video_id         = intval($_POST['video_id'] ?? 0);
+    $watched_duration = intval($_POST['watched_duration'] ?? 0);
+    $is_completed     = !empty($_POST['is_completed']) ? 1 : 0;
+
+    /* One statement instead of check-then-write: the old version could double-insert
+       when two progress pings arrived at once. Requires a UNIQUE key on
+       (user_id, video_id) — see features_v4.sql. GREATEST keeps progress monotonic
+       so a stale ping can never rewind a finished video. */
+    $stmt = mysqli_prepare($con, "INSERT INTO user_video_progress (user_id, video_id, watched_duration, is_completed)
+                                  VALUES (?, ?, ?, ?)
+                                  ON DUPLICATE KEY UPDATE
+                                      watched_duration = GREATEST(watched_duration, VALUES(watched_duration)),
+                                      is_completed     = GREATEST(is_completed, VALUES(is_completed))");
+    mysqli_stmt_bind_param($stmt, "iiii", $user_id, $video_id, $watched_duration, $is_completed);
+    $ok = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    echo json_encode(['success' => (bool)$ok]);
     exit();
 }
 
 // Handle Mark as Completed
 if (isset($_POST['mark_completed'])) {
+    require_csrf();
+
     // Block exhausted users from completing grooming
-    if ($job_id > 0) {
-        $exhaust_check_mc = "SELECT COUNT(*) as cnt FROM job_quiz_attempts WHERE user_id='$user_id' AND job_id='$job_id'";
-        $exhaust_res_mc = mysqli_query($con, $exhaust_check_mc);
-        if (mysqli_num_rows($exhaust_res_mc) > 0) {
-            $exhaust_row_mc = mysqli_fetch_assoc($exhaust_res_mc);
-            if (intval($exhaust_row_mc['cnt']) >= 2) {
-                echo "<script>alert('You have exhausted all assessment attempts for this position.'); window.location.href='job_details.php?id=$job_id';</script>";
-                exit();
-            }
-        }
+    if ($job_id > 0 && gr_attempt_count($con, $user_id, $job_id) >= 2) {
+        $to = 'job_details.php?id=' . $job_id;
+        echo "<script>alert('You have exhausted all assessment attempts for this position.'); window.location.href=" . json_encode($to) . ";</script>";
+        exit();
     }
 
-    $category_filter = ($category === 'Frontend') ? "(category='Frontend' OR category='javascript')" : "category='$category'";
-    $videos_query = "SELECT COUNT(*) as total FROM grooming_videos WHERE $category_filter";
-    $videos_res = mysqli_query($con, $videos_query);
-    $videos_row = mysqli_fetch_assoc($videos_res);
-    $total_videos = $videos_row['total'];
-    
-    $completed_query = "SELECT COUNT(*) as completed FROM user_video_progress 
-                        WHERE user_id='$user_id' AND is_completed=1 
-                        AND video_id IN (SELECT id FROM grooming_videos WHERE $category_filter)";
-    $completed_res = mysqli_query($con, $completed_query);
-    $completed_row = mysqli_fetch_assoc($completed_res);
-    $completed_videos = $completed_row['completed'];
-    
-    if ($completed_videos >= $total_videos) {
-        // Try to update with status='failed' first
-        $update_query = "UPDATE user_quiz_status SET grooming_completed=1 WHERE user_id='$user_id' AND category='$category' AND status='failed'";
-        mysqli_query($con, $update_query);
-        
-        // If no rows were affected, try without status filter (covers edge cases)
-        if (mysqli_affected_rows($con) == 0) {
-            $update_query2 = "UPDATE user_quiz_status SET grooming_completed=1 WHERE user_id='$user_id' AND category='$category'";
-            mysqli_query($con, $update_query2);
-        }
-        
-        // If still no record exists, create one
-        if (mysqli_affected_rows($con) == 0) {
-            mysqli_query($con, "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed, last_attempt) VALUES ('$user_id', '$category', 'failed', 1, NOW())");
-        }
-        
+    list($total_videos, $completed_videos) = gr_video_counts($con, $user_id, $cat_sql, $cat_types, $cat_values);
+
+    if ($total_videos > 0 && $completed_videos >= $total_videos) {
+        /* Mark grooming done. Single upsert replaces the old three-step
+           update/update/insert cascade, which relied on affected_rows and could
+           misfire. Requires a UNIQUE key on (user_id, category) — features_v4.sql. */
+        $stmt = mysqli_prepare($con, "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed, last_attempt)
+                                      VALUES (?, ?, 'failed', 1, NOW())
+                                      ON DUPLICATE KEY UPDATE grooming_completed = 1, last_attempt = NOW()");
+        mysqli_stmt_bind_param($stmt, "is", $user_id, $category);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
         // Clear quiz session locks so user can retake
         if ($job_id > 0) {
             unset($_SESSION['quiz_taken_' . $job_id]);
             unset($_SESSION['quiz_submitted_' . $job_id]);
-            echo "<script>alert('Congratulations! All videos completed. You can now retake the assessment.'); window.location.href='company_job_quiz.php?job_id=$job_id';</script>";
+            $to = 'company_job_quiz.php?job_id=' . $job_id;
         } else {
-            echo "<script>alert('Congratulations! All videos completed. You can now retake the assessment.'); window.location.href='quiz.php?category=" . urlencode($category) . "';</script>";
+            $to = 'quiz.php?category=' . urlencode($category);
         }
+        echo "<script>alert('Congratulations! All videos completed. You can now retake the assessment.'); window.location.href=" . json_encode($to) . ";</script>";
     } else {
-        echo "<script>alert('Please complete all videos before proceeding. ($completed_videos/$total_videos completed)');</script>";
+        $msg = "Please complete all videos before proceeding. ($completed_videos/$total_videos completed)";
+        echo "<script>alert(" . json_encode($msg) . ");</script>";
     }
     exit();
 }
@@ -93,37 +124,35 @@ if (isset($_POST['mark_completed'])) {
 $from_company_quiz = $job_id > 0;
 
 // Check if user has exhausted all attempts for this job
-$is_exhausted = false;
-if ($job_id > 0) {
-    $exhaust_check = "SELECT COUNT(*) as cnt FROM job_quiz_attempts WHERE user_id='$user_id' AND job_id='$job_id'";
-    $exhaust_res = mysqli_query($con, $exhaust_check);
-    if (mysqli_num_rows($exhaust_res) > 0) {
-        $exhaust_row = mysqli_fetch_assoc($exhaust_res);
-        $is_exhausted = (intval($exhaust_row['cnt']) >= 2);
-    }
-}
+$is_exhausted = ($job_id > 0) && (gr_attempt_count($con, $user_id, $job_id) >= 2);
 
 // Check User Status - force grooming if they failed quiz
 $needs_grooming = false;
 $can_retake = true;
 
-$status_query = "SELECT * FROM user_quiz_status WHERE user_id='$user_id' AND category='$category'";
-$status_res = mysqli_query($con, $status_query);
+$status_stmt = mysqli_prepare($con, "SELECT status, grooming_completed FROM user_quiz_status WHERE user_id = ? AND category = ? LIMIT 1");
+mysqli_stmt_bind_param($status_stmt, "is", $user_id, $category);
+mysqli_stmt_execute($status_stmt);
+$status_row = mysqli_fetch_assoc(mysqli_stmt_get_result($status_stmt));
+mysqli_stmt_close($status_stmt);
 
-if (mysqli_num_rows($status_res) > 0) {
-    $status_row = mysqli_fetch_assoc($status_res);
+if ($status_row) {
     if ($status_row['status'] == 'failed' && $status_row['grooming_completed'] == 0) {
         $needs_grooming = true;
         $can_retake = false;
     }
 } else {
-    // No status record yet - check if they have a failed quiz attempt for this category
-    // This covers the case where company_job_quiz.php redirected them here
+    // No status record yet — they were sent here by company_job_quiz.php after a
+    // failure, so create the record and require grooming.
     $needs_grooming = true;
     $can_retake = false;
-    
-    // Create the status record
-    mysqli_query($con, "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed, last_attempt) VALUES ('$user_id', '$category', 'failed', 0, NOW())");
+
+    $ins = mysqli_prepare($con, "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed, last_attempt)
+                                 VALUES (?, ?, 'failed', 0, NOW())
+                                 ON DUPLICATE KEY UPDATE last_attempt = last_attempt");
+    mysqli_stmt_bind_param($ins, "is", $user_id, $category);
+    mysqli_stmt_execute($ins);
+    mysqli_stmt_close($ins);
 }
 
 // If exhausted, override needs_grooming to false - show exhaustion message instead
@@ -131,21 +160,27 @@ if ($is_exhausted) {
     $needs_grooming = false;
 }
 
-// Fetch Videos for Category (merge Frontend + javascript)
-$category_filter = ($category === 'Frontend') ? "(category='Frontend' OR category='javascript')" : "category='$category'";
-$videos_query = "SELECT * FROM grooming_videos WHERE $category_filter ORDER BY order_index ASC";
-$videos_result = mysqli_query($con, $videos_query);
+// Fetch Videos for Category (merge Frontend + javascript), with this user's progress
+$vid_stmt = mysqli_prepare($con, "SELECT v.*,
+                                         COALESCE(p.watched_duration, 0) AS watched_duration,
+                                         COALESCE(p.is_completed, 0)     AS is_completed
+                                  FROM grooming_videos v
+                                  LEFT JOIN user_video_progress p
+                                         ON p.video_id = v.id AND p.user_id = ?
+                                  WHERE $cat_sql
+                                  ORDER BY v.order_index ASC");
+mysqli_stmt_bind_param($vid_stmt, 'i' . $cat_types, $user_id, ...$cat_values);
+mysqli_stmt_execute($vid_stmt);
+$videos_result = mysqli_stmt_get_result($vid_stmt);
+
 $videos = [];
 while ($video = mysqli_fetch_assoc($videos_result)) {
-    $progress_query = "SELECT * FROM user_video_progress WHERE user_id='$user_id' AND video_id='{$video['id']}'";
-    $progress_res = mysqli_query($con, $progress_query);
-    $progress = mysqli_fetch_assoc($progress_res);
-    
-    $video['watched_duration'] = $progress ? $progress['watched_duration'] : 0;
-    $video['is_completed'] = $progress ? $progress['is_completed'] : 0;
-    $video['progress_percent'] = $video['duration'] > 0 ? min(100, ($video['watched_duration'] / $video['duration']) * 100) : 0;
+    $video['progress_percent'] = $video['duration'] > 0
+        ? min(100, ($video['watched_duration'] / $video['duration']) * 100)
+        : 0;
     $videos[] = $video;
 }
+mysqli_stmt_close($vid_stmt);
 
 $total_videos = count($videos);
 $completed_count = 0;
@@ -157,8 +192,9 @@ $overall_progress = $total_videos > 0 ? ($completed_count / $total_videos) * 100
 $back_url = $from_company_quiz ? "job_details.php?id=$job_id" : "browse_jobs.php";
 
 require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../includes/premium.php';
 require_once __DIR__ . '/../ai/grooming.php';
-$ai_plan = ai_grooming_plan($category, $user_id);
+$ai_plan = is_user_pro($con, $user_id) ? ai_grooming_plan($category, $user_id) : null;
 ?>
     <style>
         .grooming-container {
@@ -176,7 +212,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
         }
 
         .hub-header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 50%, #38bdf8 100%);
             padding: 44px 36px;
             text-align: center;
             color: white;
@@ -208,7 +244,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
 
         .overall-progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #10b981, #34d399);
+            background: linear-gradient(90deg, #059669, #34d399);
             transition: width 0.6s ease;
             border-radius: 50px;
         }
@@ -321,7 +357,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
         }
 
         .completion-banner {
-            background: linear-gradient(135deg, #10b981, #34d399);
+            background: linear-gradient(135deg, #059669, #34d399);
             color: white;
             padding: 36px;
             border-radius: var(--radius-lg);
@@ -374,7 +410,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
             border-radius: 16px;
             padding: 24px;
             margin-top: 28px;
-            box-shadow: 0 8px 24px rgba(124,58,237,0.08);
+            box-shadow: 0 8px 24px rgba(14,165,233,0.08);
         }
         .ai-coach-label {
             font-size: 0.78rem;
@@ -400,7 +436,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
             padding: 14px 16px;
         }
         .ai-coach-llm {
-            background: #7c3aed;
+            background: #0ea5e9;
             color: white;
             border-radius: 12px;
             padding: 14px 16px;
@@ -544,9 +580,10 @@ $ai_plan = ai_grooming_plan($category, $user_id);
                 <?php endif; ?>
 
                 <!-- AI Study Coach -->
+                <?php if (is_user_pro($con, $user_id)): ?>
                 <div class="ai-coach-card">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-robot" style="font-size:1.5rem; color:#7c3aed; background:rgba(139,92,246,0.12); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:14px;"></i>
+                        <i class="fas fa-robot" style="font-size:1.5rem; color:#0ea5e9; background:rgba(6,182,212,0.12); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:14px;"></i>
                         <div>
                             <div style="font-weight:700; color:#1e293b;">AI Study Coach</div>
                             <div style="font-size:0.8rem; color:#64748b;">Personalised plan for <?php echo htmlspecialchars($category); ?></div>
@@ -585,7 +622,7 @@ $ai_plan = ai_grooming_plan($category, $user_id);
                         <div class="ai-coach-tips">
                             <?php foreach ($ai_plan['tips'] as $i => $tip): ?>
                                 <div class="d-flex mb-1">
-                                    <i class="fas fa-check-circle mr-2" style="color:#7c3aed; margin-top:3px;"></i>
+                                    <i class="fas fa-check-circle mr-2" style="color:#0ea5e9; margin-top:3px;"></i>
                                     <span style="font-size:0.88rem; color:#334155;"><?php echo htmlspecialchars($tip); ?></span>
                                 </div>
                             <?php endforeach; ?>
@@ -601,6 +638,27 @@ $ai_plan = ai_grooming_plan($category, $user_id);
                         </a>
                     </div>
                 </div>
+                <?php else: ?>
+                <div class="ai-coach-card" style="position:relative;overflow:hidden">
+                    <div style="filter:blur(3px);pointer-events:none;opacity:.5">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-robot" style="font-size:1.5rem; color:#0ea5e9; background:rgba(6,182,212,0.12); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:14px;"></i>
+                            <div>
+                                <div style="font-weight:700; color:#1e293b;">AI Study Coach</div>
+                                <div style="font-size:0.8rem; color:#64748b;">Personalised plan</div>
+                            </div>
+                        </div>
+                        <div class="ai-coach-llm"><i class="fas fa-magic mr-2"></i>Your AI-powered study recommendations will appear here...</div>
+                        <div class="job-tags"><span class="ai-tag ai-tag-warn">Topic 1</span><span class="ai-tag ai-tag-warn">Topic 2</span><span class="ai-tag ai-tag-ok">Topic 3</span></div>
+                    </div>
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.85);border-radius:var(--radius-xl)">
+                        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;display:grid;place-items:center;font-size:1.3rem;margin-bottom:12px"><i class="fas fa-lock"></i></div>
+                        <div style="font-weight:700;color:#0f172a;font-size:1.05rem;margin-bottom:4px">AI Study Coach</div>
+                        <div style="color:#64748b;font-size:.86rem;margin-bottom:14px;text-align:center;max-width:300px">Get personalised AI coaching, weak topic analysis, and study tips.</div>
+                        <a href="pro.php" style="display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:12px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;font-weight:700;font-size:.88rem;text-decoration:none;transition:.2s"><i class="fas fa-crown"></i> Upgrade to Pro</a>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <div class="text-center mt-4">
                     <a href="<?php echo $back_url; ?>" style="color: var(--text-muted); font-size: 0.9rem;"><i class="fas fa-arrow-left mr-2"></i>Back</a>

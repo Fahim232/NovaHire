@@ -4,58 +4,76 @@
 
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ' . BASE_URL . '/auth/login.php');
         exit;
     }
 
-    $company_id = $_SESSION['company_id'];
+    $company_id = (int)$_SESSION['company_id'];
     $company_name = $_SESSION['company_name'];
 
     // Filter by job_id if provided
     $job_filter = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
-    $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
+    $status_filter_raw = $_GET['status'] ?? 'all';
 
-    // Build query
-    $where_clause = "cj.company_id = $company_id";
+    // Whitelist allowed status values
+    $allowed_statuses = ['all', 'passed', 'failed', 'not_taken'];
+    $status_filter = in_array($status_filter_raw, $allowed_statuses) ? $status_filter_raw : 'all';
 
-    if ($job_filter > 0) {
-        $where_clause .= " AND ja.job_id = $job_filter";
-    }
-
-    if ($status_filter != 'all') {
-        $where_clause .= " AND ja.quiz_status = '$status_filter'";
-    }
-
-    // Fetch applications
-    $applications_query = "SELECT ja.*, cj.job_title, cj.job_category, ui.username, ui.email, ui.phone, ui.user_degree, ui.user_skills, ui.profile 
+    // Build parameterized query
+    $sql = "SELECT ja.*, cj.job_title, cj.job_category, ui.username, ui.email, ui.phone, ui.user_degree, ui.user_skills, ui.profile 
                           FROM job_applications ja
                           JOIN company_jobs cj ON ja.job_id = cj.id
                           JOIN user_info ui ON ja.user_id = ui.id
-                          WHERE $where_clause
-                          ORDER BY ja.applied_date DESC";
-    $applications_result = mysqli_query($con, $applications_query);
+                          WHERE cj.company_id = ?";
+    $types = "i";
+    $params = [$company_id];
+
+    if ($job_filter > 0) {
+        $sql .= " AND ja.job_id = ?";
+        $types .= "i";
+        $params[] = $job_filter;
+    }
+
+    if ($status_filter !== 'all') {
+        $sql .= " AND ja.quiz_status = ?";
+        $types .= "s";
+        $params[] = $status_filter;
+    }
+
+    $sql .= " ORDER BY ja.applied_date DESC";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+    mysqli_stmt_execute($stmt);
+    $applications_result = mysqli_stmt_get_result($stmt);
+    mysqli_stmt_close($stmt);
 
     // Fetch jobs for filter dropdown
-    $jobs_query = "SELECT id, job_title FROM company_jobs WHERE company_id = $company_id ORDER BY job_title";
-    $jobs_result = mysqli_query($con, $jobs_query);
+    $jobs_stmt = mysqli_prepare($con, "SELECT id, job_title FROM company_jobs WHERE company_id = ? ORDER BY job_title");
+    mysqli_stmt_bind_param($jobs_stmt, "i", $company_id);
+    mysqli_stmt_execute($jobs_stmt);
+    $jobs_result = mysqli_stmt_get_result($jobs_stmt);
+    mysqli_stmt_close($jobs_stmt);
 
     // Count statistics
-    $stats_query = "SELECT 
+    $stats_sql = "SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN ja.quiz_status = 'passed' THEN 1 ELSE 0 END) as passed,
         SUM(CASE WHEN ja.quiz_status = 'failed' THEN 1 ELSE 0 END) as failed,
         SUM(CASE WHEN ja.quiz_status = 'not_taken' THEN 1 ELSE 0 END) as not_taken
         FROM job_applications ja
         JOIN company_jobs cj ON ja.job_id = cj.id
-        WHERE $where_clause";
-    $stats_result = mysqli_query($con, $stats_query);
-    $stats = mysqli_fetch_assoc($stats_result);
+        WHERE cj.company_id = ?";
+    $stats_stmt = mysqli_prepare($con, $stats_sql);
+    mysqli_stmt_bind_param($stats_stmt, "i", $company_id);
+    mysqli_stmt_execute($stats_stmt);
+    $stats = mysqli_fetch_assoc(mysqli_stmt_get_result($stats_stmt));
+    mysqli_stmt_close($stats_stmt);
 
     $avatar_gradients = [
-        ['#6366f1', '#8b5cf6'],
+        ['#3b82f6', '#06b6d4'],
         ['#0ea5e9', '#06b6d4'],
-        ['#10b981', '#34d399'],
-        ['#f59e0b', '#f97316'],
+        ['#059669', '#34d399'],
+        ['#d97706', '#f97316'],
         ['#ec4899', '#f43f5e'],
         ['#14b8a6', '#0d9488'],
     ];
@@ -78,8 +96,8 @@
             --va-border: #e5e9f2;
             --va-text: #1e293b;
             --va-muted: #64748b;
-            --va-primary: #4f46e5;
-            --va-primary-2: #7c3aed;
+            --va-primary: #1a56db;
+            --va-primary-2: #0ea5e9;
             --va-soft: #eef2ff;
             --va-input: #f8fafc;
             --va-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -90,8 +108,8 @@
             --va-border: #28334a;
             --va-text: #e8edff;
             --va-muted: #94a3b8;
-            --va-primary: #8b5cf6;
-            --va-primary-2: #a78bfa;
+            --va-primary: #06b6d4;
+            --va-primary-2: #38bdf8;
             --va-soft: #1e293b;
             --va-input: #0d1526;
             --va-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -113,7 +131,7 @@
         .va-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -267,9 +285,9 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .va-badge i { font-size: 0.5rem; }
-        .va-badge.passed { background: rgba(16, 185, 129, 0.14); color: #10b981; }
-        .va-badge.failed { background: rgba(239, 68, 68, 0.14); color: #ef4444; }
-        .va-badge.not_taken { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+        .va-badge.passed { background: rgba(16, 185, 129, 0.14); color: #059669; }
+        .va-badge.failed { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+        .va-badge.not_taken { background: rgba(245, 158, 11, 0.14); color: #d97706; }
         .va-badge.shortlisted { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
         .va-badge.pending { background: rgba(148, 163, 184, 0.18); color: var(--va-muted); }
 
@@ -323,8 +341,8 @@
         .va-act:hover { transform: translateY(-2px); text-decoration: none; }
         .va-act-detail { background: rgba(79, 70, 229, 0.10); border-color: rgba(79, 70, 229, 0.35); color: var(--va-primary); }
         .va-act-detail:hover { background: var(--va-primary); color: #fff; }
-        .va-act-cv { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #10b981; }
-        .va-act-cv:hover { background: #10b981; color: #fff; }
+        .va-act-cv { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #059669; }
+        .va-act-cv:hover { background: #059669; color: #fff; }
         .va-act-contact { background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.35); color: #3b82f6; }
         .va-act-contact:hover { background: #3b82f6; color: #fff; }
         .va-act.disabled { opacity: .5; cursor: not-allowed; }
@@ -386,19 +404,19 @@
         <!-- Stats (clickable filters) -->
         <div class="va-stats">
             <a class="va-stat <?php echo $status_filter == 'all' ? 'on' : ''; ?>" href="?status=all<?php echo $job_filter ? '&job_id=' . $job_filter : ''; ?>">
-                <div class="va-stat-ico" style="background: rgba(99,102,241,.12); color:#6366f1;"><i class="fas fa-file-signature"></i></div>
+                <div class="va-stat-ico" style="background: rgba(59,130,246,.12); color:#3b82f6;"><i class="fas fa-file-signature"></i></div>
                 <div><b><?php echo $stats['total']; ?></b><span>Applications</span></div>
             </a>
             <a class="va-stat <?php echo $status_filter == 'passed' ? 'on' : ''; ?>" href="?status=passed<?php echo $job_filter ? '&job_id=' . $job_filter : ''; ?>">
-                <div class="va-stat-ico" style="background: rgba(16,185,129,.12); color:#10b981;"><i class="fas fa-circle-check"></i></div>
+                <div class="va-stat-ico" style="background: rgba(5,150,105,.12); color:#059669;"><i class="fas fa-circle-check"></i></div>
                 <div><b><?php echo $stats['passed']; ?></b><span>Passed Quiz</span></div>
             </a>
             <a class="va-stat <?php echo $status_filter == 'failed' ? 'on' : ''; ?>" href="?status=failed<?php echo $job_filter ? '&job_id=' . $job_filter : ''; ?>">
-                <div class="va-stat-ico" style="background: rgba(239,68,68,.12); color:#ef4444;"><i class="fas fa-circle-xmark"></i></div>
+                <div class="va-stat-ico" style="background: rgba(239,68,68,.12); color:#dc2626;"><i class="fas fa-circle-xmark"></i></div>
                 <div><b><?php echo $stats['failed']; ?></b><span>Failed Quiz</span></div>
             </a>
             <a class="va-stat <?php echo $status_filter == 'not_taken' ? 'on' : ''; ?>" href="?status=not_taken<?php echo $job_filter ? '&job_id=' . $job_filter : ''; ?>">
-                <div class="va-stat-ico" style="background: rgba(245,158,11,.12); color:#f59e0b;"><i class="fas fa-hourglass-half"></i></div>
+                <div class="va-stat-ico" style="background: rgba(217,119,6,.12); color:#d97706;"><i class="fas fa-hourglass-half"></i></div>
                 <div><b><?php echo $stats['not_taken']; ?></b><span>Not Taken</span></div>
             </a>
         </div>
@@ -434,7 +452,7 @@
                     $status = $app['quiz_status'] ?: 'not_taken';
                     $app_status = $app['application_status'] ?: 'pending';
                     $score = intval($app['quiz_score']);
-                    $score_color = $score >= 60 ? '#10b981' : ($score >= 30 ? '#f59e0b' : '#ef4444');
+                    $score_color = $score >= 60 ? '#059669' : ($score >= 30 ? '#d97706' : '#dc2626');
                     $data_search = strtolower(htmlspecialchars($app['username'] . ' ' . $app['email'] . ' ' . $app['job_title'] . ' ' . $app['user_degree']));
                 ?>
                     <div class="va-card" data-status="<?php echo $status; ?>" data-appstatus="<?php echo $app_status; ?>" data-search="<?php echo $data_search; ?>">

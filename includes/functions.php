@@ -231,12 +231,12 @@ function render_notification_dropdown($con, $recipient_type, $recipient_id) {
     ];
     
     $type_colors = [
-        'application_status' => '#10b981',
+        'application_status' => '#059669',
         'new_application' => '#3b82f6',
-        'message' => '#8b5cf6',
-        'quiz_result' => '#f59e0b',
+        'message' => '#06b6d4',
+        'quiz_result' => '#d97706',
         'job_update' => '#06b6d4',
-        'system' => '#6366f1',
+        'system' => '#3b82f6',
         'job_recommendation' => '#ec4899',
     ];
     
@@ -254,7 +254,7 @@ function render_notification_dropdown($con, $recipient_type, $recipient_id) {
     } else {
         foreach ($notifications as $notif) {
             $icon = isset($type_icons[$notif['notification_type']]) ? $type_icons[$notif['notification_type']] : 'fa-bell';
-            $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#6366f1';
+            $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#3b82f6';
             $read_class = $notif['is_read'] ? '' : 'notif-unread';
             $time = time_ago($notif['created_at']);
             
@@ -294,5 +294,61 @@ function time_ago($datetime) {
     if ($diff->h > 0) return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' ago';
     if ($diff->i > 0) return $diff->i . ' min' . ($diff->i > 1 ? 's' : '') . ' ago';
     return 'Just now';
+}
+
+/**
+ * Log user activity (gracefully handles missing table)
+ */
+function create_activity_log($user_type, $user_id, $action, $details = null) {
+    global $con;
+    
+    // Check if table exists first
+    $check = @mysqli_query($con, "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'user_activity_log'");
+    if (!$check || mysqli_num_rows($check) == 0) {
+        return false; // Table doesn't exist yet, skip silently
+    }
+    
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $details_json = is_array($details) ? json_encode($details) : ($details ?? '');
+    
+    $stmt = mysqli_prepare($con, "INSERT INTO user_activity_log (user_type, user_id, action, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "sissss", $user_type, $user_id, $action, $details_json, $ip, $agent);
+    $result = @mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    return $result;
+}
+
+/**
+ * Get user activity log
+ */
+function get_activity_log($con, $user_type, $user_id, $limit = 50) {
+    $stmt = mysqli_prepare($con, "SELECT * FROM user_activity_log WHERE user_type = ? AND user_id = ? ORDER BY created_at DESC LIMIT ?");
+    mysqli_stmt_bind_param($stmt, "sii", $user_type, $user_id, $limit);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $logs = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $logs[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+    return $logs;
+}
+
+/**
+ * Check if user/company can perform action based on subscription
+ */
+function check_subscription_feature($con, $company_id, $feature) {
+    $plan = get_company_plan($con, $company_id);
+    
+    $features = [
+        'featured_job'     => ['basic', 'pro', 'enterprise'],
+        'resume_access'    => ['pro', 'enterprise'],
+        'api_access'       => ['enterprise'],
+        'priority_support' => ['basic', 'pro', 'enterprise'],
+        'analytics'        => ['basic', 'pro', 'enterprise'],
+    ];
+    
+    return in_array($plan['name'] ?? 'Free', $features[$feature] ?? []);
 }
 ?>

@@ -4,7 +4,7 @@
 
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
 
@@ -58,22 +58,22 @@
     $category_styles = [
         'Java'        => ['icon' => 'fa-brands fa-java', 'color' => '#f89820'],
         'Python'      => ['icon' => 'fa-brands fa-python', 'color' => '#3776ab'],
-        'Frontend'    => ['icon' => 'fa-code', 'color' => '#7c3aed'],
+        'Frontend'    => ['icon' => 'fa-code', 'color' => '#0ea5e9'],
         'PHP'         => ['icon' => 'fa-brands fa-php', 'color' => '#8993be'],
-        'Finance'     => ['icon' => 'fa-chart-line', 'color' => '#10b981'],
+        'Finance'     => ['icon' => 'fa-chart-line', 'color' => '#059669'],
         'Healthcare'  => ['icon' => 'fa-heart-pulse', 'color' => '#f43f5e'],
-        'Education'   => ['icon' => 'fa-graduation-cap', 'color' => '#f59e0b'],
+        'Education'   => ['icon' => 'fa-graduation-cap', 'color' => '#d97706'],
         'Engineering' => ['icon' => 'fa-gears', 'color' => '#0ea5e9'],
-        'Sales'       => ['icon' => 'fa-bullhorn', 'color' => '#8b5cf6'],
+        'Sales'       => ['icon' => 'fa-bullhorn', 'color' => '#06b6d4'],
         'HR'          => ['icon' => 'fa-users', 'color' => '#ec4899'],
-        'Legal'       => ['icon' => 'fa-gavel', 'color' => '#6366f1'],
-        'Media'       => ['icon' => 'fa-video', 'color' => '#ef4444'],
+        'Legal'       => ['icon' => 'fa-gavel', 'color' => '#3b82f6'],
+        'Media'       => ['icon' => 'fa-video', 'color' => '#dc2626'],
         'Logistics'   => ['icon' => 'fa-truck-fast', 'color' => '#14b8a6'],
         'Consulting'  => ['icon' => 'fa-comments', 'color' => '#06b6d4'],
         'Retail'      => ['icon' => 'fa-store', 'color' => '#f97316'],
         'QA'          => ['icon' => 'fa-bug', 'color' => '#22c55e'],
     ];
-    $default_style = ['icon' => 'fa-briefcase', 'color' => '#4f46e5'];
+    $default_style = ['icon' => 'fa-briefcase', 'color' => '#1a56db'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -88,8 +88,8 @@
             --mj-border: #e5e9f2;
             --mj-text: #1e293b;
             --mj-muted: #64748b;
-            --mj-primary: #4f46e5;
-            --mj-primary-2: #7c3aed;
+            --mj-primary: #1a56db;
+            --mj-primary-2: #0ea5e9;
             --mj-soft: #eef2ff;
             --mj-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
         }
@@ -100,8 +100,8 @@
             --mj-border: #28334a;
             --mj-text: #e8edff;
             --mj-muted: #94a3b8;
-            --mj-primary: #8b5cf6;
-            --mj-primary-2: #a78bfa;
+            --mj-primary: #06b6d4;
+            --mj-primary-2: #38bdf8;
             --mj-soft: #1e293b;
             --mj-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
         }
@@ -122,7 +122,7 @@
         .mj-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -153,7 +153,7 @@
         .mj-hero p { color: rgba(255, 255, 255, 0.85); margin: 0; font-size: 0.95rem; }
         .mj-hero-btn {
             position: relative; z-index: 1;
-            background: #fff; color: #4f46e5;
+            background: #fff; color: #1a56db;
             font-weight: 700; border: none;
             padding: 12px 26px; border-radius: 14px;
             display: inline-flex; align-items: center; gap: 9px;
@@ -163,7 +163,7 @@
         .mj-hero-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-            color: #4f46e5; text-decoration: none;
+            color: #1a56db; text-decoration: none;
         }
 
         /* ── Stats ── */
@@ -285,9 +285,14 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .job-badge i { font-size: 0.5rem; }
-        .job-badge.active  { background: rgba(16, 185, 129, 0.14); color: #10b981; }
-        .job-badge.draft   { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
-        .job-badge.closed  { background: rgba(239, 68, 68, 0.14); color: #ef4444; }
+        .job-badge.active  { background: rgba(16, 185, 129, 0.14); color: #059669; }
+        .job-badge.draft   { background: rgba(245, 158, 11, 0.14); color: #d97706; }
+        .job-badge.closed  { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+        .job-badge.featured { background: linear-gradient(135deg, #d97706, #f97316); color: #fff; box-shadow: 0 4px 12px rgba(217,119,6,.35); }
+        .act-boost { background: linear-gradient(135deg, #d97706, #f97316); border-color: transparent; color: #fff; }
+        .act-boost:hover { color: #fff; box-shadow: 0 8px 20px rgba(217,119,6,.4); }
+        .act-featured { background: rgba(217,119,6,.12); border-color: rgba(217,119,6,.4); color: #b45309; cursor: default; }
+        .act-featured:hover { transform: none; }
 
         .job-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
         .job-meta span { font-size: 0.83rem; color: var(--mj-muted); }
@@ -304,8 +309,8 @@
         .job-stat b { display: block; font-size: 1.3rem; color: var(--mj-text); }
         .job-stat span { font-size: 0.72rem; color: var(--mj-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
         .job-stat b.apps { color: #3b82f6; }
-        .job-stat b.qual { color: #10b981; }
-        .job-stat b.quiz { color: #8b5cf6; }
+        .job-stat b.qual { color: #059669; }
+        .job-stat b.quiz { color: #06b6d4; }
 
         .job-actions {
             display: flex; align-items: center; gap: 8px;
@@ -328,14 +333,14 @@
 
         .act-edit { background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.35); color: #3b82f6; }
         .act-edit:hover { background: #3b82f6; color: #fff; }
-        .act-quiz { background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.35); color: #8b5cf6; }
-        .act-quiz:hover { background: #8b5cf6; color: #fff; }
-        .act-apps { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #10b981; }
-        .act-apps:hover { background: #10b981; color: #fff; }
-        .act-status { background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.35); color: #f59e0b; }
-        .act-status:hover { background: #f59e0b; color: #fff; }
-        .act-del { background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.35); color: #ef4444; }
-        .act-del:hover { background: #ef4444; color: #fff; }
+        .act-quiz { background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.35); color: #06b6d4; }
+        .act-quiz:hover { background: #06b6d4; color: #fff; }
+        .act-apps { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #059669; }
+        .act-apps:hover { background: #059669; color: #fff; }
+        .act-status { background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.35); color: #d97706; }
+        .act-status:hover { background: #d97706; color: #fff; }
+        .act-del { background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.35); color: #dc2626; }
+        .act-del:hover { background: #dc2626; color: #fff; }
 
         .status-dd .dropdown-menu {
             background: var(--mj-card);
@@ -371,7 +376,7 @@
             position: fixed; top: 84px; right: 24px; z-index: 9999;
             background: var(--mj-card);
             border: 1px solid var(--mj-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 14px;
             padding: 15px 20px;
             display: flex; align-items: center; gap: 12px;
@@ -381,7 +386,7 @@
             pointer-events: none;
         }
         .mj-toast.show { opacity: 1; transform: translateX(0); }
-        .mj-toast i { color: #10b981; font-size: 1.3rem; }
+        .mj-toast i { color: #059669; font-size: 1.3rem; }
         .mj-toast b { color: var(--mj-text); font-size: 0.9rem; }
 
         /* ── Responsive ── */
@@ -416,19 +421,19 @@
         <!-- Stats -->
         <div class="mj-stats">
             <div class="mj-stat">
-                <div class="mj-stat-ico" style="background: rgba(99,102,241,.12); color:#6366f1;"><i class="fas fa-briefcase"></i></div>
+                <div class="mj-stat-ico" style="background: rgba(59,130,246,.12); color:#3b82f6;"><i class="fas fa-briefcase"></i></div>
                 <div><b><?php echo $stats['total']; ?></b><span>Total Jobs</span></div>
             </div>
             <div class="mj-stat">
-                <div class="mj-stat-ico" style="background: rgba(16,185,129,.12); color:#10b981;"><i class="fas fa-bullseye"></i></div>
+                <div class="mj-stat-ico" style="background: rgba(5,150,105,.12); color:#059669;"><i class="fas fa-bullseye"></i></div>
                 <div><b><?php echo $stats['active']; ?></b><span>Active</span></div>
             </div>
             <div class="mj-stat">
-                <div class="mj-stat-ico" style="background: rgba(245,158,11,.12); color:#f59e0b;"><i class="fas fa-pen-ruler"></i></div>
+                <div class="mj-stat-ico" style="background: rgba(217,119,6,.12); color:#d97706;"><i class="fas fa-pen-ruler"></i></div>
                 <div><b><?php echo $stats['draft']; ?></b><span>Drafts</span></div>
             </div>
             <div class="mj-stat">
-                <div class="mj-stat-ico" style="background: rgba(239,68,68,.12); color:#ef4444;"><i class="fas fa-ban"></i></div>
+                <div class="mj-stat-ico" style="background: rgba(239,68,68,.12); color:#dc2626;"><i class="fas fa-ban"></i></div>
                 <div><b><?php echo $stats['closed']; ?></b><span>Closed</span></div>
             </div>
             <div class="mj-stat">
@@ -459,6 +464,7 @@
                     $style = isset($category_styles[$cat]) ? $category_styles[$cat] : $default_style;
                     $icon = $style['icon']; $color = $style['color'];
                     $status = $job['status'] ?: 'draft';
+                    $is_featured = function_exists('nh_is_job_featured') ? nh_is_job_featured($job) : false;
                 ?>
                     <div class="job-card" data-status="<?php echo $status; ?>"
                          data-search="<?php echo strtolower(htmlspecialchars($job['job_title'] . ' ' . $cat . ' ' . $job['location'] . ' ' . $job['employment_type'])); ?>">
@@ -472,6 +478,9 @@
                                 <span class="job-badge <?php echo $status; ?>">
                                     <i class="fas fa-circle"></i><?php echo strtoupper($status); ?>
                                 </span>
+                                <?php if ($is_featured): ?>
+                                    <span class="job-badge featured"><i class="fas fa-bolt"></i>FEATURED</span>
+                                <?php endif; ?>
                             </div>
                             <div class="job-meta">
                                 <span><i class="fas fa-tag"></i><?php echo htmlspecialchars($cat); ?></span>
@@ -503,6 +512,16 @@
                                 <i class="fas fa-users"></i>Applicants
                             </a>
 
+                            <?php if ($is_featured): ?>
+                                <span class="act-btn act-featured" title="Featured until <?php echo !empty($job['featured_until']) ? date('M d, Y', strtotime($job['featured_until'])) : 'active'; ?>">
+                                    <i class="fas fa-bolt"></i>Featured
+                                </span>
+                            <?php elseif ($status === 'active'): ?>
+                                <a class="act-btn act-boost" href="../api/checkout.php?purpose=featured_job&item_id=<?php echo $job['id']; ?>"
+                                   title="Boost to the top of search for <?php echo nh_pricing()['featured_days']; ?> days">
+                                    <i class="fas fa-bolt"></i>Boost <?php echo nh_price(nh_pricing()['featured_price']); ?>
+                                </a>
+                            <?php endif; ?>
                             <div class="dropdown status-dd">
                                 <button class="act-btn act-status dropdown-toggle" type="button" data-toggle="dropdown">
                                     <i class="fas fa-sliders"></i>Status
@@ -562,6 +581,7 @@
         }
         <?php if (isset($_GET['updated'])): ?>showToast('Job status updated successfully!');<?php endif; ?>
         <?php if (isset($_GET['deleted'])): ?>showToast('Job deleted successfully!');<?php endif; ?>
+        <?php if (isset($_GET['featured'])): ?>showToast('🚀 Your job is now boosted — it will appear at the top of search!');<?php endif; ?>
 
         // Filter + search
         let currentFilter = 'all';

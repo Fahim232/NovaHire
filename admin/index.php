@@ -1,20 +1,11 @@
 <?php
+require_once __DIR__ . '/../includes/bootstrap.php';
 
-session_start();
+if (!isset($_SESSION['admin_username'])) {
+    header('location: admin_login.php');
+    exit();
+}
 
-    if (!isset($_SESSION['admin_username'])) {
-        ?><script>alert("You are logged out!");</script>
-        <?php
-        header('location: admin_login.php');
-    }
-?>
-<head>
-    <!-- <link rel="stylesheet" href="style.css"> -->
-    <?php include '../includes/links.php' ?>
-    <?php include 'showdata.php' ?>
-    
-</head>
-<body>
-
-</body>
-</html>
+// Redirect to main dashboard
+header('location: admin_dashboard.php');
+exit();

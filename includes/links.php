@@ -16,6 +16,7 @@
 require_once __DIR__ . '/bootstrap.php';
 ?>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/premium.css?v=<?php echo time(); ?>">
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>

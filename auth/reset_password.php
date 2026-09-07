@@ -100,7 +100,7 @@ if (isset($_POST['reset_password'])) {
                 unset($_SESSION['code_verified']);
                 
                 // Redirect to login
-                $redirect_page = ($user_type === 'user') ? BASE_URL . '/auth/login.php' : BASE_URL . '/company_login.php';
+                $redirect_page = ($user_type === 'user') ? BASE_URL . '/auth/login.php' : BASE_URL . '/auth/login.php';
                 echo "<script>
                         alert('Password reset successful! Please login with your new password.');
                         window.location.href = '$redirect_page';

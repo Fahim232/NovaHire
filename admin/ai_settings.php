@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
 
-require_once 'dbcon.php';
 require_once __DIR__ . '/../ai/config.php';
 include 'header.php';
 
@@ -105,11 +105,11 @@ $total_ai_records = array_sum($his_counts);
     <?php include '../includes/links.php'; ?>
     <style>
         :root {
-            --ai-grad: linear-gradient(135deg, #6366f1, #8b5cf6 55%, #a855f7);
-            --ai-grad-soft: linear-gradient(135deg, #6366f1, #8b5cf6 55%, #a855f7);
-            --ai-green: #10b981;
-            --ai-amber: #f59e0b;
-            --ai-red: #ef4444;
+            --ai-grad: linear-gradient(135deg, #3b82f6, #06b6d4 55%, #38bdf8);
+            --ai-grad-soft: linear-gradient(135deg, #3b82f6, #06b6d4 55%, #38bdf8);
+            --ai-green: #059669;
+            --ai-amber: #d97706;
+            --ai-red: #dc2626;
             --ai-slate: #64748b;
             --ai-blue: #0ea5e9;
         }
@@ -243,7 +243,7 @@ $total_ai_records = array_sum($his_counts);
             outline: none;
         }
         .ai-input:focus, .ai-select:focus {
-            border-color: #8b5cf6;
+            border-color: #06b6d4;
             box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
             background: var(--bg-card);
         }
@@ -281,7 +281,7 @@ $total_ai_records = array_sum($his_counts);
         }
         .ai-provider:hover { transform: translateY(-2px); border-color: rgba(139, 92, 246, 0.5); }
         .ai-provider.sel {
-            border-color: #8b5cf6;
+            border-color: #06b6d4;
             box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.14), 0 10px 22px -12px rgba(124, 58, 237, 0.4);
         }
         .ai-provider input { position: absolute; opacity: 0; pointer-events: none; }
@@ -297,7 +297,7 @@ $total_ai_records = array_sum($his_counts);
             flex-shrink: 0;
         }
         .ai-provider-ic.openai { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
-        .ai-provider-ic.gemini { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .ai-provider-ic.gemini { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
         .ai-provider b { color: var(--text); font-size: 0.94rem; display: block; font-family: 'Sora', sans-serif; }
         .ai-provider span { color: var(--text-muted); font-size: 0.76rem; }
         .ai-provider-check {
@@ -307,7 +307,7 @@ $total_ai_records = array_sum($his_counts);
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #8b5cf6;
+            background: #06b6d4;
             color: #fff;
             font-size: 0.62rem;
             display: flex;
@@ -396,7 +396,7 @@ $total_ai_records = array_sum($his_counts);
         }
         .ai-badge.on { background: rgba(16, 185, 129, 0.14); color: var(--ai-green); }
         .ai-badge.off { background: var(--bg-hover); color: var(--text-muted); }
-        .ai-badge.ai { background: rgba(99, 102, 241, 0.14); color: #8b5cf6; }
+        .ai-badge.ai { background: rgba(99, 102, 241, 0.14); color: #06b6d4; }
         .ai-badge.warn { background: rgba(245, 158, 11, 0.16); color: #d97706; }
         .ai-engine-dot {
             width: 9px; height: 9px; border-radius: 50%;
@@ -420,8 +420,8 @@ $total_ai_records = array_sum($his_counts);
         .ai-count-box:hover { transform: translateY(-3px); border-color: rgba(139, 92, 246, 0.45); }
         .ai-count-box .n { font-size: 1.3rem; font-weight: 800; color: var(--text); font-family: 'Sora', sans-serif; }
         .ai-count-box .l { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.03em; }
-        .ai-range { width: 100%; accent-color: #8b5cf6; cursor: pointer; }
-        .ai-range-val { font-weight: 800; color: #8b5cf6; font-size: 1.05rem; font-family: 'Sora', sans-serif; }
+        .ai-range { width: 100%; accent-color: #06b6d4; cursor: pointer; }
+        .ai-range-val { font-weight: 800; color: #06b6d4; font-size: 1.05rem; font-family: 'Sora', sans-serif; }
         .ai-toast {
             position: fixed;
             top: 88px;
@@ -446,8 +446,8 @@ $total_ai_records = array_sum($his_counts);
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-size: 1rem; flex-shrink: 0;
         }
-        .ai-toast.success .ic { background: linear-gradient(135deg, #10b981, #059669); }
-        .ai-toast.error .ic { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .ai-toast.success .ic { background: linear-gradient(135deg, #059669, #059669); }
+        .ai-toast.error .ic { background: linear-gradient(135deg, #dc2626, #dc2626); }
         .ai-toast b { display: block; color: var(--text); font-size: 0.9rem; font-weight: 800; }
         .ai-toast span { color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 2px; word-break: break-word; }
         .ai-toast .close {
@@ -609,12 +609,12 @@ $total_ai_records = array_sum($his_counts);
         <div class="col-lg-5">
             <div class="ai-card ai-reveal" style="animation-delay:.12s;">
                 <div class="ai-card-h">
-                    <div class="ai-tile" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);"><i class="fas fa-heartbeat"></i></div>
+                    <div class="ai-tile" style="background:linear-gradient(135deg,#0ea5e9,#3b82f6);"><i class="fas fa-heartbeat"></i></div>
                     <div><h6>Hybrid Engine Status</h6><small>Live health of the AI pipeline</small></div>
                 </div>
                 <div class="ai-body pt-2">
                     <div class="ai-status-row">
-                        <span class="ai-s-label"><i class="fas fa-cogs mr-2" style="color:#6366f1;"></i>Offline rule-based engine</span>
+                        <span class="ai-s-label"><i class="fas fa-cogs mr-2" style="color:#3b82f6;"></i>Offline rule-based engine</span>
                         <span class="ai-badge on"><i class="fas fa-check-circle mr-1"></i>Always On</span>
                     </div>
                     <div class="ai-status-row">
@@ -628,11 +628,11 @@ $total_ai_records = array_sum($his_counts);
                         <?php endif; ?>
                     </div>
                     <div class="ai-status-row">
-                        <span class="ai-s-label"><i class="fas fa-braille mr-2" style="color:#8b5cf6;"></i>Job matching / resume score</span>
+                        <span class="ai-s-label"><i class="fas fa-braille mr-2" style="color:#06b6d4;"></i>Job matching / resume score</span>
                         <span class="ai-badge ai"><i class="fas fa-robot mr-1"></i>Smart AI</span>
                     </div>
                     <div class="ai-status-row">
-                        <span class="ai-s-label"><i class="fas fa-wave-square mr-2" style="color:#10b981;"></i>Engine heartbeat</span>
+                        <span class="ai-s-label"><i class="fas fa-wave-square mr-2" style="color:#059669;"></i>Engine heartbeat</span>
                         <span class="ai-badge on"><span class="ai-engine-dot green"></span>Healthy</span>
                     </div>
                 </div>
@@ -640,7 +640,7 @@ $total_ai_records = array_sum($his_counts);
 
             <div class="ai-card ai-reveal mt-3" style="animation-delay:.18s;">
                 <div class="ai-card-h">
-                    <div class="ai-tile" style="background:linear-gradient(135deg,#f59e0b,#ef4444);"><i class="fas fa-database"></i></div>
+                    <div class="ai-tile" style="background:linear-gradient(135deg,#d97706,#dc2626);"><i class="fas fa-database"></i></div>
                     <div><h6>AI Data</h6><small><?php echo $total_ai_records; ?> stored AI-generated records</small></div>
                 </div>
                 <div class="ai-body">

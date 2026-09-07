@@ -60,7 +60,11 @@ if (isset($_POST['send_code'])) {
             $_SESSION['reset_email']        = $email;
             $_SESSION['reset_user_type']    = $user_type;
             $_SESSION['reset_code_display'] = $reset_code;
-            $success_msg = "Reset code generated successfully! Code: <strong>$reset_code</strong> (Valid for 1 hour)";
+            $success_msg = "Reset code sent to your email! Code: <strong>$reset_code</strong> (Valid for 1 hour)";
+
+            // Send password reset email
+            require_once __DIR__ . '/../includes/mail.php';
+            send_password_reset_email($email, $reset_code, $user_type);
         } else {
             $error_msg = "Error generating reset code. Please try again.";
         }
@@ -161,7 +165,7 @@ if (isset($_POST['send_code'])) {
         }
 
         .code-display {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #059669 0%, #059669 100%);
             color: white;
             padding: 25px;
             border-radius: 15px;

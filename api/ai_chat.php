@@ -1,8 +1,10 @@
 <?php
 /**
- * NovaHire AI - Chat API endpoint (AJAX)
+ * NovaHire AI - Chat API endpoint v2 (AJAX)
  * POST: message=...
  * Returns JSON: {reply, intent, buttons}
+ *
+ * Rich context: user profile, application stats, job listings, match scores
  */
 session_start();
 header('Content-Type: application/json');
@@ -29,9 +31,10 @@ $user = array();
 $uq = mysqli_query($con, "SELECT * FROM user_info WHERE id = $user_id");
 if ($uq && mysqli_num_rows($uq) > 0) $user = mysqli_fetch_assoc($uq);
 
-// Build context
+// Build rich context
 $context = array();
 
+// Application stats
 $apps_q = mysqli_query($con, "SELECT COUNT(*) c FROM job_applications WHERE user_id = $user_id");
 $context['applications_count'] = $apps_q ? intval(mysqli_fetch_assoc($apps_q)['c']) : 0;
 
@@ -41,7 +44,11 @@ $context['saved_count'] = $saved_q ? intval(mysqli_fetch_assoc($saved_q)['c']) :
 $passed_q = mysqli_query($con, "SELECT COUNT(*) c FROM job_applications WHERE user_id = $user_id AND quiz_status = 'passed'");
 $context['quiz_passed'] = $passed_q ? intval(mysqli_fetch_assoc($passed_q)['c']) : 0;
 
-// Resume score (cheap: compute from profile completeness)
+// Active jobs count
+$active_q = mysqli_query($con, "SELECT COUNT(*) c FROM company_jobs WHERE status='active' AND deadline >= CURDATE()");
+$context['active_jobs_count'] = $active_q ? intval(mysqli_fetch_assoc($active_q)['c']) : 0;
+
+// Resume score (from profile completeness)
 $context['resume_score'] = 0;
 if (!empty($user)) {
     $fields = array('username' => 15, 'email' => 15, 'phone' => 15, 'user_degree' => 15, 'user_skills' => 20, 'profile' => 10, 'about_me' => 10);
@@ -66,12 +73,31 @@ if (!empty($user['user_skills'])) {
 }
 $context['top_match'] = $top;
 
-// Grooming progress summary
-$context['grooming_progress'] = array('total' => 0, 'done' => 0, 'category' => 'PHP');
+// Grooming progress
+$gp_q = mysqli_query($con, "SELECT COUNT(*) total, SUM(CASE WHEN is_completed=1 THEN 1 ELSE 0 END) done FROM user_video_progress WHERE user_id = $user_id");
+if ($gp_q && $gp_row = mysqli_fetch_assoc($gp_q)) {
+    $context['grooming_progress'] = array(
+        'total' => intval($gp_row['total']),
+        'done'  => intval($gp_row['done']),
+        'category' => isset($user['user_skills']) ? ai_detect_category($user['user_skills']) : 'General'
+    );
+} else {
+    $context['grooming_progress'] = array('total' => 0, 'done' => 0, 'category' => 'General');
+}
 
+// Recent application statuses
+$recent_apps_q = mysqli_query($con, "SELECT ja.application_status, cj.job_title, c.company_name FROM job_applications ja JOIN company_jobs cj ON ja.job_id = cj.id JOIN companies c ON cj.company_id = c.id WHERE ja.user_id = $user_id ORDER BY ja.id DESC LIMIT 5");
+$context['recent_applications'] = array();
+if ($recent_apps_q) {
+    while ($ra = mysqli_fetch_assoc($recent_apps_q)) {
+        $context['recent_applications'][] = $ra;
+    }
+}
+
+// Get chatbot response
 $result = ai_chatbot_respond($user, $message, $context);
 
-// Persist history
+// Persist history (safe, parameterized)
 $stmt = mysqli_prepare($con, "INSERT INTO ai_chat_history (user_id, role, message, intent) VALUES (?, 'user', ?, NULL)");
 mysqli_stmt_bind_param($stmt, "is", $user_id, $message);
 mysqli_stmt_execute($stmt);

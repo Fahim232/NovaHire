@@ -1,56 +1,88 @@
 <?php
-    session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    include 'dbcon.php';
 
     $login_error = '';
     $register_success = '';
     $register_error = '';
     $show_register = false;
 
-    if (isset($_POST['submit'])) {
-        $admin_username = trim(mysqli_real_escape_string($con, $_POST['admin_username'] ?? ''));
-        $pass = $_POST['password'] ?? '';
+    /* Is there ANY admin yet? If not, we allow a one-time bootstrap signup.
+       Once an admin exists, self-registration is closed — new admins must be
+       created from inside the panel (admin/add_admin.php). */
+    $admin_count = 0;
+    if ($r = mysqli_query($con, "SELECT COUNT(*) c FROM admin_login")) {
+        $admin_count = (int)(mysqli_fetch_assoc($r)['c'] ?? 0);
+    }
+    $first_run = ($admin_count === 0);
 
-        $query = mysqli_query($con, "SELECT * FROM admin_login WHERE admin_user_name = '$admin_username'");
-        if ($query && mysqli_num_rows($query) > 0) {
-            $row = mysqli_fetch_assoc($query);
-            $dbpass = $row['admin_password'];
-            if (password_verify($pass, $dbpass) || $pass === $dbpass) {
+    if (isset($_POST['submit'])) {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $login_error = 'Your session expired. Please refresh and try again.';
+        } else {
+            $admin_username = trim($_POST['admin_username'] ?? '');
+            $pass = $_POST['password'] ?? '';
+
+            $stmt = mysqli_prepare($con, "SELECT id, admin_user_name, admin_password FROM admin_login WHERE admin_user_name = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, "s", $admin_username);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            $row = $res ? mysqli_fetch_assoc($res) : null;
+            mysqli_stmt_close($stmt);
+
+            // Constant-ish behaviour: same message whether the user or the password is wrong.
+            if ($row && password_verify($pass, $row['admin_password'])) {
+                session_regenerate_id(true);            // prevent session fixation
                 $_SESSION['admin_username'] = $row['admin_user_name'];
+                $_SESSION['admin_id'] = (int)$row['id'];
                 header('location: admin_dashboard.php');
                 exit();
             } else {
-                $login_error = 'Incorrect password!';
+                $login_error = 'Invalid username or password.';
             }
-        } else {
-            $login_error = 'Invalid username!';
         }
     }
 
     if (isset($_POST['register_submit'])) {
         $show_register = true;
-        $username = trim(mysqli_real_escape_string($con, $_POST['reg_username'] ?? ''));
-        $password = $_POST['reg_password'] ?? '';
-        $cpassword = $_POST['reg_cpassword'] ?? '';
-
-        if ($username === '' || $password === '') {
-            $register_error = 'Please fill in all fields.';
-        } elseif (strlen($password) < 6) {
-            $register_error = 'Password must be at least 6 characters long.';
-        } elseif ($password !== $cpassword) {
-            $register_error = 'Passwords do not match.';
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $register_error = 'Your session expired. Please refresh and try again.';
+        } elseif (!$first_run) {
+            // SECURITY: public admin self-registration is disabled once an admin exists.
+            $register_error = 'Admin registration is closed. Ask an existing admin to create your account.';
+            $show_register = false;
         } else {
-            $check = mysqli_query($con, "SELECT * FROM admin_login WHERE admin_user_name = '$username'");
-            if ($check && mysqli_num_rows($check) > 0) {
-                $register_error = 'This admin username already exists.';
+            $username  = trim($_POST['reg_username'] ?? '');
+            $password  = $_POST['reg_password'] ?? '';
+            $cpassword = $_POST['reg_cpassword'] ?? '';
+
+            if ($username === '' || $password === '') {
+                $register_error = 'Please fill in all fields.';
+            } elseif (strlen($password) < 8) {
+                $register_error = 'Password must be at least 8 characters long.';
+            } elseif ($password !== $cpassword) {
+                $register_error = 'Passwords do not match.';
             } else {
-                $hashed = password_hash($password, PASSWORD_BCRYPT);
-                if (mysqli_query($con, "INSERT INTO admin_login (admin_user_name, admin_password) VALUES ('$username', '$hashed')")) {
-                    $register_success = 'Admin account created successfully! You can now log in.';
-                    $show_register = false;
+                $stmt = mysqli_prepare($con, "SELECT id FROM admin_login WHERE admin_user_name = ? LIMIT 1");
+                mysqli_stmt_bind_param($stmt, "s", $username);
+                mysqli_stmt_execute($stmt);
+                $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+                mysqli_stmt_close($stmt);
+
+                if ($exists) {
+                    $register_error = 'This admin username already exists.';
                 } else {
-                    $register_error = 'Failed to create account. Please try again.';
+                    $hashed = password_hash($password, PASSWORD_BCRYPT);
+                    $stmt = mysqli_prepare($con, "INSERT INTO admin_login (admin_user_name, admin_password) VALUES (?, ?)");
+                    mysqli_stmt_bind_param($stmt, "ss", $username, $hashed);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $register_success = 'Admin account created successfully! You can now log in.';
+                        $show_register = false;
+                        $first_run = false;
+                    } else {
+                        $register_error = 'Failed to create account. Please try again.';
+                    }
+                    mysqli_stmt_close($stmt);
                 }
             }
         }
@@ -99,7 +131,7 @@
             width: 42%;
             padding: 44px 38px;
             color: #fff;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 115%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 50%, #0ea5e9 115%);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -154,8 +186,8 @@
         }
         .al-tab.al-active {
             color: #fff;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            box-shadow: 0 6px 14px -6px rgba(99,102,241,.55);
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            box-shadow: 0 6px 14px -6px rgba(59,130,246,.55);
         }
         .al-pane { display: none; animation: al-fade .35s ease; }
         .al-pane.al-active { display: block; }
@@ -180,19 +212,19 @@
             outline: none;
             transition: border-color .2s ease, box-shadow .2s ease;
         }
-        .al-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+        .al-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
         .al-input::placeholder { color: var(--text-light); }
 
         .al-btn {
             width: 100%;
             border: none; padding: 13px 20px; border-radius: 13px;
             font-weight: 800; font-size: .92rem; color: #fff;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            box-shadow: 0 8px 18px -6px rgba(99,102,241,.55);
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            box-shadow: 0 8px 18px -6px rgba(59,130,246,.55);
             transition: all .3s ease;
             display: inline-flex; align-items: center; justify-content: center; gap: 9px;
         }
-        .al-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(99,102,241,.7); color: #fff; }
+        .al-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(59,130,246,.7); color: #fff; }
 
         .al-alert {
             display: flex; align-items: center; gap: 10px;
@@ -200,7 +232,7 @@
             font-weight: 600; font-size: .85rem; margin-bottom: 18px;
             border: 1px solid transparent;
         }
-        .al-alert.ok { background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.3); }
+        .al-alert.ok { background: rgba(5,150,105,.12); color: #047857; border-color: rgba(5,150,105,.3); }
         .al-alert.err { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.3); }
 
         .al-links { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; font-size: .83rem; }
@@ -241,7 +273,9 @@
             <div class="al-form-side">
                 <div class="al-tabs">
                     <button type="button" class="al-tab <?php echo $show_register ? '' : 'al-active'; ?>" data-tab="login" id="alTabLogin"><i class="fas fa-sign-in-alt"></i> Login</button>
+                    <?php if ($first_run): ?>
                     <button type="button" class="al-tab <?php echo $show_register ? 'al-active' : ''; ?>" data-tab="register" id="alTabRegister"><i class="fas fa-user-plus"></i> Create Account</button>
+                    <?php endif; ?>
                 </div>
 
                 <!-- LOGIN PANE -->
@@ -257,6 +291,7 @@
                     <?php endif; ?>
 
                     <form action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" method="POST">
+                        <?php echo csrf_field(); ?>
                         <div class="al-field">
                             <label for="alUsername"><i class="fas fa-user"></i>Admin Username</label>
                             <input type="text" class="al-input" id="alUsername" name="admin_username" placeholder="Enter admin username" required>
@@ -268,22 +303,20 @@
                         <button type="submit" name="submit" class="al-btn"><i class="fas fa-sign-in-alt"></i> Log In</button>
                     </form>
 
+                    <?php if ($first_run): ?>
                     <div style="display:flex;align-items:center;gap:14px;margin:20px 0 4px;">
                         <span style="flex:1;height:1px;background:var(--border-light);"></span>
-                        <span style="color:var(--text-light);font-size:.75rem;font-weight:700;">OR</span>
+                        <span style="color:var(--text-light);font-size:.75rem;font-weight:700;">FIRST-TIME SETUP</span>
                         <span style="flex:1;height:1px;background:var(--border-light);"></span>
                     </div>
-
-                    <a href="register_admin.php" class="al-btn al-btn-ghost" style="width:100%;text-align:center;background:var(--bg-hover);color:var(--primary);box-shadow:none;border:1.5px solid var(--border-light);">
-                        <i class="fas fa-user-shield"></i> Create Admin Account
-                    </a>
-
-                    <div class="al-links">
-                        <a href="reset_admin_password.php"><i class="fas fa-key"></i> Forgot Password?</a>
-                    </div>
+                    <p style="color:var(--text-muted);font-size:.82rem;text-align:center;margin-top:10px;">
+                        No admin account exists yet. Use <strong>Create Account</strong> above to set one up —
+                        this option closes automatically once the first admin is created.
+                    </p>
+                    <?php endif; ?>
                 </div>
 
-                <!-- REGISTER PANE -->
+                <!-- REGISTER PANE (first-run bootstrap only) -->
                 <div class="al-pane <?php echo $show_register ? 'al-active' : ''; ?>" id="alPaneRegister">
                     <h3 class="al-title">Create Admin Account</h3>
                     <p class="al-sub">Register a new admin to access the panel.</p>
@@ -292,25 +325,26 @@
                         <div class="al-alert err"><i class="fas fa-exclamation-circle"></i><?php echo htmlspecialchars($register_error); ?></div>
                     <?php endif; ?>
 
+                    <?php if (!$first_run): ?>
+                        <div class="al-alert err"><i class="fas fa-lock"></i>Admin registration is closed. Ask an existing admin to create your account from the panel.</div>
+                    <?php else: ?>
                     <form action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" method="POST" id="alRegForm" onsubmit="return alValidate()">
+                        <?php echo csrf_field(); ?>
                         <div class="al-field">
                             <label for="alRegUsername"><i class="fas fa-user"></i>Admin Username</label>
                             <input type="text" class="al-input" id="alRegUsername" name="reg_username" placeholder="Choose a username" required>
                         </div>
                         <div class="al-field">
                             <label for="alRegPassword"><i class="fas fa-lock"></i>Password</label>
-                            <input type="password" class="al-input" id="alRegPassword" name="reg_password" placeholder="Minimum 6 characters" required minlength="6">
+                            <input type="password" class="al-input" id="alRegPassword" name="reg_password" placeholder="Minimum 8 characters" required minlength="8">
                         </div>
                         <div class="al-field">
                             <label for="alRegCpassword"><i class="fas fa-lock"></i>Confirm Password</label>
-                            <input type="password" class="al-input" id="alRegCpassword" name="reg_cpassword" placeholder="Repeat password" required minlength="6">
+                            <input type="password" class="al-input" id="alRegCpassword" name="reg_cpassword" placeholder="Repeat password" required minlength="8">
                         </div>
                         <button type="submit" name="register_submit" class="al-btn"><i class="fas fa-user-plus"></i> Create Account</button>
                     </form>
-
-                    <div class="al-links">
-                        <a href="reset_admin_password.php"><i class="fas fa-key"></i> Reset existing password</a>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

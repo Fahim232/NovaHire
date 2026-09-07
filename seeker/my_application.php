@@ -2,24 +2,29 @@
 // Core setup: session, DB, BASE_URL, helpers
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 
 if (!isset($_SESSION['id'])) {
-    header('location: ' . BASE_URL . '/auth/login.php');
+    header('Location: ' . BASE_URL . '/auth/login.php');
+    exit;
 }
 
-$user_id = $_SESSION['id'];
+require_once __DIR__ . '/../includes/header.php';
+
+$user_id = (int)$_SESSION['id'];
 $user_email = $_SESSION['email'];
 
 // Hero stats
 $apps_stats = ['total' => 0, 'pending' => 0, 'shortlisted' => 0, 'avg_quiz' => 0];
-$stats_query = "SELECT COUNT(*) AS total,
+$stats_stmt = mysqli_prepare($con, "SELECT COUNT(*) AS total,
                 COALESCE(SUM(application_status = 'pending'), 0) AS pending,
                 COALESCE(SUM(application_status = 'shortlisted'), 0) AS shortlisted,
                 ROUND(AVG(quiz_score)) AS avg_quiz
-                FROM job_applications WHERE user_id = '$user_id'";
-$stats_res = mysqli_query($con, $stats_query);
-if ($stats_res && $sr = mysqli_fetch_assoc($stats_res)) {
+                FROM job_applications WHERE user_id = ?");
+mysqli_stmt_bind_param($stats_stmt, "i", $user_id);
+mysqli_stmt_execute($stats_stmt);
+$sr = mysqli_fetch_assoc(mysqli_stmt_get_result($stats_stmt));
+mysqli_stmt_close($stats_stmt);
+if ($sr) {
     $apps_stats['total'] = (int) $sr['total'];
     $apps_stats['pending'] = (int) $sr['pending'];
     $apps_stats['shortlisted'] = (int) $sr['shortlisted'];
@@ -27,31 +32,37 @@ if ($stats_res && $sr = mysqli_fetch_assoc($stats_res)) {
 }
 
 // Get legacy job application
-$selectquery = " select * from jobregistration where email='$user_email' "; 
-$query = mysqli_query($con, $selectquery);
-$result = mysqli_fetch_assoc($query);
-$has_application = mysqli_num_rows($query) > 0;
+$leg_stmt = mysqli_prepare($con, "SELECT * FROM jobregistration WHERE email = ?");
+mysqli_stmt_bind_param($leg_stmt, "s", $user_email);
+mysqli_stmt_execute($leg_stmt);
+$leg_result = mysqli_stmt_get_result($leg_stmt);
+$result = mysqli_fetch_assoc($leg_result);
+$has_application = mysqli_num_rows($leg_result) > 0;
+mysqli_stmt_close($leg_stmt);
 
 // Get company job applications
-$company_apps_query = "SELECT ja.*, cj.job_title, cj.location, cj.employment_type, cj.job_category,
+$comp_stmt = mysqli_prepare($con, "SELECT ja.*, cj.job_title, cj.location, cj.employment_type, cj.job_category,
                        c.company_name, c.industry, ja.applied_date, ja.quiz_status, ja.quiz_score, ja.application_status
                        FROM job_applications ja
                        JOIN company_jobs cj ON ja.job_id = cj.id
                        JOIN companies c ON cj.company_id = c.id
-                       WHERE ja.user_id = '$user_id'
-                       ORDER BY ja.applied_date DESC";
-$company_apps_result = mysqli_query($con, $company_apps_query);
+                       WHERE ja.user_id = ?
+                       ORDER BY ja.applied_date DESC");
+mysqli_stmt_bind_param($comp_stmt, "i", $user_id);
+mysqli_stmt_execute($comp_stmt);
+$company_apps_result = mysqli_stmt_get_result($comp_stmt);
 $has_company_apps = mysqli_num_rows($company_apps_result) > 0;
 
 // Check grooming status for each company job application
 $grooming_status = [];
 if ($has_company_apps) {
-    $temp_result = mysqli_query($con, $company_apps_query);
-    while ($app = mysqli_fetch_assoc($temp_result)) {
+    while ($app = mysqli_fetch_assoc($company_apps_result)) {
         $job_category = $app['job_category'];
-        $status_query = "SELECT * FROM user_quiz_status WHERE user_id = '$user_id' AND category = '$job_category'";
-        $status_res = mysqli_query($con, $status_query);
-        
+        $status_stmt2 = mysqli_prepare($con, "SELECT * FROM user_quiz_status WHERE user_id = ? AND category = ? LIMIT 1");
+        mysqli_stmt_bind_param($status_stmt2, "is", $user_id, $job_category);
+        mysqli_stmt_execute($status_stmt2);
+        $status_res = mysqli_stmt_get_result($status_stmt2);
+
         if (mysqli_num_rows($status_res) > 0) {
             $status_row = mysqli_fetch_assoc($status_res);
             $grooming_status[$app['id']] = [
@@ -70,34 +81,52 @@ if ($has_company_apps) {
                 'job_id' => $app['job_id']
             ];
         }
+        mysqli_stmt_close($status_stmt2);
     }
 }
+mysqli_stmt_close($comp_stmt);
 
 if (isset($_POST['btnUpdate'])) {
-    $id = $_POST['id'];
-    $name = mysqli_real_escape_string($con, $_POST['name']);
-    $phone = mysqli_real_escape_string($con, $_POST['phone']);
-    $degree = mysqli_real_escape_string($con, $_POST['degree']);
-    $refer = mysqli_real_escape_string($con, $_POST['refer']);
-    $plang = mysqli_real_escape_string($con, $_POST['plang']);
+    require_csrf();
 
-    $update_clause = "name='$name', phone='$phone', degree='$degree', refer='$refer', planguage='$plang'";
+    $id    = intval($_POST['id'] ?? 0);
+    $name  = trim($_POST['name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $degree = trim($_POST['degree'] ?? '');
+    $refer = trim($_POST['refer'] ?? '');
+    $plang = trim($_POST['plang'] ?? '');
 
-    if (isset($_FILES['pdf_file']['name']) && $_FILES['pdf_file']['name'] != '') {
-        $file_name = $_FILES['pdf_file']['name'];
-        $file_tmp = $_FILES['pdf_file']['tmp_name'];
-        move_uploaded_file($file_tmp,"./files/".$file_name);
-        $update_clause .= ", cv_doc='$file_name'";
+    $cv_doc = null; // null = no change
+
+    if (!empty($_FILES['pdf_file']['name'])) {
+        $allowed = ['pdf'];
+        $max_size = 67108864;
+        if ($_FILES['pdf_file']['size'] <= $max_size) {
+            $ext = strtolower(pathinfo($_FILES['pdf_file']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, $allowed)) {
+                $safe_name = 'cv_' . bin2hex(random_bytes(16)) . '.' . $ext;
+                if (move_uploaded_file($_FILES['pdf_file']['tmp_name'], __DIR__ . '/files/' . $safe_name)) {
+                    $cv_doc = $safe_name;
+                }
+            }
+        }
     }
 
-    $updatequery = " update jobregistration set $update_clause where id='$id' ";
-    $uquery = mysqli_query($con, $updatequery);
+    if ($cv_doc !== null) {
+        $upd = mysqli_prepare($con, "UPDATE jobregistration SET name=?, phone=?, degree=?, refer=?, planguage=?, cv_doc=? WHERE id=?");
+        mysqli_stmt_bind_param($upd, "ssssssi", $name, $phone, $degree, $refer, $plang, $cv_doc, $id);
+    } else {
+        $upd = mysqli_prepare($con, "UPDATE jobregistration SET name=?, phone=?, degree=?, refer=?, planguage=? WHERE id=?");
+        mysqli_stmt_bind_param($upd, "sssssi", $name, $phone, $degree, $refer, $plang, $id);
+    }
 
-    if ($uquery){
+    if (mysqli_stmt_execute($upd)) {
         echo '<script>alert("Application Updated Successfully"); window.location.href="my_application.php";</script>';
+        exit;
     } else {
         echo '<script>alert("Update Failed");</script>';
     }
+    mysqli_stmt_close($upd);
 }
 
 $ma_status_style = [
@@ -275,12 +304,12 @@ $ma_quiz_style = [
         display: inline-flex; align-items: center; gap: 6px;
         font-size: .72rem; font-weight: 800; padding: 6px 13px; border-radius: 999px;
     }
-    .ma-status.st-pending { color: #b45309; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.28); }
+    .ma-status.st-pending { color: #b45309; background: rgba(217,119,6,.12); border: 1px solid rgba(217,119,6,.28); }
     .ma-status.st-review { color: #1d4ed8; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.28); }
-    .ma-status.st-short { color: #047857; background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.28); }
-    .ma-status.st-hired { color: #065f46; background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.4); }
+    .ma-status.st-short { color: #047857; background: rgba(5,150,105,.12); border: 1px solid rgba(5,150,105,.28); }
+    .ma-status.st-hired { color: #065f46; background: rgba(5,150,105,.2); border: 1px solid rgba(5,150,105,.4); }
     .ma-status.st-rej { color: #b91c1c; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.28); }
-    .ma-qpill.q-passed { color: #047857; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.22); }
+    .ma-qpill.q-passed { color: #047857; background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.22); }
     .ma-qpill.q-failed { color: #b91c1c; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.22); }
     .ma-qpill.q-none { color: var(--text-muted); background: var(--bg-hover); border: 1px solid var(--border-light); }
     [data-theme="dark"] .ma-status.st-pending { color: #fbbf24; }
@@ -311,7 +340,7 @@ $ma_quiz_style = [
     .ma-groom-done {
         display: inline-flex; align-items: center; gap: 8px;
         font-size: .78rem; font-weight: 800; color: #047857;
-        background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.24);
+        background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.24);
         border-radius: 999px; padding: 8px 16px;
     }
 
@@ -412,7 +441,7 @@ $ma_quiz_style = [
         width: 36px; height: 36px; border-radius: 11px; border: 1.5px solid var(--border-light);
         background: var(--bg-hover); color: var(--text-muted); cursor: pointer; transition: all .2s;
     }
-    .ma-edit-close:hover { color: #ef4444; border-color: #ef4444; transform: rotate(90deg); }
+    .ma-edit-close:hover { color: #dc2626; border-color: #dc2626; transform: rotate(90deg); }
     .ma-edit label { font-size: .74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 7px; display: block; }
     .ma-edit input[type="text"] {
         width: 100%; border: 1.5px solid var(--border-light); border-radius: 12px;

@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
 
-require_once 'dbcon.php';
 include 'header.php';
 
 $success = null;
@@ -13,12 +13,16 @@ $errors = [];
 $old = ['username' => '', 'email' => '', 'phone' => '', 'degree' => '', 'skills' => ''];
 
 if (isset($_POST['submit'])) {
-    $username = trim(mysqli_real_escape_string($con, $_POST['username'] ?? ''));
-    $email = trim(mysqli_real_escape_string($con, $_POST['email'] ?? ''));
-    $phone = trim(mysqli_real_escape_string($con, $_POST['phone'] ?? ''));
-    $degree = trim(mysqli_real_escape_string($con, $_POST['degree'] ?? ''));
-    $skills = trim(mysqli_real_escape_string($con, $_POST['skills'] ?? ''));
-    $password = $_POST['password'] ?? '';
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $errors[] = 'Your session expired. Please refresh and try again.';
+    }
+
+    $username  = trim($_POST['username'] ?? '');
+    $email     = trim($_POST['email'] ?? '');
+    $phone     = trim($_POST['phone'] ?? '');
+    $degree    = trim($_POST['degree'] ?? '');
+    $skills    = trim($_POST['skills'] ?? '');
+    $password  = $_POST['password'] ?? '';
     $cpassword = $_POST['cpassword'] ?? '';
 
     $old = compact('username', 'email', 'phone', 'degree', 'skills');
@@ -29,46 +33,47 @@ if (isset($_POST['submit'])) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Please enter a valid email address.';
     }
-    if (strlen($password) < 6) {
-        $errors[] = 'Password must be at least 6 characters long.';
+    if (strlen($password) < 8) {
+        $errors[] = 'Password must be at least 8 characters long.';
     }
     if ($password !== $cpassword) {
         $errors[] = 'Passwords do not match.';
     }
 
     if (empty($errors)) {
-        $check = mysqli_query($con, "SELECT id FROM user_info WHERE email = '$email'");
-        if ($check && mysqli_num_rows($check) > 0) {
+        $chk = mysqli_prepare($con, "SELECT id FROM user_info WHERE email = ? LIMIT 1");
+        mysqli_stmt_bind_param($chk, "s", $email);
+        mysqli_stmt_execute($chk);
+        if (mysqli_fetch_assoc(mysqli_stmt_get_result($chk))) {
             $errors[] = 'An account with this email already exists.';
         }
+        mysqli_stmt_close($chk);
     }
 
     $profile_name = '';
-    if (empty($errors) && isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK && $_FILES['profile_image']['size'] > 0) {
-        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed_exts)) {
-            $upload_dir = __DIR__ . '/../images/';
-            if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            $profile_name = 'profile_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-            if (!move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_dir . $profile_name)) {
-                $profile_name = '';
-            }
+    if (empty($errors) && isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $up = nh_store_upload($_FILES['profile_image'], nh_avatar_dir(), 'image', 'profile');
+        if ($up['ok']) {
+            $profile_name = $up['filename'];
         } else {
-            $errors[] = 'Profile image must be JPG, PNG, GIF or WebP.';
+            $errors[] = $up['error'];
         }
     }
 
     if (empty($errors)) {
         $passEncrypt = password_hash($password, PASSWORD_BCRYPT);
-        $insert = "INSERT INTO user_info(username, email, phone, password, cpassword, user_degree, user_skills, profile)
-                   VALUES('$username', '$email', '$phone', '$passEncrypt', '$passEncrypt', '$degree', '$skills', '$profile_name')";
-        if (mysqli_query($con, $insert)) {
+        $ins = mysqli_prepare($con, "INSERT INTO user_info
+                   (username, email, phone, password, cpassword, user_degree, user_skills, profile)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        mysqli_stmt_bind_param($ins, "ssssssss",
+            $username, $email, $phone, $passEncrypt, $passEncrypt, $degree, $skills, $profile_name);
+        if (mysqli_stmt_execute($ins)) {
             $success = 'Account created successfully for ' . $username . '.';
             $old = ['username' => '', 'email' => '', 'phone' => '', 'degree' => '', 'skills' => ''];
         } else {
             $errors[] = 'Failed to create account. Please try again.';
         }
+        mysqli_stmt_close($ins);
     }
 }
 ?>
@@ -92,7 +97,7 @@ if (isset($_POST['submit'])) {
         width: 40%;
         padding: 48px 40px;
         color: #fff;
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 115%);
+        background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 50%, #0ea5e9 115%);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -140,7 +145,7 @@ if (isset($_POST['submit'])) {
         margin-bottom: 8px;
     }
     .ac-field label i { color: var(--primary); width: 15px; text-align: center; }
-    .ac-field .ac-req { color: #ef4444; }
+    .ac-field .ac-req { color: #dc2626; }
     .ac-input, .ac-input:focus {
         width: 100%;
         border: 1.5px solid var(--border-light);
@@ -152,7 +157,7 @@ if (isset($_POST['submit'])) {
         transition: border-color .2s ease, box-shadow .2s ease;
         outline: none;
     }
-    .ac-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .ac-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
     .ac-input::placeholder { color: var(--text-light); }
 
     .ac-photo-wrap { display: flex; align-items: center; gap: 16px; }
@@ -165,7 +170,7 @@ if (isset($_POST['submit'])) {
         overflow: hidden; flex-shrink: 0;
         transition: all .25s ease;
     }
-    .ac-photo-preview.has-photo { border-style: solid; border-color: #10b981; }
+    .ac-photo-preview.has-photo { border-style: solid; border-color: #059669; }
     .ac-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
     .ac-photo-preview.has-photo i, .ac-photo-preview.has-photo span { display: none; }
     .ac-file-input { position: relative; overflow: hidden; }
@@ -179,12 +184,12 @@ if (isset($_POST['submit'])) {
         font-weight: 800;
         font-size: .92rem;
         color: #fff;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        box-shadow: 0 8px 18px -6px rgba(99,102,241,.55);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
+        box-shadow: 0 8px 18px -6px rgba(59,130,246,.55);
         transition: all .3s ease;
         display: inline-flex; align-items: center; justify-content: center; gap: 9px;
     }
-    .ac-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(99,102,241,.7); color: #fff; }
+    .ac-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(59,130,246,.7); color: #fff; }
 
     .ac-alert {
         display: flex; align-items: center; gap: 10px;
@@ -192,7 +197,7 @@ if (isset($_POST['submit'])) {
         font-weight: 600; font-size: .88rem; margin-bottom: 22px;
         border: 1px solid transparent;
     }
-    .ac-alert.ok { background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.3); }
+    .ac-alert.ok { background: rgba(5,150,105,.12); color: #047857; border-color: rgba(5,150,105,.3); }
     .ac-alert.err { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.3); }
     .ac-alert i { font-size: 1rem; }
 
@@ -243,6 +248,7 @@ if (isset($_POST['submit'])) {
                     <?php endif; ?>
 
                     <form action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" method="POST" enctype="multipart/form-data" id="acForm" onsubmit="return acValidate()">
+                        <?php echo csrf_field(); ?>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="ac-field">
@@ -277,13 +283,13 @@ if (isset($_POST['submit'])) {
                             <div class="col-md-6">
                                 <div class="ac-field">
                                     <label for="acPassword"><i class="fas fa-lock"></i>Password <span class="ac-req">*</span></label>
-                                    <input type="password" class="ac-input" id="acPassword" name="password" placeholder="Minimum 6 characters" required minlength="6">
+                                    <input type="password" class="ac-input" id="acPassword" name="password" placeholder="Minimum 8 characters" required minlength="8">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="ac-field">
                                     <label for="acCpassword"><i class="fas fa-lock"></i>Confirm Password <span class="ac-req">*</span></label>
-                                    <input type="password" class="ac-input" id="acCpassword" name="cpassword" placeholder="Repeat password" required minlength="6">
+                                    <input type="password" class="ac-input" id="acCpassword" name="cpassword" placeholder="Repeat password" required minlength="8">
                                 </div>
                             </div>
                             <div class="col-md-12">

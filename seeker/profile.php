@@ -64,7 +64,7 @@ if (isset($_POST['btnUpdate'])) {
 
     /* ── Profile Hero Banner ── */
     .profile-hero {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+        background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 50%, #38bdf8 100%);
         border-radius: var(--radius-xl);
         padding: 50px 40px 40px;
         position: relative;
@@ -129,7 +129,7 @@ if (isset($_POST['btnUpdate'])) {
         width: 18px;
         height: 18px;
         background: #10b894;
-        border: 3px solid rgba(79,70,229,1);
+        border: 3px solid rgba(26,86,219,1);
         border-radius: 50%;
     }
     .avatar-upload-overlay {
@@ -197,9 +197,9 @@ if (isset($_POST['btnUpdate'])) {
         backdrop-filter: blur(8px);
     }
     .pill-active {
-        background: rgba(16,185,129,0.2);
+        background: rgba(5,150,105,0.2);
         color: #6ee7b7;
-        border: 1px solid rgba(16,185,129,0.3);
+        border: 1px solid rgba(5,150,105,0.3);
     }
     .pill-role {
         background: rgba(255,255,255,0.15);
@@ -299,7 +299,7 @@ if (isset($_POST['btnUpdate'])) {
     }
     .form-control-pro:focus {
         border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
         outline: none;
         background: var(--bg-card);
     }
@@ -317,7 +317,7 @@ if (isset($_POST['btnUpdate'])) {
     }
     .file-upload-zone:hover {
         border-color: var(--primary);
-        background: rgba(79,70,229,0.03);
+        background: rgba(26,86,219,0.03);
     }
     .file-upload-zone i {
         font-size: 1.8rem;
@@ -358,7 +358,7 @@ if (isset($_POST['btnUpdate'])) {
     .btn-pro-save:hover {
         background: var(--primary-dark);
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(79,70,229,0.3);
+        box-shadow: 0 6px 20px rgba(26,86,219,0.3);
     }
     .btn-pro-cancel {
         background: none;
@@ -562,7 +562,7 @@ if (isset($_POST['btnUpdate'])) {
     <!-- Edit Profile Card -->
     <div class="profile-card anim-profile anim-d2">
         <div class="profile-card-header">
-            <div class="profile-card-icon" style="background: rgba(79,70,229,0.1); color: var(--primary);">
+            <div class="profile-card-icon" style="background: rgba(26,86,219,0.1); color: var(--primary);">
                 <i class="fas fa-user-edit"></i>
             </div>
             <div>

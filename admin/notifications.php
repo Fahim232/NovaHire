@@ -1,12 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
 
-require_once 'dbcon.php';
-include 'includes/functions.php';
 include 'header.php';
 
 $admin_username = $_SESSION['admin_username'];
@@ -48,12 +47,12 @@ $type_icons = [
     'job_recommendation' => 'fa-star',
 ];
 $type_colors = [
-    'application_status' => '#10b981',
+    'application_status' => '#059669',
     'new_application' => '#3b82f6',
-    'message' => '#8b5cf6',
-    'quiz_result' => '#f59e0b',
+    'message' => '#06b6d4',
+    'quiz_result' => '#d97706',
     'job_update' => '#06b6d4',
-    'system' => '#6366f1',
+    'system' => '#3b82f6',
     'job_recommendation' => '#ec4899',
 ];
 $type_labels = [
@@ -77,7 +76,7 @@ $type_labels = [
         position: relative;
         margin-top: -72px;
         padding: 96px 0 84px;
-        background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #0ea5e9 120%);
+        background: linear-gradient(120deg, #1a56db 0%, #0ea5e9 55%, #0ea5e9 120%);
         overflow: hidden;
     }
     .an-hero::before, .an-hero::after {
@@ -119,13 +118,13 @@ $type_labels = [
     }
     .an-item:hover { background: var(--bg-hover); }
     .an-item:last-child { border-bottom: none; }
-    .an-item.unread { background: rgba(99,102,241,.06); }
-    .an-item.unread:hover { background: rgba(99,102,241,.09); }
+    .an-item.unread { background: rgba(59,130,246,.06); }
+    .an-item.unread:hover { background: rgba(59,130,246,.09); }
     .an-item.unread::before {
         content: '';
         position: absolute; left: 0; top: 18px; bottom: 18px;
         width: 4px; border-radius: 0 4px 4px 0;
-        background: linear-gradient(180deg, #6366f1, #8b5cf6);
+        background: linear-gradient(180deg, #3b82f6, #06b6d4);
     }
     .an-ico {
         width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
@@ -148,12 +147,12 @@ $type_labels = [
         transition: all .2s ease;
     }
     .an-act:hover { background: var(--bg-hover); color: var(--primary); text-decoration: none; }
-    .an-act.del:hover { background: #fee2e2; color: #ef4444; }
+    .an-act.del:hover { background: #fee2e2; color: #dc2626; }
     .an-unread-dot {
         width: 9px; height: 9px; border-radius: 50%;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
         position: absolute; top: 22px; right: 20px;
-        box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.15);
     }
 
     .an-empty {
@@ -202,7 +201,7 @@ $type_labels = [
                             $idx = 0;
                             foreach ($notifications as $notif):
                                 $icon = isset($type_icons[$notif['notification_type']]) ? $type_icons[$notif['notification_type']] : 'fa-bell';
-                                $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#6366f1';
+                                $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#3b82f6';
                                 $label = isset($type_labels[$notif['notification_type']]) ? $type_labels[$notif['notification_type']] : 'System';
                                 $read_class = $notif['is_read'] ? '' : 'unread';
                                 $time = time_ago($notif['created_at']);

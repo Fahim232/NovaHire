@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
 
-require_once 'dbcon.php';
 include 'header.php';
 
 $total_users = (int)(mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) as cnt FROM user_info"))['cnt'] ?? 0);
@@ -72,7 +72,7 @@ if ($r = mysqli_query($con, "SELECT * FROM user_info ORDER BY id DESC LIMIT 8"))
     while ($row = mysqli_fetch_assoc($r)) $recent_users[] = $row;
 }
 
-function ad_sparkline($data, $color = '#6366f1', $w = 130, $h = 38) {
+function ad_sparkline($data, $color = '#3b82f6', $w = 130, $h = 38) {
     $pad = 3;
     $max = max(1, max($data));
     $min = min($data);
@@ -115,7 +115,7 @@ $chart_data = [
     'status' => [
         'labels' => ['Pending', 'Reviewed', 'Shortlisted', 'Rejected'],
         'values' => array_values($status_counts),
-        'colors' => ['#f59e0b', '#0ea5e9', '#10b981', '#ef4444'],
+        'colors' => ['#d97706', '#0ea5e9', '#059669', '#dc2626'],
     ],
     'totalApps' => $total_applications,
 ];
@@ -142,7 +142,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         position: relative;
         margin-top: -72px;
         padding: 96px 0 84px;
-        background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #0ea5e9 120%);
+        background: linear-gradient(120deg, #1a56db 0%, #0ea5e9 55%, #0ea5e9 120%);
         overflow: hidden;
     }
     .ad-hero::before, .ad-hero::after {
@@ -251,7 +251,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
     .ad-stat-badge {
         font-size: .7rem; font-weight: 700; padding: 5px 10px; border-radius: 999px;
         display: inline-flex; align-items: center; gap: 4px;
-        background: rgba(16,185,129,.12); color: #059669;
+        background: rgba(5,150,105,.12); color: #059669;
     }
     .ad-stat-badge.flat { background: var(--bg-hover); color: var(--text-muted); }
     .ad-stat-num {
@@ -275,8 +275,8 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         cursor: pointer; transition: all .25s ease;
     }
     .ad-tab.active {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: #fff; box-shadow: 0 4px 12px -4px rgba(99,102,241,.6);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
+        color: #fff; box-shadow: 0 4px 12px -4px rgba(59,130,246,.6);
     }
     .ad-chart-box { position: relative; height: 290px; }
     .ad-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 10px; }
@@ -342,8 +342,8 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         padding: 4px 12px; border-radius: 999px;
         font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
     }
-    .ad-badge.ok { background: rgba(16,185,129,.12); color: #059669; }
-    .ad-badge.warn { background: rgba(245,158,11,.14); color: #b45309; }
+    .ad-badge.ok { background: rgba(5,150,105,.12); color: #059669; }
+    .ad-badge.warn { background: rgba(217,119,6,.14); color: #b45309; }
     .ad-badge.info { background: rgba(14,165,233,.12); color: #0369a1; }
     .ad-badge.err { background: rgba(239,68,68,.12); color: #b91c1c; }
     .ad-badge.gray { background: var(--bg-hover); color: var(--text-muted); }
@@ -354,7 +354,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         color: var(--text); transition: border-color .2s ease; outline: none;
         min-width: 210px;
     }
-    .ad-search:focus { border-color: #6366f1; }
+    .ad-search:focus { border-color: #3b82f6; }
     .ad-search::placeholder { color: var(--text-light); }
 
     .ad-row-link { color: var(--text); font-weight: 600; text-decoration: none; }
@@ -365,7 +365,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         text-decoration: none; transition: all .2s ease;
     }
     .ad-act i { font-size: .8rem; }
-    .ad-act.v { background: #eef2ff; color: #4f46e5; }
+    .ad-act.v { background: #eef2ff; color: #1a56db; }
     .ad-act.v:hover { background: #e0e7ff; color: #3730a3; text-decoration: none; }
     .ad-act.d { background: #fee2e2; color: #991b1b; }
     .ad-act.d:hover { background: #fecaca; color: #7f1d1d; text-decoration: none; }
@@ -376,14 +376,14 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
     .nd-toast {
         display: flex; align-items: center; gap: 10px;
         background: var(--bg-card); color: var(--text);
-        border: 1px solid var(--border-light); border-left: 4px solid #10b981;
+        border: 1px solid var(--border-light); border-left: 4px solid #059669;
         border-radius: 12px; padding: 12px 16px; min-width: 260px;
         box-shadow: var(--shadow-lg); font-size: .86rem; font-weight: 600;
         animation: nd-toast-in .3s ease;
     }
-    .nd-toast.err { border-left-color: #ef4444; }
-    .nd-toast i { color: #10b981; }
-    .nd-toast.err i { color: #ef4444; }
+    .nd-toast.err { border-left-color: #dc2626; }
+    .nd-toast i { color: #059669; }
+    .nd-toast.err i { color: #dc2626; }
     .nd-toast.out { opacity: 0; transform: translateX(20px); transition: all .3s ease; }
     @keyframes nd-toast-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
 
@@ -427,7 +427,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
         <!-- KPI CARDS -->
         <div class="row">
             <div class="col-xl-3 col-md-6 mb-3 ad-reveal ad-d1">
-                <div class="ad-stat" style="--nd-accent:#6366f1;--nd-accent-2:#818cf8;--nd-glow:rgba(99,102,241,.35);">
+                <div class="ad-stat" style="--nd-accent:#3b82f6;--nd-accent-2:#60a5fa;--nd-glow:rgba(59,130,246,.35);">
                     <div class="ad-stat-top">
                         <div class="ad-stat-ico"><i class="fas fa-users"></i></div>
                         <span class="ad-stat-badge flat">All registered</span>
@@ -437,7 +437,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 ad-reveal ad-d2">
-                <div class="ad-stat" style="--nd-accent:#8b5cf6;--nd-accent-2:#a78bfa;--nd-glow:rgba(139,92,246,.35);">
+                <div class="ad-stat" style="--nd-accent:#06b6d4;--nd-accent-2:#38bdf8;--nd-glow:rgba(6,182,212,.35);">
                     <div class="ad-stat-top">
                         <div class="ad-stat-ico"><i class="fas fa-building"></i></div>
                         <span class="ad-stat-badge flat">On platform</span>
@@ -458,14 +458,14 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 ad-reveal ad-d4">
-                <div class="ad-stat" style="--nd-accent:#10b981;--nd-accent-2:#34d399;--nd-glow:rgba(16,185,129,.35);">
+                <div class="ad-stat" style="--nd-accent:#059669;--nd-accent-2:#34d399;--nd-glow:rgba(5,150,105,.35);">
                     <div class="ad-stat-top">
                         <div class="ad-stat-ico"><i class="fas fa-file-alt"></i></div>
                         <span class="ad-stat-badge"><i class="fas fa-caret-up"></i>+<?php echo $stats['new_apps_30']; ?> this mo</span>
                     </div>
                     <div class="ad-stat-num ad-count" data-count="<?php echo $stats['total_applications']; ?>">0</div>
                     <div class="ad-stat-label">Total Applications</div>
-                    <div class="ad-stat-spark"><?php echo ad_sparkline(array_values($apps_by_month), '#10b981'); ?></div>
+                    <div class="ad-stat-spark"><?php echo ad_sparkline(array_values($apps_by_month), '#059669'); ?></div>
                 </div>
             </div>
         </div>
@@ -475,7 +475,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-lg-8 mb-3 ad-reveal">
                 <div class="ad-card" style="height:100%;">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(79,70,229,.1);color:var(--primary);"><i class="fas fa-chart-line"></i></span>Analytics Overview</h5>
+                        <h5><span class="ad-ico" style="background:rgba(26,86,219,.1);color:var(--primary);"><i class="fas fa-chart-line"></i></span>Analytics Overview</h5>
                         <div class="ad-tabs">
                             <button class="ad-tab active" data-chart="apps" type="button">Applications</button>
                             <button class="ad-tab" data-chart="jobs" type="button">Jobs</button>
@@ -495,7 +495,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-lg-4 mb-3 ad-reveal">
                 <div class="ad-card" style="height:100%;">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(16,185,129,.1);color:#059669;"><i class="fas fa-chart-pie"></i></span>Application Status</h5>
+                        <h5><span class="ad-ico" style="background:rgba(5,150,105,.1);color:#059669;"><i class="fas fa-chart-pie"></i></span>Application Status</h5>
                     </div>
                     <div class="ad-card-body">
                         <div class="ad-donut-wrap">
@@ -513,11 +513,11 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-12">
                 <div class="ad-card">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(245,158,11,.12);color:#d97706;"><i class="fas fa-bolt"></i></span>Quick Actions</h5>
+                        <h5><span class="ad-ico" style="background:rgba(217,119,6,.12);color:#d97706;"><i class="fas fa-bolt"></i></span>Quick Actions</h5>
                     </div>
                     <div class="ad-card-body">
                         <div class="ad-actions">
-                            <a href="add_details.php" class="ad-action" style="--nd-accent:#6366f1;--nd-accent-2:#818cf8;--nd-glow:rgba(99,102,241,.35);">
+                            <a href="add_details.php" class="ad-action" style="--nd-accent:#3b82f6;--nd-accent-2:#60a5fa;--nd-glow:rgba(59,130,246,.35);">
                                 <div class="ad-action-ico"><i class="fas fa-user-plus"></i></div>
                                 <h6>Add User</h6><small>Create a new user account</small>
                             </a>
@@ -525,7 +525,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                                 <div class="ad-action-ico"><i class="fas fa-user-shield"></i></div>
                                 <h6>Add Admin</h6><small>Create a new admin account</small>
                             </a>
-                            <a href="showdata.php" class="ad-action" style="--nd-accent:#8b5cf6;--nd-accent-2:#a78bfa;--nd-glow:rgba(139,92,246,.35);">
+                            <a href="showdata.php" class="ad-action" style="--nd-accent:#06b6d4;--nd-accent-2:#38bdf8;--nd-glow:rgba(6,182,212,.35);">
                                 <div class="ad-action-ico"><i class="fas fa-chart-bar"></i></div>
                                 <h6>View Reports</h6><small>Review application reports</small>
                             </a>
@@ -533,7 +533,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                                 <div class="ad-action-ico"><i class="fas fa-question-circle"></i></div>
                                 <h6>Quiz Questions</h6><small>Manage quiz content</small>
                             </a>
-                            <a href="../browse_jobs.php" class="ad-action" style="--nd-accent:#10b981;--nd-accent-2:#34d399;--nd-glow:rgba(16,185,129,.35);">
+                            <a href="../browse_jobs.php" class="ad-action" style="--nd-accent:#059669;--nd-accent-2:#34d399;--nd-glow:rgba(5,150,105,.35);">
                                 <div class="ad-action-ico"><i class="fas fa-search"></i></div>
                                 <h6>Browse Jobs</h6><small>View all posted jobs</small>
                             </a>
@@ -591,12 +591,12 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-lg-5 mb-3 ad-reveal">
                 <div class="ad-card" style="height:100%;">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(139,92,246,.12);color:#7c3aed;"><i class="fas fa-user-clock"></i></span>Latest Users</h5>
+                        <h5><span class="ad-ico" style="background:rgba(6,182,212,.12);color:#0ea5e9;"><i class="fas fa-user-clock"></i></span>Latest Users</h5>
                         <a href="show_users.php" class="ad-link-more">View All <i class="fas fa-arrow-right"></i></a>
                     </div>
                     <div class="ad-card-body" style="padding:12px 22px;">
                         <?php if (count($recent_users) > 0): ?>
-                            <?php $avatar_colors = ['#6366f1','#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ec4899']; ?>
+                            <?php $avatar_colors = ['#3b82f6','#06b6d4','#0ea5e9','#059669','#d97706','#ec4899']; ?>
                             <?php foreach ($recent_users as $u): ?>
                                 <div class="d-flex align-items-center" style="padding:10px 0;border-bottom:1px solid var(--border-light);">
                                     <div class="ad-avatar" style="--nd-accent:<?php echo $avatar_colors[$u['id'] % 6]; ?>;--nd-accent-2:<?php echo $avatar_colors[$u['id'] % 6]; ?>;">
@@ -622,7 +622,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-12">
                 <div class="ad-card">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(99,102,241,.1);color:#4f46e5;"><i class="fas fa-users"></i></span>Manage Users</h5>
+                        <h5><span class="ad-ico" style="background:rgba(59,130,246,.1);color:#1a56db;"><i class="fas fa-users"></i></span>Manage Users</h5>
                         <input type="text" class="ad-search" id="userSearch" placeholder="Search users..." onkeyup="adFilter('usersTable','userSearch')">
                     </div>
                     <div class="ad-card-body" style="padding:0;">
@@ -641,7 +641,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                                         <td><strong><?php echo $u['id']; ?></strong></td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="ad-avatar mr-2" style="--nd-accent:#6366f1;--nd-accent-2:#818cf8;"><?php echo strtoupper(substr($u['username'],0,1)); ?></div>
+                                                <div class="ad-avatar mr-2" style="--nd-accent:#3b82f6;--nd-accent-2:#60a5fa;"><?php echo strtoupper(substr($u['username'],0,1)); ?></div>
                                                 <strong class="ad-row-link"><?php echo htmlspecialchars($u['username']); ?></strong>
                                             </div>
                                         </td>
@@ -669,7 +669,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
             <div class="col-12">
                 <div class="ad-card">
                     <div class="ad-card-head">
-                        <h5><span class="ad-ico" style="background:rgba(139,92,246,.12);color:#7c3aed;"><i class="fas fa-building"></i></span>Manage Companies</h5>
+                        <h5><span class="ad-ico" style="background:rgba(6,182,212,.12);color:#0ea5e9;"><i class="fas fa-building"></i></span>Manage Companies</h5>
                         <input type="text" class="ad-search" id="companySearch" placeholder="Search companies..." onkeyup="adFilter('companiesTable','companySearch')">
                     </div>
                     <div class="ad-card-body" style="padding:0;">
@@ -688,7 +688,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                                         <td><strong><?php echo $c['id']; ?></strong></td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="ad-avatar mr-2" style="--nd-accent:#8b5cf6;--nd-accent-2:#a78bfa;"><?php echo strtoupper(substr($c['company_name'],0,1)); ?></div>
+                                                <div class="ad-avatar mr-2" style="--nd-accent:#06b6d4;--nd-accent-2:#38bdf8;"><?php echo strtoupper(substr($c['company_name'],0,1)); ?></div>
                                                 <strong class="ad-row-link"><?php echo htmlspecialchars($c['company_name']); ?></strong>
                                             </div>
                                         </td>
@@ -851,8 +851,8 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
 
         if (type === 'apps') {
             var grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
-            grad.addColorStop(0, 'rgba(16,185,129,0.28)');
-            grad.addColorStop(1, 'rgba(16,185,129,0.01)');
+            grad.addColorStop(0, 'rgba(5,150,105,0.28)');
+            grad.addColorStop(1, 'rgba(5,150,105,0.01)');
             mainChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -860,13 +860,13 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                     datasets: [{
                         label: 'Applications',
                         data: DATA.apps,
-                        borderColor: '#10b981',
+                        borderColor: '#059669',
                         backgroundColor: grad,
                         fill: true,
                         tension: 0.42,
                         borderWidth: 2.5,
                         pointRadius: 3,
-                        pointBackgroundColor: '#10b981',
+                        pointBackgroundColor: '#059669',
                         pointHoverRadius: 6,
                         pointHoverBackgroundColor: '#fff'
                     }]
@@ -943,7 +943,7 @@ $admin_name = ucwords(str_replace('_', ' ', $_SESSION['admin_username']));
                     datasets: [{
                         label: 'Applications',
                         data: DATA.top.values,
-                        backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9'],
+                        backgroundColor: ['#3b82f6', '#06b6d4', '#ec4899', '#d97706', '#059669', '#0ea5e9'],
                         borderRadius: 8,
                         borderSkipped: false,
                         maxBarThickness: 26

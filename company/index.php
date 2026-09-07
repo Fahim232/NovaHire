@@ -1,10 +1,8 @@
 <?php
-    session_start();
-    require_once '../admin/dbcon.php';
-    require_once '../includes/functions.php';
+    require_once __DIR__ . '/../includes/bootstrap.php';
 
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
 
@@ -145,14 +143,14 @@
     /* ── Pipeline funnel ───────────────────────────────────── */
     $pipeline = [
         ['label' => 'Applied', 'value' => $stats['total_applications'], 'color' => '#3b82f6'],
-        ['label' => 'Passed Quiz', 'value' => $stats['qualified'], 'color' => '#8b5cf6'],
-        ['label' => 'Shortlisted', 'value' => $stats['shortlisted'], 'color' => '#10b981'],
-        ['label' => 'Interviews', 'value' => $upcoming_interviews, 'color' => '#f59e0b'],
+        ['label' => 'Passed Quiz', 'value' => $stats['qualified'], 'color' => '#06b6d4'],
+        ['label' => 'Shortlisted', 'value' => $stats['shortlisted'], 'color' => '#059669'],
+        ['label' => 'Interviews', 'value' => $upcoming_interviews, 'color' => '#d97706'],
     ];
     $pipeline_max = max(1, $pipeline[0]['value']);
 
     /* ── Sparkline helper ──────────────────────────────────── */
-    function nd_sparkline($data, $color = '#4f46e5', $w = 130, $h = 38) {
+    function nd_sparkline($data, $color = '#1a56db', $w = 130, $h = 38) {
         $pad = 3;
         $max = max(1, max($data));
         $min = min($data);
@@ -195,7 +193,7 @@
         'status'  => [
             'labels' => ['Pending', 'Reviewed', 'Shortlisted', 'Rejected'],
             'values' => array_values($status_counts),
-            'colors' => ['#f59e0b', '#0ea5e9', '#10b981', '#ef4444'],
+            'colors' => ['#d97706', '#0ea5e9', '#059669', '#dc2626'],
         ],
         'totalApps' => $stats['total_applications'],
     ];
@@ -233,7 +231,7 @@
             position: relative;
             margin-top: -72px;
             padding: 96px 0 84px;
-            background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #0ea5e9 120%);
+            background: linear-gradient(120deg, #1a56db 0%, #0ea5e9 55%, #0ea5e9 120%);
             overflow: hidden;
         }
         .nd-hero::before, .nd-hero::after {
@@ -436,7 +434,7 @@
         .nd-intv-info h6 { margin: 0 0 2px; font-size: .9rem; font-weight: 700; }
         .nd-intv-info small { color: var(--text-muted); font-size: .78rem; display: flex; align-items: center; gap: 5px; }
         .nd-intv-info small i { font-size: .7rem; }
-        .nd-intv-badge { font-size: .68rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(16,185,129,.12); color: #059669; white-space: nowrap; }
+        .nd-intv-badge { font-size: .68rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(5,150,105,.12); color: #059669; white-space: nowrap; }
         .nd-empty {
             text-align: center; padding: 30px 16px; color: var(--text-light);
         }
@@ -494,7 +492,7 @@
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.5' y2='16.5'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: 12px center;
         }
-        .nd-search:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+        .nd-search:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,.12); }
         .nd-app-row {
             display: flex; align-items: center; gap: 14px;
             padding: 14px 0; border-bottom: 1px solid var(--border-light);
@@ -644,14 +642,14 @@
         <!-- ═══════════ KPI CARDS ═══════════ -->
         <div class="row">
             <div class="col-xl-3 col-md-6 mb-3 nd-reveal nd-d1">
-                <div class="nd-stat" style="--nd-accent:#6366f1;--nd-accent-2:#818cf8;--nd-glow:rgba(99,102,241,.35);">
+                <div class="nd-stat" style="--nd-accent:#3b82f6;--nd-accent-2:#60a5fa;--nd-glow:rgba(59,130,246,.35);">
                     <div class="nd-stat-top">
                         <div class="nd-stat-ico"><i class="fas fa-briefcase"></i></div>
                         <span class="nd-stat-badge up"><i class="fas fa-caret-up"></i><?php echo $stats['active_jobs']; ?> active</span>
                     </div>
                     <div class="nd-stat-num nd-count" data-count="<?php echo $stats['total_jobs']; ?>">0</div>
                     <div class="nd-stat-label">Total Jobs Posted</div>
-                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($jobs_by_month), '#6366f1'); ?></div>
+                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($jobs_by_month), '#3b82f6'); ?></div>
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 nd-reveal nd-d2">
@@ -666,25 +664,25 @@
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 nd-reveal nd-d3">
-                <div class="nd-stat" style="--nd-accent:#10b981;--nd-accent-2:#34d399;--nd-glow:rgba(16,185,129,.35);">
+                <div class="nd-stat" style="--nd-accent:#059669;--nd-accent-2:#34d399;--nd-glow:rgba(5,150,105,.35);">
                     <div class="nd-stat-top">
                         <div class="nd-stat-ico"><i class="fas fa-user-check"></i></div>
                         <span class="nd-stat-badge flat"><?php echo $stats['shortlisted']; ?> shortlisted</span>
                     </div>
                     <div class="nd-stat-num nd-count" data-count="<?php echo $stats['qualified']; ?>">0</div>
                     <div class="nd-stat-label">Qualified Candidates</div>
-                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($pass_by_month), '#10b981'); ?></div>
+                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($pass_by_month), '#059669'); ?></div>
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 nd-reveal nd-d4">
-                <div class="nd-stat" style="--nd-accent:#8b5cf6;--nd-accent-2:#a78bfa;--nd-glow:rgba(139,92,246,.35);">
+                <div class="nd-stat" style="--nd-accent:#06b6d4;--nd-accent-2:#38bdf8;--nd-glow:rgba(6,182,212,.35);">
                     <div class="nd-stat-top">
                         <div class="nd-stat-ico"><i class="fas fa-calendar-check"></i></div>
                         <span class="nd-stat-badge up"><i class="fas fa-caret-up"></i><?php echo $upcoming_interviews; ?> upcoming</span>
                     </div>
                     <div class="nd-stat-num nd-count" data-count="<?php echo $upcoming_interviews; ?>">0</div>
                     <div class="nd-stat-label">Interviews Scheduled</div>
-                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($intv_by_month), '#8b5cf6'); ?></div>
+                    <div class="nd-stat-spark"><?php echo nd_sparkline(array_values($intv_by_month), '#06b6d4'); ?></div>
                 </div>
             </div>
         </div>
@@ -694,7 +692,7 @@
             <div class="col-lg-8 mb-3 nd-reveal">
                 <div class="nd-card" style="height:100%;">
                     <div class="nd-card-head">
-                        <h5><span class="nd-ico" style="background:rgba(79,70,229,.1);color:var(--primary);"><i class="fas fa-chart-line"></i></span>Analytics Overview</h5>
+                        <h5><span class="nd-ico" style="background:rgba(26,86,219,.1);color:var(--primary);"><i class="fas fa-chart-line"></i></span>Analytics Overview</h5>
                         <div class="nd-tabs">
                             <button class="nd-tab active" data-chart="apps" type="button">Applications</button>
                             <button class="nd-tab" data-chart="top" type="button">Top Jobs</button>
@@ -714,7 +712,7 @@
             <div class="col-lg-4 mb-3 nd-reveal nd-d2">
                 <div class="nd-card" style="height:100%;">
                     <div class="nd-card-head">
-                        <h5><span class="nd-ico" style="background:rgba(16,185,129,.1);color:#059669;"><i class="fas fa-chart-pie"></i></span>Candidate Status</h5>
+                        <h5><span class="nd-ico" style="background:rgba(5,150,105,.1);color:#059669;"><i class="fas fa-chart-pie"></i></span>Candidate Status</h5>
                     </div>
                     <div class="nd-card-body">
                         <div class="nd-donut-wrap">
@@ -735,7 +733,7 @@
             <div class="col-lg-5 mb-3 nd-reveal">
                 <div class="nd-card" style="height:100%;">
                     <div class="nd-card-head">
-                        <h5><span class="nd-ico" style="background:rgba(139,92,246,.1);color:#7c3aed;"><i class="fas fa-filter"></i></span>Hiring Pipeline</h5>
+                        <h5><span class="nd-ico" style="background:rgba(6,182,212,.1);color:#0ea5e9;"><i class="fas fa-filter"></i></span>Hiring Pipeline</h5>
                     </div>
                     <div class="nd-card-body">
                         <div class="nd-funnel">
@@ -762,7 +760,7 @@
             <div class="col-lg-7 mb-3 nd-reveal nd-d2">
                 <div class="nd-card" style="height:100%;">
                     <div class="nd-card-head">
-                        <h5><span class="nd-ico" style="background:rgba(245,158,11,.1);color:#d97706;"><i class="fas fa-video"></i></span>Upcoming Interviews</h5>
+                        <h5><span class="nd-ico" style="background:rgba(217,119,6,.1);color:#d97706;"><i class="fas fa-video"></i></span>Upcoming Interviews</h5>
                         <a class="nd-link-more" href="view_applicants.php"><i class="fas fa-calendar-alt"></i> Schedule</a>
                     </div>
                     <div class="nd-card-body">
@@ -788,7 +786,7 @@
                             <div class="nd-empty">
                                 <i class="fas fa-calendar-check"></i>
                                 <p>No upcoming interviews scheduled.</p>
-                                <a href="view_applicants.php" class="nd-view-btn" style="background:rgba(16,185,129,.12);color:#059669;"><i class="fas fa-user-check"></i> Shortlist Candidates</a>
+                                <a href="view_applicants.php" class="nd-view-btn" style="background:rgba(5,150,105,.12);color:#059669;"><i class="fas fa-user-check"></i> Shortlist Candidates</a>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -801,7 +799,7 @@
             <div class="col-lg-8 mb-3 nd-reveal">
                 <div class="nd-card" style="height:100%;">
                     <div class="nd-card-head">
-                        <h5><span class="nd-ico" style="background:rgba(245,158,11,.1);color:#d97706;"><i class="fas fa-inbox"></i></span>Recent Applications</h5>
+                        <h5><span class="nd-ico" style="background:rgba(217,119,6,.1);color:#d97706;"><i class="fas fa-inbox"></i></span>Recent Applications</h5>
                         <input type="text" class="nd-search" id="ndAppSearch" placeholder="Search applicants...">
                     </div>
                     <div class="nd-card-body" style="padding-top:8px;">
@@ -812,7 +810,7 @@
                                 $stcls = 'st-' . $app['application_status'];
                             ?>
                                 <div class="nd-app-row" data-search="<?php echo strtolower(htmlspecialchars($app['username'] . ' ' . $app['email'] . ' ' . $app['job_title'])); ?>">
-                                    <div class="nd-avatar" style="--nd-accent:<?php echo ['#4f46e5','#7c3aed','#db2777','#ea580c','#0ea5e9','#059669'][$app['id'] % 6]; ?>;--nd-accent-2:<?php echo ['#818cf8','#a78bfa','#f472b6','#fb923c','#38bdf8','#34d399'][$app['id'] % 6]; ?>;">
+                                    <div class="nd-avatar" style="--nd-accent:<?php echo ['#1a56db','#0ea5e9','#db2777','#ea580c','#0ea5e9','#059669'][$app['id'] % 6]; ?>;--nd-accent-2:<?php echo ['#60a5fa','#38bdf8','#f472b6','#fb923c','#38bdf8','#34d399'][$app['id'] % 6]; ?>;">
                                         <?php echo strtoupper(substr($app['username'], 0, 1)); ?>
                                     </div>
                                     <div class="nd-app-info">
@@ -835,7 +833,7 @@
                             <div class="nd-empty">
                                 <i class="fas fa-inbox"></i>
                                 <p>No applications received yet.</p>
-                                <a href="post_job.php" class="nd-view-btn" style="background:rgba(79,70,229,.1);color:var(--primary);"><i class="fas fa-plus-circle"></i> Post a Job</a>
+                                <a href="post_job.php" class="nd-view-btn" style="background:rgba(26,86,219,.1);color:var(--primary);"><i class="fas fa-plus-circle"></i> Post a Job</a>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -849,11 +847,11 @@
                     </div>
                     <div class="nd-card-body">
                         <div class="nd-actions">
-                            <a href="post_job.php" class="nd-action" style="--nd-accent:#4f46e5;--nd-accent-2:#818cf8;"><div class="nd-action-ico"><i class="fas fa-plus-circle"></i></div><h6>Post Job</h6><small>New listing</small></a>
-                            <a href="view_applicants.php" class="nd-action" style="--nd-accent:#10b981;--nd-accent-2:#34d399;"><div class="nd-action-ico"><i class="fas fa-users"></i></div><h6>Applicants</h6><small>Review</small></a>
+                            <a href="post_job.php" class="nd-action" style="--nd-accent:#1a56db;--nd-accent-2:#60a5fa;"><div class="nd-action-ico"><i class="fas fa-plus-circle"></i></div><h6>Post Job</h6><small>New listing</small></a>
+                            <a href="view_applicants.php" class="nd-action" style="--nd-accent:#059669;--nd-accent-2:#34d399;"><div class="nd-action-ico"><i class="fas fa-users"></i></div><h6>Applicants</h6><small>Review</small></a>
                             <a href="my_jobs.php" class="nd-action" style="--nd-accent:#db2777;--nd-accent-2:#f472b6;"><div class="nd-action-ico"><i class="fas fa-list"></i></div><h6>My Jobs</h6><small>Manage</small></a>
-                            <a href="manage_quiz.php" class="nd-action" style="--nd-accent:#f59e0b;--nd-accent-2:#fbbf24;"><div class="nd-action-ico"><i class="fas fa-question-circle"></i></div><h6>Quizzes</h6><small>Questions</small></a>
-                            <a href="category_applicants.php" class="nd-action" style="--nd-accent:#7c3aed;--nd-accent-2:#a78bfa;"><div class="nd-action-ico"><i class="fas fa-user-graduate"></i></div><h6>Category</h6><small>Applicants</small></a>
+                            <a href="manage_quiz.php" class="nd-action" style="--nd-accent:#d97706;--nd-accent-2:#fbbf24;"><div class="nd-action-ico"><i class="fas fa-question-circle"></i></div><h6>Quizzes</h6><small>Questions</small></a>
+                            <a href="category_applicants.php" class="nd-action" style="--nd-accent:#0ea5e9;--nd-accent-2:#38bdf8;"><div class="nd-action-ico"><i class="fas fa-user-graduate"></i></div><h6>Category</h6><small>Applicants</small></a>
                             <a href="profile.php" class="nd-action" style="--nd-accent:#0ea5e9;--nd-accent-2:#38bdf8;"><div class="nd-action-ico"><i class="fas fa-building"></i></div><h6>Profile</h6><small>Company</small></a>
                         </div>
                     </div>
@@ -868,7 +866,7 @@
                         <?php if (count($activity) > 0): ?>
                             <div class="nd-activity">
                                 <?php foreach ($activity as $act):
-                                    $colors = ['#4f46e5', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+                                    $colors = ['#1a56db', '#3b82f6', '#059669', '#d97706', '#ec4899', '#06b6d4'];
                                     $icons = ['fa-bell', 'fa-file-alt', 'fa-clipboard-check', 'fa-chart-line', 'fa-envelope', 'fa-star'];
                                     $type_map = ['application_status' => 2, 'new_application' => 1, 'message' => 4, 'quiz_result' => 3, 'job_update' => 5, 'job_recommendation' => 5, 'system' => 0];
                                     $idx = $type_map[$act['notification_type']] ?? 0;
@@ -1000,8 +998,8 @@
 
         if (type === 'apps') {
             var grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
-            grad.addColorStop(0, 'rgba(79,70,229,0.28)');
-            grad.addColorStop(1, 'rgba(79,70,229,0.01)');
+            grad.addColorStop(0, 'rgba(26,86,219,0.28)');
+            grad.addColorStop(1, 'rgba(26,86,219,0.01)');
             mainChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1009,13 +1007,13 @@
                     datasets: [{
                         label: 'Applications',
                         data: DATA.months,
-                        borderColor: '#6366f1',
+                        borderColor: '#3b82f6',
                         backgroundColor: grad,
                         fill: true,
                         tension: 0.42,
                         borderWidth: 2.5,
                         pointRadius: 3,
-                        pointBackgroundColor: '#6366f1',
+                        pointBackgroundColor: '#3b82f6',
                         pointHoverRadius: 6,
                         pointHoverBorderWidth: 2,
                         pointHoverBackgroundColor: '#fff'
@@ -1053,7 +1051,7 @@
                     datasets: [{
                         label: 'Applications',
                         data: DATA.top.values,
-                        backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9'],
+                        backgroundColor: ['#3b82f6', '#06b6d4', '#ec4899', '#d97706', '#059669', '#0ea5e9'],
                         borderRadius: 8,
                         borderSkipped: false,
                         maxBarThickness: 26

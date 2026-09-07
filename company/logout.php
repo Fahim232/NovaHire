@@ -1,6 +1,6 @@
 <?php
     session_start();
     session_destroy();
-    header('Location: ../company_login.php');
+    header('Location: ../auth/login.php');
     exit;
 ?>

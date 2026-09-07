@@ -9,7 +9,7 @@
 // Check if a database connection handle ($con) is already active
 if (!isset($con)) {
     // Database credentials configuration
-    $host     = 'localhost';
+    $host     = '127.0.0.1';
     $user     = 'root';
     $password = '';         // Default XAMPP MySQL password (empty)
     $database = 'projects'; // Target application database name

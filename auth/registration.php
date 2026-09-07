@@ -222,6 +222,9 @@ require_once __DIR__ . '/../includes/bootstrap.php';
          * password hashing, email duplication check, and user database insertion.
          */
         if (isset($_POST['submit'])){
+            // CSRF Verification
+            require_csrf();
+            
             // Extract and sanitize candidate registration details
             $username  = trim($_POST['username'] ?? '');
             $email     = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
@@ -235,22 +238,16 @@ require_once __DIR__ . '/../includes/bootstrap.php';
             $passEncrypt  = password_hash($password, PASSWORD_BCRYPT);
             $cpassEncrypt = password_hash($cpassword, PASSWORD_BCRYPT);
 
-            // Handle candidate profile photo upload if provided
+            // Handle candidate profile photo upload through the hardened helper
+            // (content-verified, random filename, stored in the canonical images/ folder)
             $profile_name = '';
-            if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK && $_FILES['profile_image']['size'] > 0) {
-                $allowed_exts = ['jpg','jpeg','png','gif','webp'];
-                $ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, $allowed_exts)) {
-                    $upload_dir = __DIR__ . '/images/';
-                    if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0755, true);
-                    }
-                    $profile_name = 'profile_' . time() . '_' . rand(1000,9999) . '.' . $ext;
-                    $target = $upload_dir . $profile_name;
-                    if (!move_uploaded_file($_FILES['profile_image']['tmp_name'], $target)) {
-                        $profile_name = '';
-                    }
+            if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $up = nh_store_upload($_FILES['profile_image'], nh_avatar_dir(), 'image', 'profile');
+                if ($up['ok']) {
+                    $profile_name = $up['filename'];
                 }
+                // A bad photo must not block account creation — the account is
+                // created without one and the user can add it from their profile.
             }
 
             // 1. Check for duplicate email using prepared statement
@@ -272,6 +269,9 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     mysqli_stmt_close($ins_stmt);
 
                     if ($iquery) {
+                        // Send welcome email
+                        send_welcome_email($email, $username);
+                        
                         echo "<script>alert('Account Created Successfully!'); window.location.href='login.php';</script>";
                         exit();
                     } else {
@@ -296,6 +296,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
             <h1 class="form-title">Create Account</h1>
             
             <form action="<?php echo htmlentities($_SERVER['PHP_SELF']);?>" method="POST" enctype="multipart/form-data">
+                <?php echo csrf_input(); ?>
                 
                 <!-- Profile Photo Upload -->
                 <div class="reg-photo-section">

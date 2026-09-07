@@ -1,963 +1,902 @@
-<?php 
-    include 'admin/dbcon.php';
-    include 'includes/functions.php';
-    session_start();
-    
-    $is_logged_in = isset($_SESSION['id']);
-    $user_id = $is_logged_in ? $_SESSION['id'] : 0;
-    $is_seeker_logged_in = $is_logged_in && !isset($_SESSION['company_id']);
-    $is_company_logged_in = isset($_SESSION['company_id']);
-    
-    $total_jobs_q = mysqli_query($con, "SELECT COUNT(*) as cnt FROM company_jobs WHERE status='active'");
-    $total_jobs = mysqli_fetch_assoc($total_jobs_q)['cnt'];
-    
-    $total_companies_q = mysqli_query($con, "SELECT COUNT(*) as cnt FROM companies WHERE status='active'");
-    $total_companies = mysqli_fetch_assoc($total_companies_q)['cnt'];
-    
-    $total_users_q = mysqli_query($con, "SELECT COUNT(*) as cnt FROM user_info");
-    $total_users = mysqli_fetch_assoc($total_users_q)['cnt'];
-    
-    $total_applications_q = mysqli_query($con, "SELECT COUNT(*) as cnt FROM job_applications");
-    $total_applications = mysqli_fetch_assoc($total_applications_q)['cnt'];
-    
-    $featured_companies_q = mysqli_query($con, "SELECT c.*, 
-        (SELECT COUNT(*) FROM company_jobs WHERE company_id = c.id AND status='active') as job_count 
-        FROM companies c WHERE c.status='active' ORDER BY c.registration_date DESC LIMIT 6");
-    
-    $latest_jobs_q = mysqli_query($con, "SELECT cj.*, c.company_name, c.logo, c.industry
-        FROM company_jobs cj 
-        JOIN companies c ON cj.company_id = c.id 
-        WHERE cj.status = 'active' AND cj.deadline >= CURDATE()
-        ORDER BY cj.posted_date DESC LIMIT 9");
-    
-    $categories_q = mysqli_query($con, "SELECT job_category, COUNT(*) as cnt 
-        FROM company_jobs WHERE status='active' GROUP BY job_category ORDER BY cnt DESC");
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
-        $email = mysqli_real_escape_string($con, $_POST['subscribe_email']);
-        $check = mysqli_query($con, "SELECT id FROM newsletter_subscribers WHERE email='$email'");
-        if (mysqli_num_rows($check) === 0) {
-            mysqli_query($con, "INSERT INTO newsletter_subscribers (email) VALUES ('$email')");
-            $sub_success = true;
-        } else {
-            $sub_exists = true;
-        }
-    }
+<?php
+require_once __DIR__ . '/includes/bootstrap.php';
+
+session_start();
+
+$is_logged_in = isset($_SESSION['id']);
+$is_company_logged_in = isset($_SESSION['company_id']);
+$is_admin_logged_in = isset($_SESSION['admin_username']);
+
+// If logged in, redirect to appropriate dashboard
+if ($is_logged_in && !$is_company_logged_in) {
+    header('Location: ' . BASE_URL . '/seeker/seeker_dashboard.php');
+    exit;
+} elseif ($is_company_logged_in) {
+    header('Location: ' . BASE_URL . '/company/index.php');
+    exit;
+} elseif ($is_admin_logged_in) {
+    header('Location: ' . BASE_URL . '/admin/admin_dashboard.php');
+    exit;
+}
+
+// Stats
+$con_db = @mysqli_connect('127.0.0.1', 'root', '', 'projects');
+$total_jobs = 0;
+$total_companies = 0;
+$total_users = 0;
+$total_applications = 0;
+if ($con_db) {
+    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM company_jobs WHERE status='active'");
+    $total_jobs = mysqli_fetch_assoc($r)['cnt'] ?? 0;
+    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM companies WHERE status='active'");
+    $total_companies = mysqli_fetch_assoc($r)['cnt'] ?? 0;
+    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM user_info");
+    $total_users = mysqli_fetch_assoc($r)['cnt'] ?? 0;
+    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM job_applications");
+    $total_applications = mysqli_fetch_assoc($r)['cnt'] ?? 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>NovaHire - Find Your Dream Job | Top Companies Hiring Now</title>
-    <?php include 'includes/links.php' ?>
-    <script>
-        (function() {
-            var saved = localStorage.getItem('theme') || localStorage.getItem('company-theme');
-            if (saved) {
-                document.documentElement.setAttribute('data-theme', saved);
-            }
-        })();
-    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaHire — Find Your Dream Job | Top Companies Hiring Now</title>
+    <meta name="description" content="NovaHire - AI-powered job portal connecting job seekers with top companies. Find your dream job, build your career, and get hired faster.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
     <style>
-        * { box-sizing: border-box; }
-
-        /* Hero */
-        .hero-wrapper {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
-            padding: 0;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-wrapper::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .hero-wrapper::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -10%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(236,72,153,0.2) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .hero-content {
-            padding: 100px 0 80px;
-            position: relative;
-            z-index: 2;
-        }
-        .hero-title {
-            font-size: 3rem;
-            font-weight: 800;
-            color: white;
-            line-height: 1.15;
-            letter-spacing: -1.5px;
-            margin-bottom: 18px;
-        }
-        .hero-subtitle {
-            font-size: 1.1rem;
-            color: rgba(255,255,255,0.85);
-            font-weight: 400;
-            margin-bottom: 32px;
-            max-width: 480px;
-        }
-        .hero-search {
-            background: white;
-            border-radius: 14px;
-            padding: 6px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-            display: flex;
-            gap: 0;
-            max-width: 680px;
-        }
-        .hero-search .search-input {
-            flex: 1;
-            border: none;
-            padding: 14px 18px;
-            font-size: 0.95rem;
-            outline: none;
-            background: transparent;
-            min-width: 0;
-            font-family: var(--font);
-        }
-        .hero-search .search-select {
-            border: none;
-            border-left: 1px solid #e5e7eb;
-            padding: 14px 14px;
-            font-size: 0.85rem;
-            color: #6b7280;
-            outline: none;
-            background: transparent;
-            cursor: pointer;
-            min-width: 150px;
-            font-family: var(--font);
-        }
-        .hero-search .search-btn {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-            border: none;
-            padding: 14px 30px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-            font-family: var(--font);
-        }
-        .hero-search .search-btn:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
-        }
-        .hero-stats {
-            display: flex;
-            gap: 36px;
-            margin-top: 44px;
-        }
-        .hero-stat { text-align: center; }
-        .hero-stat h3 {
-            color: white;
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        .hero-stat p {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .hero-image-area { position: relative; z-index: 2; }
-        .hero-floating-card {
-            background: white;
-            border-radius: 14px;
-            padding: 14px 18px;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: float-card 6s ease-in-out infinite;
-        }
-        .hero-floating-card:nth-child(2) { animation-delay: -2s; }
-        .hero-floating-card:nth-child(3) { animation-delay: -4s; }
-        @keyframes float-card {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-12px); }
-        }
-        .fc-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            flex-shrink: 0;
+        :root {
+            --lh-primary: var(--primary, #1a56db);
+            --lh-primary-dark: var(--primary-dark, #1e40af);
+            --lh-secondary: var(--secondary, #0ea5e9);
+            --lh-accent: var(--accent, #d97706);
+            --lh-gradient: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
+            --lh-gradient-hero: linear-gradient(135deg, #0c1222 0%, var(--primary, #1a56db) 35%, var(--secondary, #0ea5e9) 100%);
+            --lh-text: var(--dark, #0f172a);
+            --lh-text-muted: var(--text-muted, #64748b);
+            --lh-bg: var(--bg-card, #ffffff);
+            --lh-bg-alt: var(--bg, #f8fafc);
         }
 
-        /* Sections */
-        .section-header {
-            text-align: center;
-            margin-bottom: 44px;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--lh-text);
+            background: var(--lh-bg);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
-        .section-header h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--text);
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-        .section-header p {
-            color: var(--text-muted);
-            font-size: 1rem;
-            max-width: 560px;
-            margin: 0 auto;
-        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Sora', 'Inter', sans-serif; }
 
-        /* Category Cards */
-        .category-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            padding: 28px 18px;
-            text-align: center;
-            border: 1px solid var(--border-light);
-            transition: var(--transition);
-            cursor: pointer;
-            text-decoration: none;
-            display: block;
+        /* ═══ NAVBAR ═══ */
+        .lh-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 16px 0;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .category-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-lg);
-            border-color: transparent;
-            text-decoration: none;
+        .lh-nav.scrolled {
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.04);
+            padding: 10px 0;
         }
-        .category-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 14px;
-            transition: var(--transition);
+        .lh-nav-inner {
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .category-card:hover .category-icon {
-            transform: scale(1.1) rotate(-3deg);
+        .lh-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.4rem;
+            color: #fff; text-decoration: none; letter-spacing: -0.5px;
         }
-        .category-card h5 {
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 4px;
-            font-size: 0.95rem;
+        .lh-nav.scrolled .lh-logo { color: var(--lh-text); }
+        .lh-logo-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; color: #1e293b;
+            box-shadow: 0 4px 12px rgba(217,119,6,0.4);
         }
-        .category-card .count {
-            color: var(--text-muted);
-            font-size: 0.82rem;
-            font-weight: 500;
-        }
+        .lh-logo span { color: #fbbf24; }
+        .lh-nav.scrolled .lh-logo span { color: var(--lh-primary); }
 
-        /* Job Listings */
-        .job-listing {
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            padding: 22px;
-            border: 1px solid var(--border-light);
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            text-decoration: none;
-            margin-bottom: 12px;
+        .lh-nav-links { display: flex; align-items: center; gap: 8px; list-style: none; margin: 0; padding: 0; }
+        .lh-nav-links a {
+            color: rgba(255,255,255,0.8); font-size: 0.88rem; font-weight: 600;
+            padding: 8px 16px; border-radius: 10px; text-decoration: none;
+            transition: all 0.25s;
         }
-        .job-listing:hover {
-            transform: translateX(4px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--primary);
-            text-decoration: none;
-        }
-        .job-logo {
-            width: 54px;
-            height: 54px;
-            border-radius: var(--radius-sm);
-            object-fit: contain;
-            border: 1px solid var(--border-light);
-            padding: 4px;
-            background: var(--bg);
-            flex-shrink: 0;
-        }
-        .job-logo-placeholder {
-            width: 54px;
-            height: 54px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-        }
-        .job-info { flex: 1; min-width: 0; }
-        .job-info h5 {
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 3px;
-            font-size: 1rem;
-        }
-        .job-info .company-name {
-            color: var(--primary);
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        .job-meta-row {
-            display: flex;
-            gap: 14px;
-            flex-wrap: wrap;
-            margin-top: 6px;
-        }
-        .job-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-muted);
-            font-size: 0.82rem;
-        }
-        .job-meta-item i { color: var(--text-light); }
-        .job-tags {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin-top: 6px;
-        }
-        .job-tag {
-            background: var(--bg-hover);
-            color: var(--text-muted);
-            padding: 3px 9px;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 600;
-        }
-        .job-salary {
-            font-weight: 700;
-            color: var(--success);
-            font-size: 0.9rem;
-            white-space: nowrap;
-        }
-        .job-apply-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 9px 20px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.82rem;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .job-apply-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-            color: white;
-            text-decoration: none;
-        }
+        .lh-nav-links a:hover { color: #fff; background: rgba(255,255,255,0.12); }
+        .lh-nav.scrolled .lh-nav-links a { color: var(--lh-text-muted); }
+        .lh-nav.scrolled .lh-nav-links a:hover { color: var(--lh-primary); background: rgba(59,130,246,0.08); }
 
-        /* Company Cards */
-        .company-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            padding: 28px;
-            text-align: center;
-            border: 1px solid var(--border-light);
-            transition: var(--transition);
-            text-decoration: none;
-            display: block;
+        .lh-nav-btns { display: flex; align-items: center; gap: 10px; }
+        .lh-btn-getstarted {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: #1e293b; font-weight: 800; font-size: 0.88rem;
+            padding: 10px 24px; border-radius: 12px; text-decoration: none;
+            border: none; transition: all 0.3s;
+            box-shadow: 0 4px 14px rgba(217,119,6,0.35);
         }
-        .company-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-            text-decoration: none;
-        }
-        .company-card-logo {
-            width: 72px;
-            height: 72px;
-            border-radius: var(--radius-md);
-            object-fit: contain;
-            margin: 0 auto 12px;
-            border: 2px solid var(--border-light);
-            padding: 6px;
-            background: var(--bg);
-        }
-        .company-card h5 {
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 4px;
-            font-size: 1rem;
-        }
-        .company-card .industry {
-            color: var(--text-muted);
-            font-size: 0.82rem;
-            margin-bottom: 10px;
-        }
-        .company-card .job-count-badge {
-            background: rgba(79,70,229,0.08);
-            color: var(--primary);
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        /* Stats */
-        .stats-section {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            padding: 60px 0;
-        }
-        .stat-box {
-            text-align: center;
-            color: white;
-        }
-        .stat-box h2 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 4px;
-        }
-        .stat-box p {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .stat-box i {
-            font-size: 2.2rem;
-            color: rgba(255,255,255,0.25);
-            margin-bottom: 12px;
-        }
-
-        /* Newsletter */
-        .newsletter-section {
-            background: var(--bg-card);
-            border-radius: var(--radius-xl);
-            padding: 44px;
-            box-shadow: var(--shadow-sm);
-            text-align: center;
-            margin: -44px auto 0;
-            position: relative;
-            z-index: 10;
-            max-width: 760px;
-            border: 1px solid var(--border-light);
-        }
-        .newsletter-form {
-            display: flex;
-            gap: 8px;
-            max-width: 480px;
-            margin: 22px auto 0;
-        }
-        .newsletter-form input {
-            flex: 1;
-            border: 2px solid var(--border);
-            padding: 12px 18px;
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.3s;
-            font-family: var(--font);
-        }
-        .newsletter-form input:focus {
-            border-color: var(--primary);
-        }
-        .newsletter-form button {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            border-radius: var(--radius-sm);
-            font-weight: 700;
-            font-size: 0.88rem;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-            font-family: var(--font);
-        }
-        .newsletter-form button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3);
-        }
-
-        /* Footer */
-        .site-footer {
-            background: var(--dark);
-            color: #94a3b8;
-            padding: 60px 0 28px;
-            margin-top: 70px;
-        }
-        .footer-brand {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 12px;
-        }
-        .footer-brand span { color: var(--primary); }
-        .footer-desc {
-            color: #94a3b8;
-            font-size: 0.85rem;
-            line-height: 1.7;
-            max-width: 280px;
-        }
-        .footer-title {
-            color: white;
-            font-weight: 700;
-            font-size: 0.95rem;
-            margin-bottom: 18px;
-        }
-        .footer-links {
-            list-style: none;
-            padding: 0;
-        }
-        .footer-links li { margin-bottom: 8px; }
-        .footer-links a {
-            color: #94a3b8;
-            font-size: 0.85rem;
-            transition: var(--transition);
-            text-decoration: none;
-        }
-        .footer-links a:hover {
-            color: var(--primary);
-            padding-left: 4px;
-        }
-        .footer-social {
-            display: flex;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .footer-social a {
-            width: 38px;
-            height: 38px;
-            border-radius: var(--radius-sm);
-            background: rgba(255,255,255,0.06);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-            transition: var(--transition);
-            text-decoration: none;
-        }
-        .footer-social a:hover {
-            background: var(--primary);
-            color: white;
+        .lh-btn-getstarted:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(217,119,6,0.5);
+            color: #1e293b; text-decoration: none;
         }
-        .footer-bottom {
-            border-top: 1px solid rgba(255,255,255,0.06);
-            margin-top: 36px;
-            padding-top: 22px;
-            text-align: center;
+
+        .lh-mobile-toggle {
+            display: none; background: none; border: none; color: #fff;
+            font-size: 1.4rem; cursor: pointer; padding: 8px;
         }
-        .footer-bottom p {
-            color: #64748b;
-            font-size: 0.82rem;
+        .lh-nav.scrolled .lh-mobile-toggle { color: var(--lh-text); }
+
+        /* ═══ HERO ═══ */
+        .lh-hero {
+            position: relative; min-height: 100vh;
+            background: var(--lh-gradient-hero);
+            display: flex; align-items: center;
+            overflow: hidden; padding: 120px 0 80px;
+        }
+        .lh-hero::before {
+            content: ''; position: absolute; top: -40%; right: -15%;
+            width: 800px; height: 800px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(251,191,36,0.15) 0%, transparent 70%);
+            animation: heroPulse 8s ease-in-out infinite;
+        }
+        .lh-hero::after {
+            content: ''; position: absolute; bottom: -30%; left: -10%;
+            width: 600px; height: 600px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(6,182,212,0.2) 0%, transparent 70%);
+            animation: heroPulse 10s ease-in-out infinite reverse;
+        }
+        @keyframes heroPulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .lh-hero-content { position: relative; z-index: 3; }
+        .lh-hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px); border-radius: 999px;
+            padding: 8px 20px; margin-bottom: 28px;
+            color: rgba(255,255,255,0.9); font-size: 0.82rem; font-weight: 700;
+            letter-spacing: 0.02em;
+            animation: fadeInUp 0.8s ease both;
+        }
+        .lh-hero-badge i { color: #fbbf24; }
+        .lh-hero-badge .pulse-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #34d399;
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.4); }
+        }
+
+        .lh-hero h1 {
+            font-size: clamp(2.5rem, 5.5vw, 4rem);
+            font-weight: 900; color: #fff; line-height: 1.08;
+            letter-spacing: -2px; margin-bottom: 22px;
+            animation: fadeInUp 0.8s ease 0.15s both;
+        }
+        .lh-hero h1 .highlight {
+            background: linear-gradient(90deg, #fde68a, #fbbf24, #d97706);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .lh-hero-desc {
+            font-size: 1.15rem; color: rgba(255,255,255,0.8);
+            max-width: 520px; line-height: 1.7; margin-bottom: 36px;
+            animation: fadeInUp 0.8s ease 0.3s both;
+        }
+
+        .lh-hero-actions {
+            display: flex; gap: 14px; flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease 0.45s both;
+        }
+        .lh-hero-btn-primary {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: #1e293b; font-weight: 800; font-size: 1rem;
+            padding: 16px 36px; border-radius: 16px; text-decoration: none;
+            border: none; transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(217,119,6,0.4);
+        }
+        .lh-hero-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 40px rgba(217,119,6,0.55);
+            color: #1e293b; text-decoration: none;
+        }
+        .lh-hero-btn-secondary {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25);
+            color: #fff; font-weight: 700; font-size: 1rem;
+            padding: 16px 36px; border-radius: 16px; text-decoration: none;
+            backdrop-filter: blur(4px); transition: all 0.3s;
+        }
+        .lh-hero-btn-secondary:hover {
+            background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4);
+            color: #fff; text-decoration: none; transform: translateY(-2px);
+        }
+
+        .lh-hero-stats {
+            display: flex; gap: 40px; margin-top: 50px;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+        .lh-hero-stat h3 {
+            font-size: 2rem; font-weight: 900; color: #fff; margin-bottom: 2px;
+        }
+        .lh-hero-stat p {
+            color: rgba(255,255,255,0.6); font-size: 0.85rem; font-weight: 600;
+        }
+
+        /* Hero floating visuals */
+        .lh-hero-visuals {
+            position: relative; z-index: 2; height: 500px;
+            animation: fadeInRight 1s ease 0.3s both;
+        }
+        .lh-float-card {
+            position: absolute; background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px); border-radius: 18px;
+            padding: 16px 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 14px;
+            animation: floatCard 6s ease-in-out infinite;
+        }
+        .lh-float-card:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+        .lh-float-card:nth-child(2) { top: 35%; right: 0; animation-delay: -2s; }
+        .lh-float-card:nth-child(3) { bottom: 15%; left: 10%; animation-delay: -4s; }
+        .lh-float-card:nth-child(4) { top: 60%; left: -5%; animation-delay: -1s; }
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-14px); }
+        }
+        .lh-fc-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
+        }
+        .lh-fc-text h6 { margin: 0; font-weight: 700; font-size: 0.88rem; color: #1e293b; }
+        .lh-fc-text small { color: #64748b; font-size: 0.78rem; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        /* ═══ TRUSTED BY ═══ */
+        .lh-trusted {
+            padding: 50px 0; background: var(--lh-bg-alt);
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .lh-trusted p {
+            text-align: center; color: #94a3b8; font-size: 0.82rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+        .lh-trusted-logos {
+            display: flex; align-items: center; justify-content: center;
+            gap: 48px; flex-wrap: wrap; opacity: 0.5;
+        }
+        .lh-trusted-logos i { font-size: 2.2rem; color: #94a3b8; }
+
+        /* ═══ FEATURES ═══ */
+        .lh-features { padding: 100px 0; }
+        .lh-section-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.15);
+            color: var(--lh-primary); font-size: 0.78rem; font-weight: 700;
+            padding: 6px 16px; border-radius: 999px; margin-bottom: 16px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .lh-section-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            font-weight: 900; color: var(--lh-text);
+            letter-spacing: -1px; margin-bottom: 14px;
+        }
+        .lh-section-desc {
+            color: var(--lh-text-muted); font-size: 1.05rem;
+            max-width: 560px; line-height: 1.7;
+        }
+        .lh-section-center { text-align: center; margin-bottom: 56px; }
+        .lh-section-center .lh-section-desc { margin: 0 auto; }
+
+        .lh-feature-card {
+            background: #fff; border: 1px solid #f1f5f9;
+            border-radius: 20px; padding: 36px 28px;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
+        }
+        .lh-feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: var(--lh-gradient); opacity: 0;
+            transition: opacity 0.35s;
+        }
+        .lh-feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 60px rgba(59,130,246,0.12);
+            border-color: transparent;
+        }
+        .lh-feature-card:hover::before { opacity: 1; }
+        .lh-feature-icon {
+            width: 64px; height: 64px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin-bottom: 20px;
+            transition: transform 0.35s;
+        }
+        .lh-feature-card:hover .lh-feature-icon { transform: scale(1.08) rotate(-3deg); }
+        .lh-feature-card h4 {
+            font-size: 1.15rem; font-weight: 800; margin-bottom: 10px;
+            color: var(--lh-text);
+        }
+        .lh-feature-card p {
+            color: var(--lh-text-muted); font-size: 0.9rem; line-height: 1.7;
             margin: 0;
         }
 
-        /* Responsive */
-        @media (max-width: 991px) {
-            .hero-content { padding: 80px 0 60px; }
-            .hero-title { font-size: 2.2rem; }
-            .hero-stats { gap: 24px; }
-            .hero-stat h3 { font-size: 1.5rem; }
+        /* ═══ HOW IT WORKS ═══ */
+        .lh-how { padding: 100px 0; background: var(--lh-bg-alt); }
+        .lh-steps {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+            position: relative;
         }
-        @media (max-width: 768px) {
-            .hero-title { font-size: 2rem; letter-spacing: -1px; }
-            .hero-search { flex-direction: column; }
-            .hero-search .search-select { border-left: none; border-top: 1px solid #e5e7eb; }
-            .hero-stats { gap: 16px; flex-wrap: wrap; }
-            .hero-stat h3 { font-size: 1.4rem; }
-            .newsletter-section { padding: 28px 20px; margin: -28px 16px 0; }
-            .newsletter-form { flex-direction: column; }
-            .job-listing { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .job-apply-btn { width: 100%; justify-content: center; }
+        .lh-steps::before {
+            content: ''; position: absolute; top: 48px; left: 12.5%; right: 12.5%;
+            height: 3px; background: linear-gradient(90deg, #e0e7ff, #c7d2fe, #93c5fd, #60a5fa);
+            border-radius: 2px; z-index: 0;
+        }
+        .lh-step {
+            text-align: center; position: relative; z-index: 1;
+        }
+        .lh-step-num {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: #fff; font-size: 1.4rem; font-weight: 900;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(59,130,246,0.35);
+            border: 4px solid #fff;
+        }
+        .lh-step h4 { font-size: 1.05rem; font-weight: 800; margin-bottom: 8px; color: var(--lh-text); }
+        .lh-step p { color: var(--lh-text-muted); font-size: 0.88rem; line-height: 1.6; }
+
+        /* ═══ STATS ═══ */
+        .lh-stats {
+            padding: 80px 0;
+            background: var(--lh-gradient-hero);
+            position: relative; overflow: hidden;
+        }
+        .lh-stats::before {
+            content: ''; position: absolute; top: -50%; right: -10%;
+            width: 500px; height: 500px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        }
+        .lh-stat-item { text-align: center; position: relative; z-index: 2; }
+        .lh-stat-item .icon {
+            font-size: 2rem; color: rgba(255,255,255,0.25); margin-bottom: 14px;
+        }
+        .lh-stat-item h2 {
+            font-size: 2.8rem; font-weight: 900; color: #fff;
+            margin-bottom: 4px; letter-spacing: -1px;
+        }
+        .lh-stat-item p { color: rgba(255,255,255,0.7); font-size: 0.9rem; font-weight: 600; }
+
+        /* ═══ TESTIMONIALS ═══ */
+        .lh-testimonials { padding: 100px 0; }
+        .lh-testimonial-card {
+            background: #fff; border: 1px solid #f1f5f9;
+            border-radius: 20px; padding: 32px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .lh-testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+        }
+        .lh-testimonial-card .stars { color: #fbbf24; font-size: 0.9rem; margin-bottom: 16px; }
+        .lh-testimonial-card .quote {
+            color: var(--lh-text); font-size: 0.95rem; line-height: 1.7;
+            margin-bottom: 20px; font-style: italic;
+        }
+        .lh-testimonial-author {
+            display: flex; align-items: center; gap: 14px;
+        }
+        .lh-ta-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1rem; color: #fff; flex-shrink: 0;
+        }
+        .lh-ta-info h6 { margin: 0; font-weight: 700; font-size: 0.92rem; color: var(--lh-text); }
+        .lh-ta-info small { color: var(--lh-text-muted); font-size: 0.8rem; }
+
+        /* ═══ CTA ═══ */
+        .lh-cta {
+            padding: 100px 0;
+            background: var(--lh-bg-alt);
+        }
+        .lh-cta-card {
+            background: var(--lh-gradient-hero);
+            border-radius: 28px; padding: 70px 50px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .lh-cta-card::before {
+            content: ''; position: absolute; top: -40%; right: -15%;
+            width: 500px; height: 500px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(251,191,36,0.12) 0%, transparent 70%);
+        }
+        .lh-cta-card h2 {
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            font-weight: 900; color: #fff; margin-bottom: 16px;
+            letter-spacing: -1px; position: relative; z-index: 2;
+        }
+        .lh-cta-card p {
+            color: rgba(255,255,255,0.8); font-size: 1.1rem;
+            max-width: 520px; margin: 0 auto 36px;
+            position: relative; z-index: 2;
+        }
+        .lh-cta-btns {
+            display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+            position: relative; z-index: 2;
+        }
+
+        /* ═══ FOOTER ═══ */
+        .lh-footer {
+            background: #0f172a; color: #94a3b8; padding: 60px 0 0;
+        }
+        .lh-footer-brand {
+            font-family: 'Sora', sans-serif; font-weight: 800;
+            font-size: 1.4rem; color: #fff; margin-bottom: 12px;
+        }
+        .lh-footer-brand span { color: #fbbf24; }
+        .lh-footer-desc { font-size: 0.88rem; line-height: 1.7; max-width: 300px; }
+        .lh-footer h5 {
+            color: #fff; font-weight: 700; font-size: 0.95rem;
+            margin-bottom: 18px;
+        }
+        .lh-footer-links { list-style: none; padding: 0; margin: 0; }
+        .lh-footer-links li { margin-bottom: 10px; }
+        .lh-footer-links a {
+            color: #94a3b8; font-size: 0.88rem; text-decoration: none;
+            transition: all 0.25s;
+        }
+        .lh-footer-links a:hover { color: #fbbf24; padding-left: 4px; }
+        .lh-footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            margin-top: 40px; padding: 22px 0; text-align: center;
+        }
+        .lh-footer-bottom p { color: #475569; font-size: 0.82rem; margin: 0; }
+        .lh-footer-social { display: flex; gap: 10px; margin-top: 18px; }
+        .lh-footer-social a {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            display: flex; align-items: center; justify-content: center;
+            color: #94a3b8; transition: all 0.25s; text-decoration: none;
+        }
+        .lh-footer-social a:hover {
+            background: var(--lh-primary); color: #fff; transform: translateY(-2px);
+        }
+
+        /* ═══ RESPONSIVE ═══ */
+        @media (max-width: 991px) {
+            .lh-nav-links { display: none; }
+            .lh-mobile-toggle { display: block; }
+            .lh-hero { padding: 100px 0 60px; min-height: auto; }
+            .lh-hero-visuals { display: none; }
+            .lh-hero h1 { font-size: 2.5rem; }
+            .lh-hero-stats { gap: 24px; }
+            .lh-hero-stat h3 { font-size: 1.6rem; }
+            .lh-steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+            .lh-steps::before { display: none; }
+            .lh-trusted-logos { gap: 28px; }
+        }
+        @media (max-width: 767px) {
+            .lh-hero { padding: 90px 0 50px; }
+            .lh-hero h1 { font-size: 2rem; letter-spacing: -1px; }
+            .lh-hero-desc { font-size: 1rem; }
+            .lh-hero-actions { flex-direction: column; }
+            .lh-hero-btn-primary, .lh-hero-btn-secondary { width: 100%; justify-content: center; }
+            .lh-hero-stats { gap: 16px; flex-wrap: wrap; }
+            .lh-hero-stat h3 { font-size: 1.3rem; }
+            .lh-hero-stat p { font-size: 0.78rem; }
+            .lh-features, .lh-how, .lh-testimonials, .lh-cta { padding: 60px 0; }
+            .lh-steps { grid-template-columns: 1fr; }
+            .lh-cta-card { padding: 40px 24px; }
+            .lh-footer { padding: 40px 0 0; }
         }
         @media (max-width: 575px) {
-            .hero-title { font-size: 1.7rem; }
-            .hero-subtitle { font-size: 0.95rem; }
-            .hero-content { padding: 70px 0 50px; }
+            .lh-hero h1 { font-size: 1.7rem; }
+            .lh-section-title { font-size: 1.5rem; }
         }
+
+        /* ═══ MOBILE MENU ═══ */
+        .lh-mobile-menu {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15,23,42,0.95); backdrop-filter: blur(10px);
+            z-index: 2000; padding: 80px 24px 40px;
+            flex-direction: column; gap: 8px;
+        }
+        .lh-mobile-menu.active { display: flex; }
+        .lh-mobile-menu a {
+            color: #fff; font-size: 1.1rem; font-weight: 700;
+            padding: 16px 20px; border-radius: 14px;
+            text-decoration: none; transition: all 0.25s;
+        }
+        .lh-mobile-menu a:hover { background: rgba(255,255,255,0.1); }
+        .lh-mobile-close {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; color: #fff;
+            font-size: 1.5rem; cursor: pointer;
+        }
+
+        /* ═══ SCROLL ANIMATIONS ═══ */
+        .reveal {
+            opacity: 0; transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .reveal.visible { opacity: 1; transform: none; }
     </style>
 </head>
 <body>
 
-<!-- Public Navigation -->
-<nav class="navbar navbar-expand-lg glass-nav fixed-top">
-    <div class="container-fluid px-4 px-lg-5 custom-nav-container">
-        <a class="navbar-brand d-flex align-items-center" href="index.php">
-            <div class="brand-icon mr-2"><i class="fas fa-layer-group"></i></div>
-            <span class="brand-text">Nova<span class="brand-highlight">Hire</span></span>
+<!-- ═══ NAVBAR ═══ -->
+<nav class="lh-nav" id="mainNav">
+    <div class="lh-nav-inner">
+        <a href="index.php" class="lh-logo">
+            <div class="lh-logo-icon"><i class="fas fa-layer-group"></i></div>
+            Nova<span>Hire</span>
         </a>
-
-        <button class="navbar-toggler custom-toggler" type="button" data-toggle="collapse" data-target="#publicNavbar">
-            <span class="fas fa-bars fa-lg" style="color: var(--text);"></span>
-        </button>
-
-        <div class="collapse navbar-collapse justify-content-between" id="publicNavbar">
-            <ul class="navbar-nav mx-auto center-menu">
-                <li class="nav-item">
-                    <a class="nav-link active" href="index.php"><i class="fas fa-home mr-1"></i>Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="seeker/browse_jobs.php"><i class="fas fa-briefcase mr-1"></i>Jobs</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="seeker/available_companies.php"><i class="fas fa-building mr-1"></i>Companies</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="seeker/grooming.php"><i class="fas fa-user-graduate mr-1"></i>Skill Grooming</a>
-                </li>
-            </ul>
-
-            <ul class="navbar-nav align-items-center right-menu">
-                <li class="nav-item mr-2">
-                    <a class="nav-link nav-icon-btn d-flex align-items-center justify-content-center" href="#" id="themeToggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Switch Theme">
-                        <i class="fas fa-swatchbook"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right theme-dropdown" aria-labelledby="themeToggle">
-                        <h6 class="dropdown-header text-uppercase font-weight-bold pl-3 mb-2" style="font-size: 0.65rem; color: var(--text-light); letter-spacing: 0.5px;">Theme</h6>
-                        <a class="dropdown-item" href="#" onclick="setTheme('default'); return false;"><span class="dot mr-2" style="background: #4f46e5;"></span>Default</a>
-                        <a class="dropdown-item" href="#" onclick="setTheme('ocean'); return false;"><span class="dot mr-2" style="background: #0891b2;"></span>Ocean</a>
-                        <a class="dropdown-item" href="#" onclick="setTheme('sunset'); return false;"><span class="dot mr-2" style="background: #ea580c;"></span>Sunset</a>
-                        <a class="dropdown-item" href="#" onclick="setTheme('dark'); return false;"><span class="dot mr-2" style="background: #1e293b;"></span>Dark</a>
-                    </div>
-                </li>
-
-                <?php if ($is_seeker_logged_in): ?>
-                    <li class="nav-item mr-2">
-                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="seeker/seeker_dashboard.php" style="white-space: nowrap;">
-                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link user-pill dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <div class="user-avatar-sm"><i class="fas fa-user"></i></div>
-                            <span class="user-name-text"><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right user-menu-dropdown" aria-labelledby="userDropdown">
-                            <a class="dropdown-item" href="seeker/profile.php"><i class="fas fa-user-circle mr-2" style="color: var(--text-light);"></i> My Profile</a>
-                            <a class="dropdown-item" href="seeker/my_application.php"><i class="fas fa-file-alt mr-2" style="color: var(--text-light);"></i> Applications</a>
-                            <a class="dropdown-item" href="seeker/saved_jobs.php"><i class="fas fa-bookmark mr-2" style="color: var(--text-light);"></i> Saved Jobs</a>
-                            <div class="dropdown-divider" style="border-color: var(--border-light);"></div>
-                            <a class="dropdown-item" href="auth/logout.php" style="color: var(--danger);"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
-                        </div>
-                    </li>
-                <?php elseif ($is_company_logged_in): ?>
-                    <li class="nav-item mr-2">
-                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="company/index.php" style="white-space: nowrap;">
-                            <i class="fas fa-tachometer-alt mr-1"></i>Company Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 font-weight-bold" href="auth/logout.php" style="white-space: nowrap;">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Logout
-                        </a>
-                    </li>
-                <?php else: ?>
-                    <li class="nav-item mr-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold" href="auth/login.php">
-                            <i class="fas fa-sign-in-alt mr-1"></i>Login
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold" href="auth/registration.php">
-                            <i class="fas fa-user-plus mr-1"></i>Register
-                        </a>
-                    </li>
-                <?php endif; ?>
-            </ul>
+        <ul class="lh-nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="seeker/browse_jobs.php">Browse Jobs</a></li>
+            <li><a href="blog/">Blog</a></li>
+        </ul>
+        <div class="lh-nav-btns">
+            <a href="auth/login.php" class="lh-btn-getstarted">
+                <i class="fas fa-rocket mr-1"></i> Get Started
+            </a>
         </div>
+        <button class="lh-mobile-toggle" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
     </div>
 </nav>
 
-<!-- Hero -->
-<div class="hero-wrapper">
-    <div class="container hero-content">
+<!-- Mobile Menu -->
+<div class="lh-mobile-menu" id="mobileMenu">
+    <button class="lh-mobile-close" onclick="toggleMobileMenu()"><i class="fas fa-times"></i></button>
+    <a href="#features" onclick="toggleMobileMenu()">Features</a>
+    <a href="#how-it-works" onclick="toggleMobileMenu()">How It Works</a>
+    <a href="seeker/browse_jobs.php">Browse Jobs</a>
+    <a href="blog/">Blog</a>
+    <a href="auth/login.php" style="background: rgba(251,191,36,0.15); color: #fbbf24; margin-top: 16px;">
+        <i class="fas fa-rocket mr-2"></i> Get Started
+    </a>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<section class="lh-hero">
+    <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="hero-title">Find Your <span style="color: #fbbf24;">Dream Job</span> Today</h1>
-                <p class="hero-subtitle">Discover thousands of job opportunities from top companies. Build your profile and get hired faster.</p>
-                
-                <form class="hero-search" action="seeker/browse_jobs.php" method="GET">
-                    <input type="text" name="location" class="search-input" placeholder="Job title, keyword, or company...">
-                    <select name="category" class="search-select">
-                        <option value="all">All Categories</option>
-                        <option value="PHP">PHP Developer</option>
-                        <option value="Java">Java Developer</option>
-                        <option value="Python">Python Developer</option>
-                        <option value="Frontend">Frontend Dev</option>
-                        <option value="JavaScript">JavaScript Dev</option>
-                        <option value="UI/UX">UI/UX Design</option>
-                        <option value="DataScience">Data Science</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Finance">Finance</option>
-                        <option value="Healthcare">Healthcare</option>
-                        <option value="Education">Education</option>
-                        <option value="Engineering">Engineering</option>
-                        <option value="Sales">Sales</option>
-                        <option value="HR">Human Resources</option>
-                        <option value="Legal">Legal</option>
-                        <option value="Media">Media & Communications</option>
-                        <option value="Logistics">Logistics</option>
-                        <option value="Consulting">Consulting</option>
-                        <option value="Retail">Retail</option>
-                    </select>
-                    <button type="submit" class="search-btn"><i class="fas fa-search mr-2"></i>Search</button>
-                </form>
-                
-                <div class="hero-stats">
-                    <div class="hero-stat">
+            <div class="col-lg-6 lh-hero-content">
+                <div class="lh-hero-badge">
+                    <span class="pulse-dot"></span>
+                    AI-Powered Career Platform
+                </div>
+                <h1>
+                    Find Your<br>
+                    <span class="highlight">Dream Job</span><br>
+                    Today
+                </h1>
+                <p class="lh-hero-desc">
+                    Connect with top companies, showcase your skills, and land your perfect role.
+                    Our AI-powered platform matches you with the best opportunities.
+                </p>
+                <div class="lh-hero-actions">
+                    <a href="auth/login.php" class="lh-hero-btn-primary">
+                        <i class="fas fa-rocket"></i> Get Started Free
+                    </a>
+                    <a href="seeker/browse_jobs.php" class="lh-hero-btn-secondary">
+                        <i class="fas fa-search"></i> Browse Jobs
+                    </a>
+                </div>
+                <div class="lh-hero-stats">
+                    <div class="lh-hero-stat">
                         <h3><?php echo number_format($total_jobs); ?>+</h3>
-                        <p>Live Jobs</p>
+                        <p>Active Jobs</p>
                     </div>
-                    <div class="hero-stat">
+                    <div class="lh-hero-stat">
                         <h3><?php echo number_format($total_companies); ?>+</h3>
                         <p>Companies</p>
                     </div>
-                    <div class="hero-stat">
+                    <div class="lh-hero-stat">
                         <h3><?php echo number_format($total_users); ?>+</h3>
                         <p>Job Seekers</p>
                     </div>
                 </div>
             </div>
-            
             <div class="col-lg-6 d-none d-lg-block">
-                <div class="hero-image-area text-center">
-                    <div class="hero-floating-card" style="max-width: 300px; margin: 0 auto 16px;">
-                        <div class="fc-icon" style="background: #dbeafe; color: #2563eb;"><i class="fas fa-check-circle"></i></div>
-                        <div>
-                            <h6 style="margin:0; font-weight:700; font-size:0.88rem; color:var(--text);">Skill Verified</h6>
-                            <small style="color:var(--text-muted); font-size:0.78rem;">PHP Assessment Passed</small>
+                <div class="lh-hero-visuals">
+                    <div class="lh-float-card">
+                        <div class="lh-fc-icon" style="background: #dbeafe; color: #2563eb;"><i class="fas fa-check-circle"></i></div>
+                        <div class="lh-fc-text">
+                            <h6>Skill Verified</h6>
+                            <small>PHP Assessment Passed</small>
                         </div>
                     </div>
-                    <div class="hero-floating-card" style="max-width: 300px; margin: 0 auto 16px; animation-delay: -2s;">
-                        <div class="fc-icon" style="background: #dcfce7; color: #16a34a;"><i class="fas fa-paper-plane"></i></div>
-                        <div>
-                            <h6 style="margin:0; font-weight:700; font-size:0.88rem; color:var(--text);">Application Sent</h6>
-                            <small style="color:var(--text-muted); font-size:0.78rem;">Senior Developer at TechCo</small>
+                    <div class="lh-float-card">
+                        <div class="lh-fc-icon" style="background: #dcfce7; color: #16a34a;"><i class="fas fa-paper-plane"></i></div>
+                        <div class="lh-fc-text">
+                            <h6>Application Sent</h6>
+                            <small>Senior Developer at TechCo</small>
                         </div>
                     </div>
-                    <div class="hero-floating-card" style="max-width: 300px; margin: 0 auto; animation-delay: -4s;">
-                        <div class="fc-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-bell"></i></div>
-                        <div>
-                            <h6 style="margin:0; font-weight:700; font-size:0.88rem; color:var(--text);">Interview Scheduled</h6>
-                            <small style="color:var(--text-muted); font-size:0.78rem;">Tomorrow at 10:00 AM</small>
+                    <div class="lh-float-card">
+                        <div class="lh-fc-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-bell"></i></div>
+                        <div class="lh-fc-text">
+                            <h6>Interview Scheduled</h6>
+                            <small>Tomorrow at 10:00 AM</small>
+                        </div>
+                    </div>
+                    <div class="lh-float-card">
+                        <div class="lh-fc-icon" style="background: #f3e8ff; color: #0ea5e9;"><i class="fas fa-robot"></i></div>
+                        <div class="lh-fc-text">
+                            <h6>AI Career Coach</h6>
+                            <small>Personalized guidance ready</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</section>
+
+<!-- ═══ TRUSTED BY ═══ -->
+<div class="lh-trusted">
+    <div class="container">
+        <p>Trusted by professionals from leading companies</p>
+        <div class="lh-trusted-logos">
+            <i class="fab fa-google"></i>
+            <i class="fab fa-microsoft"></i>
+            <i class="fab fa-amazon"></i>
+            <i class="fab fa-meta"></i>
+            <i class="fab fa-apple"></i>
+            <i class="fab fa-spotify"></i>
+        </div>
+    </div>
 </div>
 
-<div class="container" style="margin-top: 70px;">
-
-    <!-- Categories -->
-    <div class="section-header">
-        <h2>Browse by Category</h2>
-        <p>Explore job opportunities across various technology fields</p>
-    </div>
-    
-    <?php
-    $cat_styles = [
-        'PHP' => ['icon' => 'fab fa-php', 'bg' => '#eef2ff', 'color' => '#4f46e5'],
-        'Java' => ['icon' => 'fab fa-java', 'bg' => '#fef2f2', 'color' => '#dc2626'],
-        'Python' => ['icon' => 'fab fa-python', 'bg' => '#eff6ff', 'color' => '#2563eb'],
-        'Frontend' => ['icon' => 'fab fa-html5', 'bg' => '#fff7ed', 'color' => '#ea580c'],
-        'JavaScript' => ['icon' => 'fab fa-js-square', 'bg' => '#fefce8', 'color' => '#ca8a04'],
-        'UI/UX' => ['icon' => 'fas fa-palette', 'bg' => '#fdf2f8', 'color' => '#db2777'],
-        'DataScience' => ['icon' => 'fas fa-chart-line', 'bg' => '#f0fdf4', 'color' => '#16a34a'],
-        'Marketing' => ['icon' => 'fas fa-bullhorn', 'bg' => '#fff1f2', 'color' => '#e11d48'],
-        'DB' => ['icon' => 'fas fa-database', 'bg' => '#f0f9ff', 'color' => '#0284c7'],
-        'Finance' => ['icon' => 'fas fa-dollar-sign', 'bg' => '#ecfdf5', 'color' => '#059669'],
-        'Healthcare' => ['icon' => 'fas fa-heartbeat', 'bg' => '#fef2f2', 'color' => '#dc2626'],
-        'Education' => ['icon' => 'fas fa-graduation-cap', 'bg' => '#eff6ff', 'color' => '#2563eb'],
-        'Engineering' => ['icon' => 'fas fa-cogs', 'bg' => '#f5f3ff', 'color' => '#7c3aed'],
-        'Sales' => ['icon' => 'fas fa-handshake', 'bg' => '#fff7ed', 'color' => '#ea580c'],
-        'HR' => ['icon' => 'fas fa-users', 'bg' => '#fdf2f8', 'color' => '#db2777'],
-        'Legal' => ['icon' => 'fas fa-gavel', 'bg' => '#fefce8', 'color' => '#ca8a04'],
-        'Media' => ['icon' => 'fas fa-tv', 'bg' => '#f0fdf4', 'color' => '#16a34a'],
-        'Logistics' => ['icon' => 'fas fa-truck', 'bg' => '#fff1f2', 'color' => '#e11d48'],
-        'Consulting' => ['icon' => 'fas fa-lightbulb', 'bg' => '#ecfdf5', 'color' => '#059669'],
-        'Retail' => ['icon' => 'fas fa-shopping-cart', 'bg' => '#f0f9ff', 'color' => '#0284c7'],
-    ];
-    ?>
-    <div class="row mb-5">
-        <?php while ($cat = mysqli_fetch_assoc($categories_q)): ?>
-            <?php 
-            $cat_name = $cat['job_category'];
-            $style = isset($cat_styles[$cat_name]) ? $cat_styles[$cat_name] : ['icon' => 'fas fa-code', 'bg' => '#f1f5f9', 'color' => '#64748b'];
-            ?>
-            <div class="col-lg-3 col-md-4 col-6 mb-4">
-                <a href="seeker/browse_jobs.php?category=<?php echo urlencode($cat_name); ?>" class="category-card">
-                    <div class="category-icon" style="background: <?php echo $style['bg']; ?>; color: <?php echo $style['color']; ?>;">
-                        <i class="<?php echo $style['icon']; ?>"></i>
+<!-- ═══ FEATURES ═══ -->
+<section class="lh-features" id="features">
+    <div class="container">
+        <div class="lh-section-center">
+            <span class="lh-section-badge"><i class="fas fa-star"></i> Features</span>
+            <h2 class="lh-section-title">Everything You Need to Succeed</h2>
+            <p class="lh-section-desc">From job search to career growth, NovaHire provides all the tools you need in one platform.</p>
+        </div>
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #eef2ff; color: #1a56db;">
+                        <i class="fas fa-search"></i>
                     </div>
-                    <h5><?php echo htmlspecialchars($cat_name); ?></h5>
-                    <span class="count"><?php echo $cat['cnt']; ?> <?php echo $cat['cnt'] == 1 ? 'Job' : 'Jobs'; ?></span>
-                </a>
+                    <h4>Smart Job Search</h4>
+                    <p>AI-powered job matching that understands your skills, experience, and career goals to find the perfect fit.</p>
+                </div>
             </div>
-        <?php endwhile; ?>
-    </div>
-
-    <!-- Latest Jobs -->
-    <div class="section-header">
-        <h2>Latest Job Openings</h2>
-        <p>Don't miss out on the newest opportunities from top companies</p>
-    </div>
-    
-    <div class="mb-5">
-        <?php while ($job = mysqli_fetch_assoc($latest_jobs_q)): ?>
-            <a href="seeker/job_details.php?id=<?php echo $job['id']; ?>" class="job-listing">
-                <?php if (!empty($job['logo']) && file_exists('uploads/company_logos/' . $job['logo'])): ?>
-                    <img src="uploads/company_logos/<?php echo htmlspecialchars($job['logo']); ?>" class="job-logo" alt="<?php echo htmlspecialchars($job['company_name']); ?>">
-                <?php else: ?>
-                    <div class="job-logo-placeholder" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border-radius: var(--radius-sm);">
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #fef3c7; color: #d97706;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4>AI Career Coach</h4>
+                    <p>Get personalized career guidance, resume analysis, and interview preparation powered by artificial intelligence.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #dcfce7; color: #16a34a;">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h4>Skill Certifications</h4>
+                    <p>Earn verified skill certificates through assessments and grooming sessions to stand out from the crowd.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #fce7f3; color: #db2777;">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h4>Live Chat & Messaging</h4>
+                    <p>Connect directly with recruiters and companies through real-time messaging and video interviews.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #f3e8ff; color: #0ea5e9;">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h4>Mentor Marketplace</h4>
+                    <p>Book 1-on-1 sessions with industry mentors for career coaching, resume review, and mock interviews.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-feature-card">
+                    <div class="lh-feature-icon" style="background: #e0f2fe; color: #0284c7;">
                         <i class="fas fa-building"></i>
                     </div>
-                <?php endif; ?>
-                
-                <div class="job-info">
-                    <h5><?php echo htmlspecialchars($job['job_title']); ?></h5>
-                    <div class="company-name"><i class="fas fa-building mr-1"></i><?php echo htmlspecialchars($job['company_name']); ?></div>
-                    <div class="job-meta-row">
-                        <span class="job-meta-item"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($job['location']); ?></span>
-                        <span class="job-meta-item"><i class="fas fa-briefcase"></i> <?php echo $job['employment_type']; ?></span>
-                        <span class="job-meta-item"><i class="fas fa-clock"></i> <?php echo $job['experience_required']; ?></span>
-                        <span class="job-meta-item"><i class="fas fa-calendar"></i> <?php echo date('M d', strtotime($job['posted_date'])); ?></span>
-                    </div>
-                    <div class="job-tags">
-                        <?php 
-                        $skills = array_slice(explode(',', $job['skills_required']), 0, 4);
-                        foreach ($skills as $skill): ?>
-                            <span class="job-tag"><?php echo trim($skill); ?></span>
-                        <?php endforeach; ?>
-                    </div>
+                    <h4>Employer Dashboard</h4>
+                    <p>Post jobs, manage applicants, schedule interviews, and build your employer brand all in one place.</p>
                 </div>
-                
-                <?php if ($job['salary_range']): ?>
-                    <div class="job-salary"><?php echo htmlspecialchars($job['salary_range']); ?></div>
-                <?php endif; ?>
-                
-                <span class="job-apply-btn"><i class="fas fa-arrow-right"></i> View</span>
-            </a>
-        <?php endwhile; ?>
-        
-        <div class="text-center mt-4">
-            <a href="seeker/browse_jobs.php" class="btn btn-outline-primary rounded-pill px-5 py-3 font-weight-bold">
-                View All Jobs <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            </div>
         </div>
     </div>
+</section>
 
-    <!-- Featured Companies -->
-    <div class="section-header">
-        <h2>Featured Companies</h2>
-        <p>Top employers actively hiring on our platform</p>
-    </div>
-    
-    <div class="row mb-5">
-        <?php while ($company = mysqli_fetch_assoc($featured_companies_q)): ?>
-            <div class="col-lg-4 col-md-6 mb-4">
-                <a href="seeker/browse_jobs.php?company=<?php echo $company['id']; ?>" class="company-card">
-                    <?php if (!empty($company['logo']) && file_exists('uploads/company_logos/' . $company['logo'])): ?>
-                        <img src="uploads/company_logos/<?php echo htmlspecialchars($company['logo']); ?>" class="company-card-logo" alt="<?php echo htmlspecialchars($company['company_name']); ?>">
-                    <?php else: ?>
-                        <div class="company-card-logo" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
-                            <i class="fas fa-building"></i>
-                        </div>
-                    <?php endif; ?>
-                    <h5><?php echo htmlspecialchars($company['company_name']); ?></h5>
-                    <div class="industry"><?php echo htmlspecialchars($company['industry']); ?></div>
-                    <span class="job-count-badge"><i class="fas fa-briefcase mr-1"></i><?php echo $company['job_count']; ?> Open Positions</span>
-                </a>
-            </div>
-        <?php endwhile; ?>
-    </div>
-</div>
-
-<!-- Stats -->
-<div class="stats-section">
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="lh-how" id="how-it-works">
     <div class="container">
-        <div class="row">
-            <div class="col-md-3 col-6 mb-3">
-                <div class="stat-box">
-                    <i class="fas fa-briefcase d-block"></i>
+        <div class="lh-section-center">
+            <span class="lh-section-badge"><i class="fas fa-lightbulb"></i> How It Works</span>
+            <h2 class="lh-section-title">Your Journey to a New Career</h2>
+            <p class="lh-section-desc">Four simple steps to land your dream job with NovaHire.</p>
+        </div>
+        <div class="lh-steps">
+            <div class="lh-step reveal">
+                <div class="lh-step-num">1</div>
+                <h4>Create Your Profile</h4>
+                <p>Sign up for free and build your professional profile with skills, experience, and preferences.</p>
+            </div>
+            <div class="lh-step reveal">
+                <div class="lh-step-num">2</div>
+                <h4>Complete Assessments</h4>
+                <p>Take skill assessments and grooming sessions to earn certifications and improve your match score.</p>
+            </div>
+            <div class="lh-step reveal">
+                <div class="lh-step-num">3</div>
+                <h4>Apply & Connect</h4>
+                <p>Apply to jobs, chat with recruiters, and schedule interviews directly through the platform.</p>
+            </div>
+            <div class="lh-step reveal">
+                <div class="lh-step-num">4</div>
+                <h4>Get Hired</h4>
+                <p>Receive offers, negotiate terms, and start your new career journey with confidence.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ STATS ═══ -->
+<section class="lh-stats">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3 col-6 mb-4 reveal">
+                <div class="lh-stat-item">
+                    <div class="icon"><i class="fas fa-briefcase"></i></div>
                     <h2><?php echo number_format($total_jobs); ?>+</h2>
                     <p>Job Opportunities</p>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="stat-box">
-                    <i class="fas fa-building d-block"></i>
+            <div class="col-md-3 col-6 mb-4 reveal">
+                <div class="lh-stat-item">
+                    <div class="icon"><i class="fas fa-building"></i></div>
                     <h2><?php echo number_format($total_companies); ?>+</h2>
                     <p>Registered Companies</p>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="stat-box">
-                    <i class="fas fa-users d-block"></i>
+            <div class="col-md-3 col-6 mb-4 reveal">
+                <div class="lh-stat-item">
+                    <div class="icon"><i class="fas fa-users"></i></div>
                     <h2><?php echo number_format($total_users); ?>+</h2>
                     <p>Active Job Seekers</p>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="stat-box">
-                    <i class="fas fa-file-alt d-block"></i>
+            <div class="col-md-3 col-6 mb-4 reveal">
+                <div class="lh-stat-item">
+                    <div class="icon"><i class="fas fa-file-alt"></i></div>
                     <h2><?php echo number_format($total_applications); ?>+</h2>
                     <p>Applications Sent</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<!-- Newsletter -->
-<div class="container">
-    <div class="newsletter-section">
-        <h3 style="font-weight: 800; color: var(--text); margin-bottom: 8px; letter-spacing: -0.3px;">Stay Updated on New Opportunities</h3>
-        <p style="color: var(--text-muted); margin: 0; font-size: 0.92rem;">Subscribe to our newsletter and never miss a job opening.</p>
-        
-        <?php if (isset($sub_success)): ?>
-            <div class="alert alert-success mt-3" style="max-width: 480px; margin-left: auto; margin-right: auto;">
-                <i class="fas fa-check-circle mr-2"></i>You've been subscribed successfully!
+<!-- ═══ TESTIMONIALS ═══ -->
+<section class="lh-testimonials">
+    <div class="container">
+        <div class="lh-section-center">
+            <span class="lh-section-badge"><i class="fas fa-heart"></i> Testimonials</span>
+            <h2 class="lh-section-title">Loved by Job Seekers & Employers</h2>
+            <p class="lh-section-desc">See what our users have to say about their experience with NovaHire.</p>
+        </div>
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="quote">"NovaHire's AI career coach helped me identify skill gaps and prepare for interviews. I landed my dream job at a top tech company within 2 months!"</p>
+                    <div class="lh-testimonial-author">
+                        <div class="lh-ta-avatar" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">SK</div>
+                        <div class="lh-ta-info">
+                            <h6>Sarah Khan</h6>
+                            <small>Software Engineer at TechCorp</small>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <?php elseif (isset($sub_exists)): ?>
-            <div class="alert alert-info mt-3" style="max-width: 480px; margin-left: auto; margin-right: auto;">
-                <i class="fas fa-info-circle mr-2"></i>This email is already subscribed.
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="quote">"As an employer, the recruitment tools are incredible. We reduced our hiring time by 60% using the applicant management and quiz features."</p>
+                    <div class="lh-testimonial-author">
+                        <div class="lh-ta-avatar" style="background: linear-gradient(135deg, #059669, #34d399);">AR</div>
+                        <div class="lh-ta-info">
+                            <h6>Ahmed Rahman</h6>
+                            <small>HR Director at InnovateBD</small>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <?php endif; ?>
-        
-        <form method="POST" class="newsletter-form">
-            <input type="email" name="subscribe_email" placeholder="Enter your email address" required>
-            <button type="submit"><i class="fas fa-paper-plane mr-2"></i>Subscribe</button>
-        </form>
+            <div class="col-lg-4 col-md-6 mb-4 reveal">
+                <div class="lh-testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <p class="quote">"The mentor sessions were game-changing. My mentor helped me polish my resume and nail the mock interview. Highly recommended for fresh graduates!"</p>
+                    <div class="lh-testimonial-author">
+                        <div class="lh-ta-avatar" style="background: linear-gradient(135deg, #d97706, #f97316);">MP</div>
+                        <div class="lh-ta-info">
+                            <h6>Maya Patel</h6>
+                            <small>Frontend Developer at StartupX</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 
-<!-- Footer -->
-<footer class="site-footer">
+<!-- ═══ CTA ═══ -->
+<section class="lh-cta">
+    <div class="container">
+        <div class="lh-cta-card reveal">
+            <h2>Ready to Start Your Career Journey?</h2>
+            <p>Join thousands of job seekers and employers who are already succeeding with NovaHire.</p>
+            <div class="lh-cta-btns">
+                <a href="auth/login.php" class="lh-hero-btn-primary">
+                    <i class="fas fa-rocket"></i> Get Started Free
+                </a>
+                <a href="auth/company_registration.php" class="lh-hero-btn-secondary">
+                    <i class="fas fa-building"></i> Register as Employer
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="lh-footer">
     <div class="container">
         <div class="row">
             <div class="col-lg-4 mb-4">
-                <div class="footer-brand">Nova<span>Hire</span></div>
-                <p class="footer-desc">Your gateway to career success. Connect with top employers and find your dream job.</p>
-                <div class="footer-social">
+                <div class="lh-footer-brand">Nova<span>Hire</span></div>
+                <p class="lh-footer-desc">AI-powered job portal connecting talented professionals with top companies. Your gateway to career success.</p>
+                <div class="lh-footer-social">
                     <a href="#"><i class="fab fa-facebook-f"></i></a>
                     <a href="#"><i class="fab fa-twitter"></i></a>
                     <a href="#"><i class="fab fa-linkedin-in"></i></a>
@@ -965,57 +904,112 @@
                 </div>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
-                <div class="footer-title">For Job Seekers</div>
-                <ul class="footer-links">
+                <h5>For Job Seekers</h5>
+                <ul class="lh-footer-links">
                     <li><a href="seeker/browse_jobs.php">Browse Jobs</a></li>
                     <li><a href="seeker/available_companies.php">Companies</a></li>
-                    <li><a href="seeker/profile.php">My Profile</a></li>
-                    <li><a href="seeker/my_application.php">My Applications</a></li>
+                    <li><a href="seeker/ai_hub.php">AI Career Tools</a></li>
+                    <li><a href="seeker/grooming.php">Skill Grooming</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
-                <div class="footer-title">For Employers</div>
-                <ul class="footer-links">
-                    <li><a href="company_registration.php">Register Company</a></li>
+                <h5>For Employers</h5>
+                <ul class="lh-footer-links">
+                    <li><a href="auth/company_registration.php">Register Company</a></li>
                     <li><a href="auth/login.php">Employer Login</a></li>
                     <li><a href="auth/login.php">Post a Job</a></li>
+                    <li><a href="auth/login.php">Talent Search</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
-                <div class="footer-title">Resources</div>
-                <ul class="footer-links">
-                    <li><a href="seeker/browse_jobs.php">Browse Jobs</a></li>
+                <h5>Resources</h5>
+                <ul class="lh-footer-links">
+                    <li><a href="blog/">Blog</a></li>
                     <li><a href="seeker/view_cv.php">Build Your CV</a></li>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">API Docs</a></li>
                 </ul>
             </div>
             <div class="col-lg-2 col-md-4 mb-4">
-                <div class="footer-title">Support</div>
-                <ul class="footer-links">
-                    <li><a href="#">Help Center</a></li>
+                <h5>Company</h5>
+                <ul class="lh-footer-links">
+                    <li><a href="#">About Us</a></li>
                     <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Use</a></li>
+                    <li><a href="#">Terms of Service</a></li>
                     <li><a href="#">Contact Us</a></li>
                 </ul>
             </div>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved.</p>
+        <div class="lh-footer-bottom">
+            <p>&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved. Built with <i class="fas fa-heart" style="color: #dc2626;"></i> for your career success.</p>
         </div>
     </div>
 </footer>
 
 <script>
-    function setTheme(themeName) {
-        document.body.setAttribute('data-theme', themeName);
-        localStorage.setItem('theme', themeName);
+// Navbar scroll effect
+window.addEventListener('scroll', function() {
+    var nav = document.getElementById('mainNav');
+    if (window.scrollY > 50) {
+        nav.classList.add('scrolled');
+    } else {
+        nav.classList.remove('scrolled');
     }
+});
 
-    (function() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            document.body.setAttribute('data-theme', savedTheme);
+// Mobile menu
+function toggleMobileMenu() {
+    document.getElementById('mobileMenu').classList.toggle('active');
+}
+
+// Scroll reveal animations
+function revealOnScroll() {
+    var reveals = document.querySelectorAll('.reveal');
+    reveals.forEach(function(el) {
+        var windowHeight = window.innerHeight;
+        var elementTop = el.getBoundingClientRect().top;
+        var revealPoint = 120;
+        if (elementTop < windowHeight - revealPoint) {
+            el.classList.add('visible');
         }
-    })();
+    });
+}
+window.addEventListener('scroll', revealOnScroll);
+window.addEventListener('load', revealOnScroll);
+
+// Counter animation
+function animateCounters() {
+    var counters = document.querySelectorAll('.lh-stat-item h2');
+    counters.forEach(function(counter) {
+        var target = parseInt(counter.textContent.replace(/[^0-9]/g, ''));
+        if (target === 0) return;
+        var duration = 2000;
+        var step = target / (duration / 16);
+        var current = 0;
+        var timer = setInterval(function() {
+            current += step;
+            if (current >= target) {
+                counter.textContent = target.toLocaleString() + '+';
+                clearInterval(timer);
+            } else {
+                counter.textContent = Math.floor(current).toLocaleString() + '+';
+            }
+        }, 16);
+    });
+}
+
+// Trigger counter animation when stats section is in view
+var statsObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+            animateCounters();
+            statsObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.3 });
+
+var statsSection = document.querySelector('.lh-stats');
+if (statsSection) statsObserver.observe(statsSection);
 </script>
 
 </body>

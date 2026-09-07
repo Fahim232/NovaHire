@@ -130,7 +130,7 @@ if ($active_conversation) {
             margin: 20px auto;
         }
         .mc-header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: white;
             padding: 30px 40px;
             border-radius: 20px 20px 0 0;
@@ -169,7 +169,7 @@ if ($active_conversation) {
             outline: none;
             transition: border-color 0.3s;
         }
-        .mc-sidebar-search input:focus { border-color: #4f46e5; }
+        .mc-sidebar-search input:focus { border-color: #1a56db; }
         .mc-conv-item {
             display: flex;
             align-items: center;
@@ -182,7 +182,7 @@ if ($active_conversation) {
             color: inherit;
         }
         .mc-conv-item:hover { background: #f8fafc; text-decoration: none; color: inherit; }
-        .mc-conv-item.active { background: #eef2ff; border-left: 3px solid #4f46e5; }
+        .mc-conv-item.active { background: #eef2ff; border-left: 3px solid #1a56db; }
         .mc-conv-item.unread { background: #fafbff; }
         .mc-conv-avatar {
             width: 45px;
@@ -193,7 +193,7 @@ if ($active_conversation) {
             justify-content: center;
             font-size: 1.1rem;
             flex-shrink: 0;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: white;
             font-weight: 700;
         }
@@ -202,7 +202,7 @@ if ($active_conversation) {
         .mc-conv-info p { font-size: 0.78rem; color: #94a3b8; margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mc-conv-time { font-size: 0.7rem; color: #94a3b8; white-space: nowrap; }
         .mc-conv-badge {
-            background: #4f46e5;
+            background: #1a56db;
             color: white;
             font-size: 0.65rem;
             font-weight: 700;
@@ -256,7 +256,7 @@ if ($active_conversation) {
             word-break: break-word;
         }
         .mc-msg.sent .mc-msg-bubble {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: white;
             border-bottom-right-radius: 4px;
         }
@@ -303,9 +303,9 @@ if ($active_conversation) {
             font-family: inherit;
             transition: border-color 0.3s;
         }
-        .mc-compose-input:focus { border-color: #4f46e5; }
+        .mc-compose-input:focus { border-color: #1a56db; }
         .mc-send-btn {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: white;
             border: none;
             width: 48px;
@@ -319,7 +319,7 @@ if ($active_conversation) {
             font-size: 1.1rem;
             flex-shrink: 0;
         }
-        .mc-send-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(79,70,229,0.3); }
+        .mc-send-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(26,86,219,0.3); }
         
         .mc-empty {
             flex: 1;
@@ -380,7 +380,7 @@ if ($active_conversation) {
            <li class="nav-item"><a class="nav-link" href="profile.php">Profile</a></li>
            <li class="nav-item"><a class="nav-link" href="browse_jobs.php">Browse Jobs</a></li>
            <li class="nav-item"><a class="nav-link" href="my_application.php">Applications</a></li>
-           <li class="nav-item"><a class="nav-link" href="message_center.php" style="font-weight:700; color:#4f46e5;">Messages</a></li>
+           <li class="nav-item"><a class="nav-link" href="message_center.php" style="font-weight:700; color:#1a56db;">Messages</a></li>
         </ul>
         <ul class="navbar-nav align-items-center right-menu">
             <li class="nav-item dropdown">
@@ -564,8 +564,8 @@ if ($active_conversation) {
         duration = duration || 5000;
         var icons = { success: 'fa-check-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle', error: 'fa-times-circle' };
         var toast = document.createElement('div');
-        toast.style.cssText = 'background:white;border-radius:12px;padding:16px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.15);display:flex;align-items:flex-start;gap:12px;min-width:300px;max-width:400px;margin-bottom:10px;border-left:4px solid ' + (type==='success'?'#10b981':type==='error'?'#ef4444':'#3b82f6');
-        toast.innerHTML = '<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:' + (type==='success'?'#dcfce7':type==='error'?'#fee2e2':'#dbeafe') + ';color:' + (type==='success'?'#10b981':type==='error'?'#ef4444':'#3b82f6') + ';"><i class="fas ' + (icons[type]||icons.info) + '"></i></div><div style="flex:1;"><h6 style="font-weight:700;font-size:0.85rem;margin:0 0 3px;color:#0f172a;">' + title + '</h6><p style="font-size:0.8rem;color:#64748b;margin:0;line-height:1.4;">' + message + '</p></div><button style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0;" onclick="this.parentElement.remove()">&times;</button>';
+        toast.style.cssText = 'background:white;border-radius:12px;padding:16px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.15);display:flex;align-items:flex-start;gap:12px;min-width:300px;max-width:400px;margin-bottom:10px;border-left:4px solid ' + (type==='success'?'#059669':type==='error'?'#dc2626':'#3b82f6');
+        toast.innerHTML = '<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:' + (type==='success'?'#dcfce7':type==='error'?'#fee2e2':'#dbeafe') + ';color:' + (type==='success'?'#059669':type==='error'?'#dc2626':'#3b82f6') + ';"><i class="fas ' + (icons[type]||icons.info) + '"></i></div><div style="flex:1;"><h6 style="font-weight:700;font-size:0.85rem;margin:0 0 3px;color:#0f172a;">' + title + '</h6><p style="font-size:0.8rem;color:#64748b;margin:0;line-height:1.4;">' + message + '</p></div><button style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0;" onclick="this.parentElement.remove()">&times;</button>';
         var container = document.getElementById('toastContainer') || (function(){ var c = document.createElement('div'); c.id='toastContainer'; c.style.cssText='position:fixed;top:80px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:10px;'; document.body.appendChild(c); return c; })();
         container.appendChild(toast);
         setTimeout(function(){ toast.style.opacity='0'; toast.style.transform='translateX(100%)'; toast.style.transition='all 0.3s ease'; setTimeout(function(){ toast.remove(); }, 300); }, duration);

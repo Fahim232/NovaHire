@@ -7,79 +7,98 @@ if (!isset($_SESSION['id'])) {
 }
 require_once __DIR__ . '/../admin/dbcon.php';
 
-$category = isset($_GET['category']) ? $_GET['category'] : 'PHP';
+$category = isset($_GET['category']) ? trim((string)$_GET['category']) : 'PHP';
+if ($category === '') $category = 'PHP';
 
 // Check if user is allowed to take quiz
-$user_id = $_SESSION['id'];
-$status_query = "SELECT * FROM user_quiz_status WHERE user_id='$user_id' AND category='$category'";
-$status_res = mysqli_query($con, $status_query);
+$user_id = (int)$_SESSION['id'];
 
-if (mysqli_num_rows($status_res) > 0) {
-    $row = mysqli_fetch_assoc($status_res);
-    if ($row['status'] == 'failed' && $row['grooming_completed'] == 0) {
-        echo "<script>alert('You must complete the grooming session before retaking the assessment.'); window.location.href='grooming.php?category=$category';</script>";
-        exit();
-    }
+$status_stmt = mysqli_prepare($con, "SELECT status, grooming_completed FROM user_quiz_status WHERE user_id = ? AND category = ? LIMIT 1");
+mysqli_stmt_bind_param($status_stmt, "is", $user_id, $category);
+mysqli_stmt_execute($status_stmt);
+$row = mysqli_fetch_assoc(mysqli_stmt_get_result($status_stmt));
+mysqli_stmt_close($status_stmt);
+
+if ($row && $row['status'] == 'failed' && $row['grooming_completed'] == 0) {
+    $to = 'grooming.php?category=' . urlencode($category);
+    echo "<script>alert('You must complete the grooming session before retaking the assessment.'); window.location.href=" . json_encode($to) . ";</script>";
+    exit();
 }
 
 if (isset($_POST['submit_quiz'])) {
+    require_csrf();
+
     $score = 0;
     $total = 0;
+
+    // Grade against the stored answers, looked up one question at a time by id.
+    $ans_stmt = mysqli_prepare($con, "SELECT answer FROM quiz_questions WHERE id = ? LIMIT 1");
     foreach ($_POST as $key => $value) {
         if (strpos($key, 'q_') === 0) {
-            $qid = substr($key, 2);
+            $qid = (int)substr($key, 2);
+            if ($qid <= 0) continue;
             $total++;
-            $q_query = "SELECT answer FROM quiz_questions WHERE id = '$qid'";
-            $q_res = mysqli_query($con, $q_query);
-            $q_row = mysqli_fetch_assoc($q_res);
-            if ($q_row['answer'] == $value) {
+            mysqli_stmt_bind_param($ans_stmt, "i", $qid);
+            mysqli_stmt_execute($ans_stmt);
+            $q_row = mysqli_fetch_assoc(mysqli_stmt_get_result($ans_stmt));
+            if ($q_row && is_string($value) && $q_row['answer'] === $value) {
                 $score++;
             }
         }
     }
+    mysqli_stmt_close($ans_stmt);
 
-    $user_id = $_SESSION['id'];
-    $quiz_status = '';
-    
+    // Pass mark is 60% of the questions actually answered, not a fixed count —
+    // a fixed "3" was unfair when a category served fewer than 5 questions.
+    $pass_mark = (int)ceil($total * 0.6);
+    $passed    = ($total > 0 && $score >= $pass_mark);
 
-    $check_query = "SELECT * FROM user_quiz_status WHERE user_id='$user_id' AND category='$category'";
-    $check_res = mysqli_query($con, $check_query);
-
-    if ($total > 0 && $score >= 3) {
-        $_SESSION['quiz_passed'] = true;
+    if ($passed) {
+        $_SESSION['quiz_passed']   = true;
         $_SESSION['quiz_category'] = $category;
         $quiz_status = 'passed';
-        $redirect = "application.php?status=passed";
-        $alert = "Assessment Passed! Score: $score/$total";
+        $redirect = 'application.php?status=passed';
+        $alert    = "Assessment Passed! Score: $score/$total";
     } else {
         $_SESSION['quiz_passed'] = false;
         $quiz_status = 'failed';
-        $redirect = "grooming.php?category=$category";
-        $alert = "Assessment Failed. Score: $score/$total";
+        $redirect = 'grooming.php?category=' . urlencode($category);
+        $alert    = "Assessment Failed. Score: $score/$total";
     }
 
-    if (mysqli_num_rows($check_res) > 0) {
+    $check_stmt = mysqli_prepare($con, "SELECT id FROM user_quiz_status WHERE user_id = ? AND category = ? LIMIT 1");
+    mysqli_stmt_bind_param($check_stmt, "is", $user_id, $category);
+    mysqli_stmt_execute($check_stmt);
+    $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($check_stmt));
+    mysqli_stmt_close($check_stmt);
 
-        $update_sql = "UPDATE user_quiz_status SET status='$quiz_status', last_attempt=NOW()";
-        if ($quiz_status == 'failed') {
-            $update_sql .= ", grooming_completed=0";
-        }
-        $update_sql .= " WHERE user_id='$user_id' AND category='$category'";
-        mysqli_query($con, $update_sql);
+    if ($exists) {
+        // A fresh failure re-locks the grooming requirement.
+        $sql = ($quiz_status === 'failed')
+            ? "UPDATE user_quiz_status SET status = ?, last_attempt = NOW(), grooming_completed = 0 WHERE user_id = ? AND category = ?"
+            : "UPDATE user_quiz_status SET status = ?, last_attempt = NOW() WHERE user_id = ? AND category = ?";
+        $upd = mysqli_prepare($con, $sql);
+        mysqli_stmt_bind_param($upd, "sis", $quiz_status, $user_id, $category);
+        mysqli_stmt_execute($upd);
+        mysqli_stmt_close($upd);
     } else {
-       
-        $grooming_completed = ($quiz_status == 'passed') ? 1 : 0;
-        $insert_sql = "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed) VALUES ('$user_id', '$category', '$quiz_status', '$grooming_completed')";
-        mysqli_query($con, $insert_sql);
+        $grooming_completed = $passed ? 1 : 0;
+        $ins = mysqli_prepare($con, "INSERT INTO user_quiz_status (user_id, category, status, grooming_completed) VALUES (?, ?, ?, ?)");
+        mysqli_stmt_bind_param($ins, "issi", $user_id, $category, $quiz_status, $grooming_completed);
+        mysqli_stmt_execute($ins);
+        mysqli_stmt_close($ins);
     }
 
-    echo "<script>alert('$alert'); window.location.href='$redirect';</script>";
+    // json_encode so a crafted category can never break out of the JS string.
+    echo "<script>alert(" . json_encode($alert) . "); window.location.href=" . json_encode($redirect) . ";</script>";
     exit();
 }
 
 // Fetch Questions
-$query = "SELECT * FROM quiz_questions WHERE category = '$category' ORDER BY RAND() LIMIT 5";
-$result = mysqli_query($con, $query);
+$q_stmt = mysqli_prepare($con, "SELECT * FROM quiz_questions WHERE category = ? ORDER BY RAND() LIMIT 5");
+mysqli_stmt_bind_param($q_stmt, "s", $category);
+mysqli_stmt_execute($q_stmt);
+$result = mysqli_stmt_get_result($q_stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -163,6 +182,7 @@ $result = mysqli_query($con, $query);
         
         <?php if(mysqli_num_rows($result) > 0): ?>
             <form action="" method="POST">
+                <?php echo csrf_field(); ?>
                 <?php 
                 $i = 1;
                 while($row = mysqli_fetch_assoc($result)): 
@@ -226,7 +246,7 @@ $result = mysqli_query($con, $query);
     
     <!-- Anti-Cheat Overlay -->
     <div id="antiCheatOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; color:white; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
-        <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #f59e0b; margin-bottom: 20px;"></i>
+        <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #d97706; margin-bottom: 20px;"></i>
         <h2 style="font-weight: bold; margin-bottom: 10px;">Warning!</h2>
         <p id="antiCheatMsg" style="font-size: 1.2rem; max-width: 600px;">You are not allowed to switch tabs or exit fullscreen mode during the quiz.</p>
         <p style="font-size: 1rem; color: #cbd5e1; margin-top: 10px;">Warnings remaining: <span id="warningsLeft">3</span>/3</p>

@@ -4,78 +4,92 @@ require_once __DIR__ . '/../includes/bootstrap.php';
  
 
     require_once __DIR__ . '/../admin/dbcon.php';
-    require_once __DIR__ . '/../includes/header.php';
     
     // Get job ID
     if (!isset($_GET['id'])) {
         header('location: browse_jobs.php');
         exit();
     }
-    
-    $job_id = mysqli_real_escape_string($con, $_GET['id']);
-    
-    // Fetch job details (alias company_website -> website for compatibility)
-    $job_query = "SELECT cj.*, c.company_name, c.industry, c.company_size, c.company_website AS website, c.description as company_desc, c.logo,
+
+    $job_id = intval($_GET['id']);
+    if ($job_id <= 0) {
+        header('location: browse_jobs.php');
+        exit();
+    }
+
+    // Check if user is logged in
+    $is_logged_in = isset($_SESSION['id']);
+    $user_id = $is_logged_in ? (int)$_SESSION['id'] : 0;
+    $has_applied = false;
+    $application_status = null;
+    $quiz_status = null;
+
+    // Fetch job details using prepared statement
+    $job_stmt = mysqli_prepare($con, "SELECT cj.*, c.company_name, c.industry, c.company_size, c.company_website AS website, c.description as company_desc, c.logo,
                    (SELECT COUNT(*) FROM company_job_questions WHERE job_id = cj.id) as quiz_count,
                    (SELECT COUNT(*) FROM job_applications WHERE job_id = cj.id) as applicant_count
                    FROM company_jobs cj
                    JOIN companies c ON cj.company_id = c.id
-                   WHERE cj.id = '$job_id' AND cj.status = 'active'";
-    $job_result = mysqli_query($con, $job_query);
-    
+                   WHERE cj.id = ? AND cj.status = 'active'");
+    mysqli_stmt_bind_param($job_stmt, "i", $job_id);
+    mysqli_stmt_execute($job_stmt);
+    $job_result = mysqli_stmt_get_result($job_stmt);
+    mysqli_stmt_close($job_stmt);
+
     if (mysqli_num_rows($job_result) == 0) {
         echo "<script>alert('Job not found or no longer available'); window.location.href='browse_jobs.php';</script>";
         exit();
     }
-    
+
     $job = mysqli_fetch_assoc($job_result);
 
     // AI match score for logged-in users
     require_once __DIR__ . '/../ai/matching.php';
     $ai_match = null;
     if ($is_logged_in) {
-        $profile_res = mysqli_query($con, "SELECT * FROM user_info WHERE id = '" . intval($_SESSION['id']) . "'");
+        $profile_stmt = mysqli_prepare($con, "SELECT * FROM user_info WHERE id = ?");
+        mysqli_stmt_bind_param($profile_stmt, "i", $user_id);
+        mysqli_stmt_execute($profile_stmt);
+        $profile_res = mysqli_stmt_get_result($profile_stmt);
         if ($profile_res && mysqli_num_rows($profile_res) > 0) {
             $ai_match = ai_match_profile_job(mysqli_fetch_assoc($profile_res), $job);
         }
+        mysqli_stmt_close($profile_stmt);
     }
-    
-    // Check if user is logged in
-    $is_logged_in = isset($_SESSION['id']);
-    $has_applied = false;
-    $application_status = null;
-    $quiz_status = null;
-    
-    if ($is_logged_in) {
-        $user_id = $_SESSION['id'];
 
+    if ($is_logged_in) {
         // Application status
-        $check_query = "SELECT * FROM job_applications WHERE user_id = '$user_id' AND job_id = '$job_id'";
-        $check_result = mysqli_query($con, $check_query);
+        $check_stmt = mysqli_prepare($con, "SELECT * FROM job_applications WHERE user_id = ? AND job_id = ?");
+        mysqli_stmt_bind_param($check_stmt, "ii", $user_id, $job_id);
+        mysqli_stmt_execute($check_stmt);
+        $check_result = mysqli_stmt_get_result($check_stmt);
         if (mysqli_num_rows($check_result) > 0) {
             $has_applied = true;
             $app_data = mysqli_fetch_assoc($check_result);
             $application_status = $app_data['application_status'];
         }
+        mysqli_stmt_close($check_stmt);
 
-        // Always check actual quiz score from job_quiz_attempts - never trust stale job_applications.quiz_status
-        $quiz_status = null;
-        $quiz_query = "SELECT score_percentage FROM job_quiz_attempts WHERE user_id = '$user_id' AND job_id = '$job_id' ORDER BY attempt_date DESC LIMIT 1";
-        $quiz_result = mysqli_query($con, $quiz_query);
+        // Always check actual quiz score from job_quiz_attempts
+        $quiz_stmt = mysqli_prepare($con, "SELECT score_percentage FROM job_quiz_attempts WHERE user_id = ? AND job_id = ? ORDER BY attempt_date DESC LIMIT 1");
+        mysqli_stmt_bind_param($quiz_stmt, "ii", $user_id, $job_id);
+        mysqli_stmt_execute($quiz_stmt);
+        $quiz_result = mysqli_stmt_get_result($quiz_stmt);
         if (mysqli_num_rows($quiz_result) > 0) {
             $quiz_row = mysqli_fetch_assoc($quiz_result);
             $quiz_status = ($quiz_row['score_percentage'] >= 60) ? 'passed' : 'failed';
         }
+        mysqli_stmt_close($quiz_stmt);
 
         // Check if user has exhausted all attempts (2+ attempts, all failed)
         $exhausted = false;
         if ($quiz_status === 'failed') {
-            $attempt_count_query = "SELECT COUNT(*) as cnt FROM job_quiz_attempts WHERE user_id='$user_id' AND job_id='$job_id'";
-            $attempt_count_result = mysqli_query($con, $attempt_count_query);
-            if (mysqli_num_rows($attempt_count_result) > 0) {
-                $attempt_count_row = mysqli_fetch_assoc($attempt_count_result);
-                $exhausted = (intval($attempt_count_row['cnt']) >= 2);
-            }
+            $attempts_stmt = mysqli_prepare($con, "SELECT COUNT(*) as cnt FROM job_quiz_attempts WHERE user_id = ? AND job_id = ?");
+            mysqli_stmt_bind_param($attempts_stmt, "ii", $user_id, $job_id);
+            mysqli_stmt_execute($attempts_stmt);
+            $attempt_count_row = mysqli_fetch_assoc(mysqli_stmt_get_result($attempts_stmt));
+            $exhausted = (intval($attempt_count_row['cnt']) >= 2);
+            mysqli_stmt_close($attempts_stmt);
         }
     }
     
@@ -103,7 +117,8 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><?php echo $job['job_title']; ?> | NovaHire</title>
+    <title><?php echo htmlspecialchars($job['job_title']); ?> | NovaHire</title>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <?php if ($quiz_gating_active): ?>
     <style>
         body {
@@ -194,7 +209,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><?php echo $job['job_title']; ?> | NovaHire</title>
+    <title><?php echo htmlspecialchars($job['job_title']); ?> | NovaHire</title>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -285,14 +300,14 @@ require_once __DIR__ . '/../includes/bootstrap.php';
             border-radius: 20px;
             padding: 28px 30px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(124,58,237,0.08);
+            box-shadow: 0 10px 30px rgba(14,165,233,0.08);
         }
         .ai-match-label {
             font-size: 0.78rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #7c3aed;
+            color: #0ea5e9;
         }
         
         .section-title {
@@ -512,6 +527,15 @@ require_once __DIR__ . '/../includes/bootstrap.php';
     </style>
 </head>
 <body>
+<nav style="position:sticky;top:0;z-index:1030;background:#fff;border-bottom:1px solid #e0e0e0;padding:0 20px">
+    <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;height:56px;gap:16px">
+        <a href="browse_jobs.php" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#1e293b;font-weight:700;font-size:.9rem">
+            <i class="fas fa-arrow-left"></i> Browse Jobs
+        </a>
+        <span style="color:#94a3b8;font-size:.8rem"><i class="fas fa-chevron-right"></i></span>
+        <span style="font-weight:600;color:#1e293b;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px"><?php echo htmlspecialchars($job['job_title']); ?></span>
+    </div>
+</nav>
     <div class="job-details-container">
         <!-- Job Header -->
         <div class="job-header">
@@ -523,11 +547,11 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                                  style="max-width: 150px; max-height: 60px; object-fit: contain; border-radius: 8px; border: 1px solid #e0e0e0; padding: 8px; background: white;">
                         </div>
                     <?php endif; ?>
-                    <h1 class="job-title"><?php echo $job['job_title']; ?></h1>
+                    <h1 class="job-title"><?php echo htmlspecialchars($job['job_title']); ?></h1>
                     <div class="company-info">
-                        <span class="company-badge"><?php echo $job['company_name']; ?></span>
-                        <span class="badge badge-secondary"><?php echo $job['industry']; ?></span>
-                        <span class="badge badge-info"><?php echo $job['job_category']; ?></span>
+                        <span class="company-badge"><?php echo htmlspecialchars($job['company_name']); ?></span>
+                        <span class="badge badge-secondary"><?php echo htmlspecialchars($job['industry']); ?></span>
+                        <span class="badge badge-info"><?php echo htmlspecialchars($job['job_category']); ?></span>
                     </div>
                 </div>
                 <div>
@@ -548,7 +572,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     <i class="fas fa-map-marker-alt"></i>
                     <div>
                         <span class="meta-label">Location</span>
-                        <span class="meta-value"><?php echo $job['location']; ?></span>
+                        <span class="meta-value"><?php echo htmlspecialchars($job['location']); ?></span>
                     </div>
                 </div>
                 
@@ -556,7 +580,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     <i class="fas fa-briefcase"></i>
                     <div>
                         <span class="meta-label">Job Type</span>
-                        <span class="meta-value"><?php echo $job['employment_type']; ?></span>
+                        <span class="meta-value"><?php echo htmlspecialchars($job['employment_type']); ?></span>
                     </div>
                 </div>
                 
@@ -564,7 +588,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     <i class="fas fa-clock"></i>
                     <div>
                         <span class="meta-label">Experience</span>
-                        <span class="meta-value"><?php echo $job['experience_required']; ?></span>
+                        <span class="meta-value"><?php echo htmlspecialchars($job['experience_required']); ?></span>
                     </div>
                 </div>
                 
@@ -573,7 +597,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     <i class="fas fa-dollar-sign"></i>
                     <div>
                         <span class="meta-label">Salary</span>
-                        <span class="meta-value"><?php echo $job['salary_range']; ?></span>
+                        <span class="meta-value"><?php echo htmlspecialchars($job['salary_range']); ?></span>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -654,7 +678,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
         <!-- Job Description -->
         <div class="content-section">
             <h2 class="section-title"><i class="fas fa-file-alt mr-2"></i>Job Description</h2>
-            <p style="line-height: 1.8; color: #4a5568;"><?php echo nl2br($job['job_description']); ?></p>
+            <p style="line-height: 1.8; color: #4a5568;"><?php echo nl2br(htmlspecialchars($job['job_description'])); ?></p>
         </div>
         
         <!-- Responsibilities -->
@@ -666,7 +690,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     $responsibilities = explode("\n", $job['responsibilities']);
                     foreach ($responsibilities as $resp) {
                         if (trim($resp)) {
-                            echo '<li>' . trim($resp) . '</li>';
+                            echo '<li>' . htmlspecialchars(trim($resp)) . '</li>';
                         }
                     }
                 ?>
@@ -683,7 +707,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     $requirements = explode("\n", $job['requirements']);
                     foreach ($requirements as $req) {
                         if (trim($req)) {
-                            echo '<li>' . trim($req) . '</li>';
+                            echo '<li>' . htmlspecialchars(trim($req)) . '</li>';
                         }
                     }
                 ?>
@@ -698,7 +722,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                 <?php 
                     $skills = explode(',', $job['skills_required']);
                     foreach ($skills as $skill) {
-                        echo '<span class="job-tag">' . trim($skill) . '</span>';
+                        echo '<span class="job-tag">' . htmlspecialchars(trim($skill)) . '</span>';
                     }
                 ?>
             </div>
@@ -706,7 +730,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
         
         <!-- Company Information -->
         <div class="content-section">
-            <h2 class="section-title"><i class="fas fa-building mr-2"></i>About <?php echo $job['company_name']; ?></h2>
+            <h2 class="section-title"><i class="fas fa-building mr-2"></i>About <?php echo htmlspecialchars($job['company_name']); ?></h2>
             <div class="company-section">
                 <div class="company-card">
                     <?php if (!empty($job['logo']) && file_exists($job['logo'])): ?>
@@ -715,17 +739,17 @@ require_once __DIR__ . '/../includes/bootstrap.php';
                     <?php else: ?>
                         <i class="fas fa-building" style="font-size: 50px; color: #667eea;"></i>
                     <?php endif; ?>
-                    <h3><?php echo $job['company_name']; ?></h3>
-                    <p><i class="fas fa-industry mr-2"></i><?php echo $job['industry']; ?></p>
-                    <p><i class="fas fa-users mr-2"></i><?php echo $job['company_size']; ?> Employees</p>
+                    <h3><?php echo htmlspecialchars($job['company_name']); ?></h3>
+                    <p><i class="fas fa-industry mr-2"></i><?php echo htmlspecialchars($job['industry']); ?></p>
+                    <p><i class="fas fa-users mr-2"></i><?php echo htmlspecialchars($job['company_size']); ?> Employees</p>
                     <?php if ($job['website']): ?>
-                        <a href="<?php echo $job['website']; ?>" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                        <a href="<?php echo htmlspecialchars($job['website']); ?>" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
                             <i class="fas fa-globe mr-2"></i>Visit Website
                         </a>
                     <?php endif; ?>
                 </div>
                 <div class="company-details">
-                    <p style="line-height: 1.8; color: #4a5568;"><?php echo nl2br($job['company_desc']); ?></p>
+                    <p style="line-height: 1.8; color: #4a5568;"><?php echo nl2br(htmlspecialchars($job['company_desc'])); ?></p>
                 </div>
             </div>
         </div>

@@ -1,8 +1,5 @@
 <?php
-if (!isset($con)) {
-    require_once '../admin/dbcon.php';
-}
-require_once '../includes/functions.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
 
 $current_page = basename($_SERVER['PHP_SELF']);
 $company_name = $_SESSION['company_name'] ?? 'Company Dashboard';
@@ -96,6 +93,10 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
                     </div>
                 </li>
 
+                <li class="cmp-item <?php echo $current_page == 'talent_pool.php' ? 'is-active' : ''; ?>">
+                    <a class="cmp-link" href="talent_pool.php"><i class="fas fa-gem"></i><span>Talent Pool</span></a>
+                </li>
+
                 <li class="cmp-item <?php echo $current_page == 'live_chat.php' ? 'is-active' : ''; ?>">
                     <a class="cmp-link" href="live_chat.php" style="position:relative;"><i class="fas fa-comments"></i><span>Live Chat</span><span class="cmp-badge" id="lcNotifBadge" style="display:none;">0</span></a>
                 </li>
@@ -146,6 +147,10 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
                             <span class="cmp-drop-ico"><i class="fas fa-envelope-open-text"></i></span>
                             <span class="cmp-drop-txt">Messages</span>
                         </a>
+                        <a class="cmp-drop-item" href="subscription.php">
+                            <span class="cmp-drop-ico"><i class="fas fa-gem"></i></span>
+                            <span class="cmp-drop-txt">Plans &amp; Billing<small>Upgrade your hiring plan</small></span>
+                        </a>
                         <div class="cmp-drop-sep"></div>
                         <a class="cmp-drop-item cmp-danger" href="logout.php">
                             <span class="cmp-drop-ico"><i class="fas fa-sign-out-alt"></i></span>
@@ -167,17 +172,17 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
         --border-light: #e2e8f0;
         --text: #1e293b;
         --text-muted: #64748b;
-        --primary: #4f46e5;
-        --danger: #ef4444;
+        --primary: #1a56db;
+        --danger: #dc2626;
     }
     [data-theme="dark"] .cmp-nav {
         --bg: #0f172a;
-        --bg-card: #111827;
-        --bg-hover: #1e293b;
+        --bg-card: #1e293b;
+        --bg-hover: #334155;
         --border-light: #334155;
-        --text: #e8edff;
+        --text: #f1f5f9;
         --text-muted: #94a3b8;
-        --primary: #8b5cf6;
+        --primary: #60a5fa;
         --danger: #f87171;
     }
     .cmp-nav {
@@ -221,7 +226,7 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(140deg, #6366f1, #8b5cf6);
+        background: linear-gradient(140deg, #3b82f6, #06b6d4);
         color: #fff;
         font-family: 'Sora', sans-serif;
         font-weight: 700;
@@ -393,7 +398,7 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
         height: 17px;
         padding: 0 5px;
         border-radius: 999px;
-        background: linear-gradient(140deg, #ef4444, #f97316);
+        background: linear-gradient(140deg, #dc2626, #f97316);
         color: #fff;
         font-size: .58rem;
         font-weight: 800;
@@ -402,7 +407,7 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
         justify-content: center;
         box-shadow: 0 3px 8px -3px rgba(239, 68, 68, .6);
     }
-    .cmp-badge-violet { background: linear-gradient(140deg, #8b5cf6, #6366f1); box-shadow: 0 3px 8px -3px rgba(139, 92, 246, .6); }
+    .cmp-badge-violet { background: linear-gradient(140deg, #06b6d4, #3b82f6); box-shadow: 0 3px 8px -3px rgba(139, 92, 246, .6); }
 
     /* ── User menu ── */
     .cmp-user { margin-left: 2px; }
@@ -425,7 +430,7 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(140deg, #6366f1, #8b5cf6);
+        background: linear-gradient(140deg, #3b82f6, #06b6d4);
         color: #fff;
         font-family: 'Sora', sans-serif;
         font-weight: 700;
@@ -585,7 +590,7 @@ $company_initial = mb_strtoupper(mb_substr(trim($company_name), 0, 1));
     .lc-toast.lc-out { opacity: 0; transform: translateX(20px); }
     .lc-toast-ico {
         width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; overflow: hidden;
-        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        background: linear-gradient(135deg, #1a56db, #0ea5e9);
         display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1rem;
     }
     .lc-toast-ico img { width: 100%; height: 100%; object-fit: cover; }

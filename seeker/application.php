@@ -8,7 +8,6 @@ require_once __DIR__ . '/../includes/bootstrap.php';
         exit();
     }
     require_once __DIR__ . '/../admin/dbcon.php';
-    require_once __DIR__ . '/../includes/header.php';
 
     $quiz_passed = isset($_SESSION['quiz_passed']) && $_SESSION['quiz_passed'] === true;
     $quiz_category = isset($_SESSION['quiz_category']) ? $_SESSION['quiz_category'] : '';
@@ -35,6 +34,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 <html lang="en">
 <head>
     <title>Apply for Job</title>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <style>
         .step-container {
             max-width: 800px;
@@ -124,6 +124,13 @@ require_once __DIR__ . '/../includes/bootstrap.php';
     </style>
 </head>
 <body>
+<nav style="position:sticky;top:0;z-index:1030;background:#fff;border-bottom:1px solid #e0e0e0;padding:0 20px">
+    <div style="max-width:800px;margin:0 auto;display:flex;align-items:center;height:56px;gap:16px">
+        <a href="browse_jobs.php" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#1e293b;font-weight:700;font-size:.9rem">
+            <i class="fas fa-arrow-left"></i> Browse Jobs
+        </a>
+    </div>
+</nav>
     <div class="container step-container">
         
         <?php

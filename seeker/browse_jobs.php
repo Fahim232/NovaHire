@@ -1,8 +1,11 @@
 <?php
 // Core setup: session, DB, BASE_URL, helpers
 require_once __DIR__ . '/../includes/bootstrap.php';
+if (!isset($_SESSION['id'])) {
+    header('location: ' . BASE_URL . '/auth/login.php');
+    exit();
+}
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../ai/matching.php';
 
 // Pull logged-in user's profile for recommendations
@@ -88,10 +91,10 @@ $live_count_q = mysqli_query($con, "SELECT COUNT(*) AS cnt FROM company_jobs WHE
 $live_count = $live_count_q ? intval(mysqli_fetch_assoc($live_count_q)['cnt']) : 0;
 
 $type_color = [
-    'Full-Time'   => ['#10b981', 'fa-clock'],
-    'Part-Time'   => ['#f59e0b', 'fa-hourglass-half'],
+    'Full-Time'   => ['#059669', 'fa-clock'],
+    'Part-Time'   => ['#d97706', 'fa-hourglass-half'],
     'Contract'    => ['#3b82f6', 'fa-file-signature'],
-    'Internship'  => ['#8b5cf6', 'fa-graduation-cap'],
+    'Internship'  => ['#06b6d4', 'fa-graduation-cap'],
 ];
 ?>
 <!DOCTYPE html>
@@ -99,11 +102,12 @@ $type_color = [
 
 <head>
     <title>Browse Jobs | NovaHire</title>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bj-grad: linear-gradient(135deg, #6d5efc 0%, #8b5cf6 45%, #d946ef 100%);
-            --bj-grad-soft: linear-gradient(135deg, rgba(109,94,252,.12), rgba(217,70,239,.12));
+            --bj-grad: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
+            --bj-grad-soft: linear-gradient(135deg, rgba(26,86,219,.12), rgba(217,70,239,.12));
         }
 
         .bj-wrap { background: var(--bg); min-height: 60vh; }
@@ -154,7 +158,7 @@ $type_color = [
             background: var(--bg-card);
             border: 1px solid var(--border-light);
             border-radius: 22px;
-            box-shadow: 0 20px 45px -18px rgba(79,70,229,.28);
+            box-shadow: 0 20px 45px -18px rgba(26,86,219,.28);
             transition: background .3s, border-color .3s, box-shadow .3s;
         }
         .bj-filters label { font-family: 'Sora', sans-serif; font-weight: 700; font-size: .74rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-light); margin: 0 0 8px; }
@@ -177,7 +181,7 @@ $type_color = [
             padding-right: 40px;
             cursor: pointer;
         }
-        .bj-select:focus, .bj-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.14); }
+        .bj-select:focus, .bj-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59,130,246,.14); }
         .bj-search-btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 9px;
             width: 100%;
@@ -187,7 +191,7 @@ $type_color = [
             color: #fff;
             background: var(--bj-grad);
             background-size: 150% 150%;
-            box-shadow: 0 10px 22px -10px rgba(139,92,246,.6);
+            box-shadow: 0 10px 22px -10px rgba(6,182,212,.6);
             cursor: pointer;
             transition: transform .25s, box-shadow .3s, background-position .4s;
         }
@@ -204,7 +208,7 @@ $type_color = [
         .bj-count span { color: var(--primary); }
         .bj-chip {
             display: inline-flex; align-items: center; gap: 7px;
-            background: var(--bj-grad-soft); border: 1px solid rgba(139,92,246,.25);
+            background: var(--bj-grad-soft); border: 1px solid rgba(6,182,212,.25);
             color: var(--primary); font-weight: 800; font-size: .76rem;
             padding: 7px 14px; border-radius: 999px;
         }
@@ -229,7 +233,7 @@ $type_color = [
             background: var(--bj-grad);
             opacity: 0; transition: opacity .3s;
         }
-        .bj-card:hover { transform: translateY(-5px); box-shadow: 0 24px 48px -18px rgba(79,70,229,.35); border-color: rgba(139,92,246,.35); }
+        .bj-card:hover { transform: translateY(-5px); box-shadow: 0 24px 48px -18px rgba(26,86,219,.35); border-color: rgba(6,182,212,.35); }
         .bj-card:hover::before { opacity: 1; }
 
         .bj-logo {
@@ -262,20 +266,20 @@ $type_color = [
             padding: 6px 12px; border-radius: 10px;
         }
         .bj-meta-item i { color: var(--primary); font-size: .8rem; width: 14px; text-align: center; }
-        .bj-meta-item.salary { color: #059669; background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.18); }
-        .bj-meta-item.salary i { color: #10b981; }
+        .bj-meta-item.salary { color: #059669; background: rgba(5,150,105,.08); border-color: rgba(5,150,105,.18); }
+        .bj-meta-item.salary i { color: #059669; }
 
         .bj-desc { color: var(--text-muted); font-size: .86rem; line-height: 1.65; margin: 0 0 13px; }
         .bj-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
         .bj-tag {
             font-size: .74rem; font-weight: 700;
-            color: #6d5efc;
-            background: rgba(109,94,252,.09);
-            border: 1px solid rgba(109,94,252,.16);
+            color: #1a56db;
+            background: rgba(26,86,219,.09);
+            border: 1px solid rgba(26,86,219,.16);
             padding: 5px 12px; border-radius: 999px;
             transition: all .2s;
         }
-        .bj-tag:hover { background: rgba(109,94,252,.18); }
+        .bj-tag:hover { background: rgba(26,86,219,.18); }
         [data-theme="dark"] .bj-tag { color: #c4b5fd; }
         .bj-tag.more { color: var(--text-muted); background: var(--bg-hover); border-color: var(--border-light); }
 
@@ -285,13 +289,13 @@ $type_color = [
             font-size: .72rem; font-weight: 800;
             padding: 6px 12px; border-radius: 999px;
         }
-        .bj-badge.cat { color: var(--primary); background: var(--bj-grad-soft); border: 1px solid rgba(139,92,246,.25); }
-        .bj-badge.quiz-ok { color: #047857; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.22); }
-        .bj-badge.quiz-req { color: #b45309; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.24); }
+        .bj-badge.cat { color: var(--primary); background: var(--bj-grad-soft); border: 1px solid rgba(6,182,212,.25); }
+        .bj-badge.quiz-ok { color: #047857; background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.22); }
+        .bj-badge.quiz-req { color: #b45309; background: rgba(217,119,6,.1); border: 1px solid rgba(217,119,6,.24); }
         .bj-badge.noquiz { color: var(--text-muted); background: var(--bg-hover); border: 1px solid var(--border-light); }
         .bj-badge.ai {
-            color: #7c3aed; background: rgba(139,92,246,.1);
-            border: 1px solid rgba(139,92,246,.28);
+            color: #0ea5e9; background: rgba(6,182,212,.1);
+            border: 1px solid rgba(6,182,212,.28);
         }
         .bj-applicants { margin-left: auto; font-size: .78rem; font-weight: 700; color: var(--text-light); }
 
@@ -304,7 +308,7 @@ $type_color = [
         .bj-ai-val {
             position: absolute; inset: 0;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-family: 'Sora', sans-serif; font-weight: 800; font-size: .95rem; color: #7c3aed;
+            font-family: 'Sora', sans-serif; font-weight: 800; font-size: .95rem; color: #0ea5e9;
             line-height: 1;
         }
         [data-theme="dark"] .bj-ai-val { color: #c4b5fd; }
@@ -320,8 +324,8 @@ $type_color = [
             cursor: pointer;
             transition: all .25s;
         }
-        .bj-save:hover { border-color: #f87171; color: #ef4444; transform: translateY(-2px); }
-        .bj-save.saved { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+        .bj-save:hover { border-color: #f87171; color: #dc2626; transform: translateY(-2px); }
+        .bj-save.saved { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
         .bj-save i { pointer-events: none; transition: transform .2s; }
         .bj-save.saved i { animation: bj-pop .35s ease; }
         @keyframes bj-pop { 0% { transform: scale(.4); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
@@ -332,13 +336,13 @@ $type_color = [
             color: #fff;
             background: var(--bj-grad); background-size: 150% 150%;
             padding: 12px 22px; border-radius: 13px;
-            box-shadow: 0 10px 22px -10px rgba(139,92,246,.6);
+            box-shadow: 0 10px 22px -10px rgba(6,182,212,.6);
             text-decoration: none;
             transition: transform .25s, box-shadow .3s, background-position .4s;
         }
         .bj-apply:hover { transform: translateY(-2px); background-position: 100% 50%; color: #fff; text-decoration: none; box-shadow: 0 16px 30px -12px rgba(217,70,239,.65); }
         .bj-apply.quiz { background: linear-gradient(135deg, #f6ad55, #ed8936); background-size: 150% 150%; box-shadow: 0 10px 22px -10px rgba(237,137,54,.6); }
-        .bj-apply.quiz:hover { box-shadow: 0 16px 30px -12px rgba(245,158,11,.65); }
+        .bj-apply.quiz:hover { box-shadow: 0 16px 30px -12px rgba(217,119,6,.65); }
 
         /* ── Empty state ── */
         .bj-empty {
@@ -382,6 +386,17 @@ $type_color = [
 </head>
 
 <body>
+<!-- Top nav -->
+<nav style="position:sticky;top:0;z-index:1030;background:var(--bg-card);border-bottom:1px solid var(--border-light);padding:0 20px">
+    <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;height:56px;gap:16px">
+        <a href="seeker_dashboard.php" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-weight:700;font-size:.9rem">
+            <i class="fas fa-arrow-left"></i> Dashboard
+        </a>
+        <span style="color:var(--text-light);font-size:.8rem"><i class="fas fa-chevron-right"></i></span>
+        <span style="font-weight:700;color:var(--text);font-size:.9rem">Browse Jobs</span>
+    </div>
+</nav>
+
 <div class="bj-wrap">
 
     <!-- Hero -->
@@ -454,7 +469,7 @@ $type_color = [
         <?php if (count($jobs) > 0): ?>
             <?php foreach ($jobs as $idx => $job): ?>
                 <?php $ai_match = isset($job['ai']) ? $job['ai'] : null; ?>
-                <?php $tc = $type_color[$job['employment_type']] ?? ['#8b5cf6', 'fa-briefcase']; ?>
+                <?php $tc = $type_color[$job['employment_type']] ?? ['#06b6d4', 'fa-briefcase']; ?>
                 <div class="bj-card bj-fade" style="animation-delay:<?php echo min($idx * 0.04, 0.4); ?>s;">
                     <div class="bj-logo">
                         <?php if (!empty($job['logo'])): ?>
@@ -533,8 +548,8 @@ $type_color = [
                                 <svg width="64" height="64" viewBox="0 0 64 64">
                                     <defs>
                                         <linearGradient id="bjGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stop-color="#6d5efc"/>
-                                            <stop offset="100%" stop-color="#d946ef"/>
+                                            <stop offset="0%" stop-color="#1a56db"/>
+                                            <stop offset="100%" stop-color="#22d3ee"/>
                                         </linearGradient>
                                     </defs>
                                     <circle class="ring-bg" cx="32" cy="32" r="26" fill="none" stroke-width="6"/>

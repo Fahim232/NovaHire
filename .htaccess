@@ -12,6 +12,7 @@ RewriteRule ^registration\.php$    auth/registration.php     [L,R=301]
 RewriteRule ^forgot_password\.php$ auth/forgot_password.php  [L,R=301]
 RewriteRule ^reset_password\.php$  auth/reset_password.php   [L,R=301]
 RewriteRule ^logout\.php$          auth/logout.php           [L,R=301]
+RewriteRule ^company_login\.php$   auth/login.php            [L,R=301]
 
 # --- seeker/ pages ---
 RewriteRule ^seeker_dashboard\.php$              seeker/seeker_dashboard.php            [L,R=301]

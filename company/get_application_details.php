@@ -76,7 +76,7 @@ if (!$app) {
 <div class="applicant-detail">
     <div class="detail-label"><i class="fas fa-trophy"></i> Quiz Status</div>
     <div class="quiz-score">
-        <div class="score-circle" style="background: <?php echo $app['quiz_status'] == 'passed' ? '#10b981' : '#f59e0b'; ?>;">
+        <div class="score-circle" style="background: <?php echo $app['quiz_status'] == 'passed' ? '#059669' : '#d97706'; ?>;">
             <i class="fas fa-<?php echo $app['quiz_status'] == 'passed' ? 'check' : 'times'; ?>"></i>
         </div>
         <div>

@@ -1,12 +1,13 @@
 <?php
-// Core setup: session, DB, BASE_URL, helpers
 require_once __DIR__ . '/../includes/bootstrap.php';
+if (!isset($_SESSION['id'])) {
+    header('location: ' . BASE_URL . '/auth/login.php');
+    exit();
+}
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 
 $user_id = $_SESSION['id'];
 
-// Get companies the user has applied to (for starting new chats)
 $applied_q = mysqli_query($con, "SELECT DISTINCT c.id, c.company_name, c.logo 
     FROM job_applications ja 
     JOIN company_jobs cj ON ja.job_id = cj.id 
@@ -17,7 +18,6 @@ while ($row = mysqli_fetch_assoc($applied_q)) {
     $companies[] = $row;
 }
 
-// Also add companies from messages
 $msg_companies = mysqli_query($con, "SELECT DISTINCT 
     CASE WHEN sender_type = 'company' THEN sender_id ELSE receiver_id END as cid
     FROM messages 
@@ -36,13 +36,20 @@ while ($row = mysqli_fetch_assoc($msg_companies)) {
     }
 }
 ?>
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat | NovaHire</title>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
+    <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
-        --lc-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #38bdf8 100%);
-        --lc-bubble: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-        --lc-accent: #2563eb;
+        --lc-grad: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
+        --lc-bubble: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
+        --lc-accent: var(--primary, #1a56db);
         --lc-border: #eef1f6;
     }
     html, body { overflow: hidden; }
@@ -50,7 +57,7 @@ while ($row = mysqli_fetch_assoc($msg_companies)) {
     .lc-head-font { font-family: 'Plus Jakarta Sans', sans-serif; }
 
     /* ── Wrapper ─────────────────────────────── */
-    .lc-wrap { height: calc(100vh - 96px); padding: 18px 20px 20px; max-width: 1240px; margin: 0 auto; }
+    .lc-wrap { height: calc(100vh - 82px); padding: 18px 20px 20px; max-width: 1240px; margin: 0 auto; }
     .lc-card {
         display: flex;
         height: 100%;
@@ -122,7 +129,7 @@ while ($row = mysqli_fetch_assoc($msg_companies)) {
     .lc-main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-card); }
     .lc-chat-head { padding: 14px 24px; border-bottom: 1px solid var(--lc-border); display: flex; align-items: center; gap: 13px; background: var(--bg-card); }
     .lc-status { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 600; color: #059669; }
-    .lc-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, .15); }
+    .lc-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #059669; box-shadow: 0 0 0 3px rgba(16, 185, 129, .15); }
 
     .lc-messages { flex: 1; overflow-y: auto; padding: 26px 26px 14px; display: flex; flex-direction: column; gap: 14px; background: var(--bg); }
     .lc-date-divider { align-self: center; font-size: .68rem; font-weight: 600; color: var(--text-light); background: var(--bg-hover); border: 1px solid var(--lc-border); padding: 4px 12px; border-radius: 999px; }
@@ -196,7 +203,7 @@ while ($row = mysqli_fetch_assoc($msg_companies)) {
 
     /* ── Responsive ──────────────────────────── */
     @media (max-width: 820px) {
-        .lc-wrap { padding: 10px; height: calc(100vh - 96px); }
+        .lc-wrap { padding: 10px; height: calc(100vh - 74px); }
         .lc-card { border-radius: 16px; }
         .lc-sb { width: 100%; border-right: none; }
         .lc-main { display: none; }
@@ -208,6 +215,17 @@ while ($row = mysqli_fetch_assoc($msg_companies)) {
         .lc-sb-title p { display: none; }
     }
 </style>
+
+<body style="overflow:hidden">
+<nav style="position:sticky;top:0;z-index:1030;background:rgba(255,255,255,.88);backdrop-filter:blur(20px);border-bottom:1px solid rgba(226,232,240,.5);padding:0 20px">
+    <div style="max-width:1340px;margin:0 auto;display:flex;align-items:center;height:64px;gap:12px">
+        <a href="seeker_dashboard.php" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#1e293b;font-weight:700;font-size:.9rem">
+            <i class="fas fa-arrow-left"></i> Dashboard
+        </a>
+        <span style="color:#94a3b8;font-size:.8rem"><i class="fas fa-chevron-right"></i></span>
+        <span style="font-weight:700;color:#1e293b;font-size:.9rem"><i class="fas fa-comments mr-1" style="color:var(--primary,#1a56db)"></i> Live Chat</span>
+    </div>
+</nav>
 
 <div class="lc-wrap">
     <div class="lc-card">

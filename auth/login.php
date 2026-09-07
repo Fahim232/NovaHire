@@ -8,24 +8,26 @@ require_once __DIR__ . '/../includes/bootstrap.php';
  * Uses prepared statement queries to verify user credentials and password hashes, initializing session variables.
  */
 
-// Initialize session if not active
-if (session_status() === PHP_SESSION_NONE) {
-
-}
-
-// Include database connection handle
-require_once __DIR__ . '/../admin/dbcon.php';
-
 $error_msg = '';
 
 // Handle form submission
 if (isset($_POST['submit'])) {
+    // CSRF Verification
+    require_csrf();
+    
+    // Rate limiting
+    rate_limit_response('login');
+    
     $role  = trim($_POST['role'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $pass  = $_POST['password'] ?? '';
 
+    // Check if account is locked
+    if (is_login_locked($email)) {
+        $error_msg = 'Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.';
+    }
     // 1. Authenticate Job Seeker Role
-    if ($role === 'seeker') {
+    elseif ($role === 'seeker') {
         $stmt = mysqli_prepare($con, "SELECT id, username, phone, email, password FROM user_info WHERE email = ?");
         mysqli_stmt_bind_param($stmt, "s", $email);
         mysqli_stmt_execute($stmt);
@@ -37,20 +39,39 @@ if (isset($_POST['submit'])) {
             
             // Verify BCrypt hashed password
             if (password_verify($pass, $dbpass)) {
+                // Track successful login
+                track_login_attempt($email, true);
+
+                session_regenerate_id(true);          // prevent session fixation
+
                 $_SESSION['username'] = $row['username'];
                 $_SESSION['uphone']   = $row['phone'];
                 $_SESSION['email']    = $row['email'];
                 $_SESSION['id']       = $row['id'];
-                
-                $redirect = isset($_GET['redirect']) ? filter_var($_GET['redirect'], FILTER_SANITIZE_URL) : BASE_URL . '/seeker/seeker_dashboard.php';
-                // Normalise so redirects never resolve against the /auth/ folder:
-                // absolute (leading / or http) → keep as-is; relative → assume a legacy seeker page (now in /seeker/).
-                if ($redirect !== '' && strpos($redirect, '/') !== 0 && strpos($redirect, 'http://') !== 0 && strpos($redirect, 'https://') !== 0) {
-                    $redirect = BASE_URL . '/seeker/' . $redirect;
+
+                // Log login activity
+                create_activity_log('user', $row['id'], 'login', ['ip' => $_SERVER['REMOTE_ADDR'] ?? '']);
+
+                /* Same-origin redirect only. An attacker-supplied ?redirect= must never be able
+                   to send the user off-site, nor break out of the JS string below. */
+                $redirect = BASE_URL . '/seeker/seeker_dashboard.php';
+                if (isset($_GET['redirect'])) {
+                    $want = trim((string)$_GET['redirect']);
+                    // Reject absolute URLs, protocol-relative URLs and anything with a scheme.
+                    if ($want !== ''
+                        && strpos($want, '//') !== 0
+                        && strpos($want, "\\") === false
+                        && !preg_match('#^[a-z][a-z0-9+.-]*:#i', $want)) {
+                        $redirect = (strpos($want, '/') === 0)
+                            ? $want                       // already root-relative
+                            : BASE_URL . '/seeker/' . $want; // legacy seeker page
+                    }
                 }
-                echo "<script>alert('Login Successful!'); window.location.href='$redirect';</script>";
+                echo "<script>alert('Login Successful!'); window.location.href=" . json_encode($redirect) . ";</script>";
                 exit();
             } else {
+                // Track failed login attempt
+                track_login_attempt($email, false);
                 $error_msg = 'Incorrect Password!';
             }
         } else {
@@ -71,6 +92,7 @@ if (isset($_POST['submit'])) {
 
             // Verify BCrypt hashed password
             if (password_verify($pass, $dbpass)) {
+                session_regenerate_id(true);          // prevent session fixation
                 $_SESSION['company_id']    = $row['id'];
                 $_SESSION['company_name']  = $row['company_name'];
                 $_SESSION['company_email'] = $row['company_email'];
@@ -97,9 +119,11 @@ if (isset($_POST['submit'])) {
             $row = mysqli_fetch_assoc($result);
             $dbpass = $row['admin_password'];
 
-            // Verify hashed password or legacy plain-text match
-            if (password_verify($pass, $dbpass) || $pass === $dbpass) {
+            // Verify BCrypt hashed password (no plain-text fallback — all rows must be hashed)
+            if (password_verify($pass, $dbpass)) {
+                session_regenerate_id(true);          // prevent session fixation
                 $_SESSION['admin_username'] = $row['admin_user_name'];
+                $_SESSION['admin_id']       = (int)$row['id'];
                 echo "<script>alert('Login Successful!'); window.location.href='" . BASE_URL . "/admin/index.php';</script>";
                 exit();
             } else {
@@ -122,6 +146,7 @@ if (isset($_POST['submit'])) {
     <?php include '../includes/links.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; }
         body {
             min-height: 100vh;
             display: flex;
@@ -130,19 +155,11 @@ if (isset($_POST['submit'])) {
             overflow: auto;
             padding: 40px 16px;
             font-family: 'Manrope', 'Inter', sans-serif;
-            background:
-                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.24), transparent 34%),
-                radial-gradient(circle at 85% 20%, rgba(217, 70, 239, 0.16), transparent 32%),
-                radial-gradient(circle at 50% 100%, rgba(20, 184, 166, 0.14), transparent 42%),
-                #f6f7fb;
+            background: #f0f4f8;
             transition: background .4s ease;
         }
         [data-theme="dark"] body {
-            background:
-                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.30), transparent 34%),
-                radial-gradient(circle at 85% 20%, rgba(217, 70, 239, 0.20), transparent 32%),
-                radial-gradient(circle at 50% 100%, rgba(20, 184, 166, 0.16), transparent 42%),
-                #0f172a;
+            background: #0b1120;
         }
 
         @keyframes lg-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
@@ -156,25 +173,29 @@ if (isset($_POST['submit'])) {
         .lg-wrap { width: 100%; max-width: 980px; }
         .lg-card {
             display: flex;
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 26px;
-            box-shadow: 0 30px 70px -28px rgba(15, 23, 42, 0.45);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px -20px rgba(15, 23, 42, 0.15);
             overflow: hidden;
             animation: lg-rise .6s cubic-bezier(.21,1.02,.73,1) both;
         }
-        [data-theme="dark"] .lg-card { box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.75); }
+        [data-theme="dark"] .lg-card {
+            background: #162032;
+            border-color: #1e3a5f;
+            box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+        }
 
         /* ── Visual panel ── */
         .lg-visual {
             position: relative;
             width: 44%;
             padding: 46px 40px;
-            color: #fff;
+            color: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background: linear-gradient(135deg, #6d5efc 0%, #8b5cf6 40%, #d946ef 100%);
+            background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 50%, #1a56db 100%);
             overflow: hidden;
         }
         .lg-visual::before, .lg-visual::after {
@@ -183,8 +204,8 @@ if (isset($_POST['submit'])) {
             border-radius: 50%;
             pointer-events: none;
         }
-        .lg-visual::before { top: -100px; right: -70px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%); }
-        .lg-visual::after { bottom: -120px; left: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%); }
+        .lg-visual::before { top: -100px; right: -70px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(59,130,246,0.2), transparent 70%); }
+        .lg-visual::after { bottom: -120px; left: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(14,165,233,0.15), transparent 70%); }
         .lg-visual-inner { position: relative; z-index: 2; }
         .lg-logo {
             display: inline-flex; align-items: center; gap: 12px;
@@ -194,11 +215,11 @@ if (isset($_POST['submit'])) {
         }
         .lg-logo-icon {
             width: 46px; height: 46px; border-radius: 14px;
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            border: 1px solid rgba(255,255,255,0.35);
-            color: #1e293b;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #ffffff;
             display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
-            box-shadow: 0 8px 18px -8px rgba(245,158,11,0.8);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .lg-visual h2 {
             font-family: 'Sora', sans-serif;
@@ -206,17 +227,14 @@ if (isset($_POST['submit'])) {
             line-height: 1.15; margin: 0 0 14px;
         }
         .lg-visual h2 span {
-            background: linear-gradient(90deg, #fde68a, #fbbf24, #f59e0b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #93c5fd;
         }
-        .lg-visual p { color: rgba(255,255,255,0.85); font-size: .94rem; line-height: 1.7; margin: 0; }
+        .lg-visual p { color: rgba(255,255,255,0.75); font-size: .94rem; line-height: 1.7; margin: 0; }
         .lg-roles { display: flex; gap: 14px; margin-top: 28px; }
         .lg-role-ic {
             flex: 1;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.26);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 16px;
             padding: 14px 8px;
             text-align: center;
@@ -224,81 +242,106 @@ if (isset($_POST['submit'])) {
             animation: lg-pop .5s both;
             transition: background .25s, transform .25s, border-color .25s;
         }
-        .lg-role-ic:hover { background: rgba(255,255,255,0.24); transform: translateY(-3px); border-color: rgba(255,255,255,0.4); }
-        .lg-role-ic i { font-size: 1.4rem; display: block; margin-bottom: 6px; opacity: .95; }
-        .lg-role-ic span { font-size: .74rem; font-weight: 700; letter-spacing: .02em; opacity: .9; }
-        .lg-visual-foot { color: rgba(255,255,255,0.6); font-size: .76rem; margin-top: 30px; position: relative; z-index: 2; }
+        .lg-role-ic:hover { background: rgba(255,255,255,0.15); transform: translateY(-3px); border-color: rgba(255,255,255,0.3); }
+        .lg-role-ic i { font-size: 1.4rem; display: block; margin-bottom: 6px; opacity: .9; }
+        .lg-role-ic span { font-size: .74rem; font-weight: 700; letter-spacing: .02em; opacity: .85; }
+        .lg-visual-foot { color: rgba(255,255,255,0.5); font-size: .76rem; margin-top: 30px; position: relative; z-index: 2; }
         .lg-visual-foot i { margin-right: 5px; }
 
         /* ── Form panel ── */
         .lg-form { flex: 1; padding: 46px 48px; display: flex; flex-direction: column; justify-content: center; }
-        .lg-title { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--text); margin: 0 0 4px; letter-spacing: -0.03em; }
-        .lg-sub { color: var(--text-muted); font-size: .9rem; margin: 0 0 26px; }
+        .lg-title { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.8rem; color: #0f172a; margin: 0 0 4px; letter-spacing: -0.03em; }
+        [data-theme="dark"] .lg-title { color: #f1f5f9; }
+        .lg-sub { color: #64748b; font-size: .9rem; margin: 0 0 26px; }
+        [data-theme="dark"] .lg-sub { color: #94a3b8; }
 
         .lg-rolesel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
         .lg-role {
             position: relative;
-            border: 2px solid var(--border-light);
+            border: 2px solid #e2e8f0;
             border-radius: 14px;
-            background: var(--bg-card);
+            background: #ffffff;
             padding: 13px 8px;
             text-align: center;
             cursor: pointer;
             transition: border-color .2s, box-shadow .2s, transform .18s, background .2s;
         }
-        .lg-role:hover { transform: translateY(-2px); border-color: rgba(99, 102, 241, 0.55); }
-        .lg-role.active {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, rgba(109,94,252,0.12), rgba(217,70,239,0.12));
-            box-shadow: 0 0 0 3px rgba(139,92,246,0.16), 0 8px 18px -10px rgba(139,92,246,0.5);
+        [data-theme="dark"] .lg-role {
+            border-color: #1e3a5f;
+            background: #1a2744;
         }
-        [data-theme="dark"] .lg-role.active { background: rgba(139,92,246,0.20); }
+        .lg-role:hover { transform: translateY(-2px); border-color: #93c5fd; }
+        .lg-role.active {
+            border-color: #1a56db;
+            background: #eff6ff;
+            box-shadow: 0 0 0 3px rgba(26,86,219,0.12), 0 4px 12px -4px rgba(26,86,219,0.3);
+        }
+        [data-theme="dark"] .lg-role.active { background: rgba(26,86,219,0.2); border-color: #3b82f6; }
         .lg-role input { position: absolute; opacity: 0; pointer-events: none; }
-        .lg-role i { font-size: 1.3rem; display: block; margin-bottom: 5px; color: var(--text-muted); transition: color .2s, transform .2s; }
-        .lg-role.active i { color: #8b5cf6; transform: scale(1.12); }
-        [data-theme="dark"] .lg-role.active i { color: #c4b5fd; }
-        .lg-role span { font-size: .76rem; font-weight: 700; color: var(--text-muted); transition: color .2s; }
-        .lg-role.active span { color: var(--text); }
+        .lg-role i { font-size: 1.3rem; display: block; margin-bottom: 5px; color: #94a3b8; transition: color .2s, transform .2s; }
+        [data-theme="dark"] .lg-role i { color: #64748b; }
+        .lg-role.active i { color: #1a56db; transform: scale(1.12); }
+        [data-theme="dark"] .lg-role.active i { color: #60a5fa; }
+        .lg-role span { font-size: .76rem; font-weight: 700; color: #94a3b8; transition: color .2s; }
+        [data-theme="dark"] .lg-role span { color: #64748b; }
+        .lg-role.active span { color: #0f172a; }
+        [data-theme="dark"] .lg-role.active span { color: #f1f5f9; }
 
         .lg-field { position: relative; margin-bottom: 18px; }
         .lg-field > i {
             position: absolute;
             left: 16px; top: 50%; transform: translateY(-50%);
-            color: var(--text-muted); font-size: .9rem; z-index: 2;
+            color: #94a3b8; font-size: .9rem; z-index: 2;
             transition: color .2s;
         }
-        .lg-field.focus > i { color: #8b5cf6; }
+        [data-theme="dark"] .lg-field > i { color: #64748b; }
+        .lg-field.focus > i { color: #1a56db; }
+        [data-theme="dark"] .lg-field.focus > i { color: #60a5fa; }
         .lg-input {
             width: 100%;
             padding: 13px 46px 13px 44px;
-            border: 2px solid var(--border-light);
+            border: 2px solid #e2e8f0;
             border-radius: 14px;
-            background: var(--bg-card);
-            color: var(--text);
+            background: #ffffff;
+            color: #0f172a;
             font-size: .92rem; font-weight: 600;
             transition: border-color .2s, box-shadow .2s, background .2s;
             outline: none;
         }
-        .lg-input::placeholder { color: var(--text-light); font-weight: 500; }
+        [data-theme="dark"] .lg-input {
+            border-color: #1e3a5f;
+            background: #1a2744;
+            color: #f1f5f9;
+        }
+        .lg-input::placeholder { color: #94a3b8; font-weight: 500; }
+        [data-theme="dark"] .lg-input::placeholder { color: #64748b; }
         .lg-input:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 4px rgba(139,92,246,0.15);
+            border-color: #1a56db;
+            box-shadow: 0 0 0 4px rgba(26,86,219,0.1);
+        }
+        [data-theme="dark"] .lg-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
         }
         .lg-toggle {
             position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
             width: 34px; height: 34px; border-radius: 9px;
-            border: 0; background: none; color: var(--text-muted);
+            border: 0; background: none; color: #94a3b8;
             display: flex; align-items: center; justify-content: center;
             transition: color .2s, background .2s; cursor: pointer;
         }
-        .lg-toggle:hover { color: var(--text); background: var(--bg-hover); }
+        [data-theme="dark"] .lg-toggle { color: #64748b; }
+        .lg-toggle:hover { color: #0f172a; background: #f1f5f9; }
+        [data-theme="dark"] .lg-toggle:hover { color: #f1f5f9; background: #1e3a5f; }
 
         .lg-row { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 20px; gap: 10px; flex-wrap: wrap; }
-        .lg-remember { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--text-muted); font-weight: 600; cursor: pointer; }
-        .lg-remember input { accent-color: #6366f1; width: 15px; height: 15px; }
-        .lg-forgot { color: #8b5cf6; font-weight: 700; font-size: .82rem; text-decoration: none; }
-        .lg-forgot:hover { text-decoration: underline; color: #6d5efc; }
-        [data-theme="dark"] .lg-forgot { color: #c4b5fd; }
+        .lg-remember { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: #64748b; font-weight: 600; cursor: pointer; }
+        [data-theme="dark"] .lg-remember { color: #94a3b8; }
+        .lg-remember input { accent-color: #1a56db; width: 15px; height: 15px; }
+        .lg-forgot { color: #1a56db; font-weight: 700; font-size: .82rem; text-decoration: none; }
+        .lg-forgot:hover { text-decoration: underline; color: #1e40af; }
+        [data-theme="dark"] .lg-forgot { color: #60a5fa; }
+        [data-theme="dark"] .lg-forgot:hover { color: #93c5fd; }
 
         .lg-btn {
             width: 100%;
@@ -307,25 +350,25 @@ if (isset($_POST['submit'])) {
             border-radius: 14px;
             font-family: 'Sora', sans-serif;
             font-weight: 600; font-size: .98rem; letter-spacing: .01em;
-            color: #fff;
-            background: linear-gradient(135deg, #6d5efc, #8b5cf6 55%, #d946ef);
-            background-size: 150% 150%;
-            box-shadow: 0 10px 24px -10px rgba(139,92,246,0.65);
+            color: #ffffff;
+            background: linear-gradient(135deg, #1a56db, #1e40af);
+            box-shadow: 0 8px 20px -6px rgba(26,86,219,0.5);
             display: inline-flex; align-items: center; justify-content: center; gap: 10px;
             cursor: pointer;
-            transition: transform .25s, box-shadow .3s, opacity .2s, background-position .4s;
+            transition: transform .25s, box-shadow .3s, opacity .2s;
         }
-        .lg-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -12px rgba(217,70,239,0.7); color: #fff; background-position: 100% 50%; }
+        .lg-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -8px rgba(26,86,219,0.6); color: #ffffff; }
         .lg-btn:disabled { opacity: .75; cursor: not-allowed; transform: none; }
         .lg-btn .spin { display: none; }
         .lg-btn.loading .spin { display: inline-block; }
         .lg-btn.loading .label { visibility: hidden; position: relative; }
         .lg-btn.loading .label::after { content: 'Signing in…'; visibility: visible; position: absolute; left: 50%; transform: translateX(-50%); }
 
-        .lg-alt { text-align: center; margin-top: 22px; font-size: .85rem; color: var(--text-muted); font-weight: 500; }
-        .lg-alt a { color: #8b5cf6; font-weight: 800; text-decoration: none; }
+        .lg-alt { text-align: center; margin-top: 22px; font-size: .85rem; color: #64748b; font-weight: 500; }
+        [data-theme="dark"] .lg-alt { color: #94a3b8; }
+        .lg-alt a { color: #1a56db; font-weight: 800; text-decoration: none; }
         .lg-alt a:hover { text-decoration: underline; }
-        [data-theme="dark"] .lg-alt a { color: #c4b5fd; }
+        [data-theme="dark"] .lg-alt a { color: #60a5fa; }
 
         .lg-alert {
             display: flex; align-items: center; gap: 11px;
@@ -334,11 +377,12 @@ if (isset($_POST['submit'])) {
             border: 1px solid transparent;
             animation: lg-shake .4s ease;
         }
-        .lg-alert.danger { background: rgba(239,68,68,0.1); color: #b91c1c; border-color: rgba(239,68,68,0.3); }
+        .lg-alert.danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
         .lg-alert.danger i { font-size: 1.05rem; }
-        [data-theme="dark"] .lg-alert.danger { color: #fca5a5; background: rgba(239,68,68,0.16); }
+        [data-theme="dark"] .lg-alert.danger { color: #fca5a5; background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.25); }
 
-        .lg-secure { display: flex; align-items: center; gap: 6px; color: var(--text-light); font-size: .74rem; font-weight: 600; margin-top: 18px; }
+        .lg-secure { display: flex; align-items: center; gap: 6px; color: #94a3b8; font-size: .74rem; font-weight: 600; margin-top: 18px; }
+        [data-theme="dark"] .lg-secure { color: #64748b; }
         .lg-secure i { font-size: .8rem; }
 
         @media (max-width: 860px) {
@@ -391,6 +435,7 @@ if (isset($_POST['submit'])) {
                 <?php endif; ?>
 
                 <form action="login.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>" method="POST" id="lgForm">
+                    <?php echo csrf_input(); ?>
                     <!-- Role Selector -->
                     <div class="lg-rolesel">
                         <label class="lg-role active" id="role-seeker" onclick="selectRole('seeker')">
@@ -459,13 +504,13 @@ if (isset($_POST['submit'])) {
             emailField.placeholder = 'Admin Username';
             emailField.type = 'text';
             emailIcon.className = 'fa fa-user';
-            registerLink.innerHTML = 'Create admin account? <a href="<?php echo BASE_URL; ?>/admin/register_admin.php">Create Account</a>';
+            registerLink.innerHTML = 'Admin accounts are created by existing admins.';
             registerLink.style.display = 'block';
         } else if (role === 'recruiter') {
             emailField.placeholder = 'Company Email';
             emailField.type = 'email';
             emailIcon.className = 'fa fa-envelope';
-            registerLink.innerHTML = 'Register your company? <a href="<?php echo BASE_URL; ?>/company_registration.php">Create Account</a>';
+            registerLink.innerHTML = 'Register your company? <a href="<?php echo BASE_URL; ?>/auth/company_registration.php">Create Account</a>';
             registerLink.style.display = 'block';
         } else {
             emailField.placeholder = 'Email Address';

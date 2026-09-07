@@ -1,41 +1,67 @@
 <?php
     session_start();
+    require_once __DIR__ . '/../includes/bootstrap.php';
     include '../admin/dbcon.php';
 
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
 
     $company_id = $_SESSION['company_id'];
     $company_name = $_SESSION['company_name'];
 
+    // Check if company can post more jobs
+    if (!can_post_job($con, $company_id)) {
+        $error_msg = "You've reached your job posting limit. Please upgrade your plan to post more jobs.";
+    }
+
     if (isset($_POST['post_job'])) {
-        $job_title = mysqli_real_escape_string($con, $_POST['job_title']);
-        $job_category = mysqli_real_escape_string($con, $_POST['job_category']);
-        $job_description = mysqli_real_escape_string($con, $_POST['job_description']);
-        $requirements = mysqli_real_escape_string($con, $_POST['requirements']);
-        $responsibilities = mysqli_real_escape_string($con, $_POST['responsibilities']);
-        $location = mysqli_real_escape_string($con, $_POST['location']);
-        $employment_type = mysqli_real_escape_string($con, $_POST['employment_type']);
-        $salary_range = mysqli_real_escape_string($con, $_POST['salary_range']);
-        $experience_required = mysqli_real_escape_string($con, $_POST['experience_required']);
-        $skills_required = mysqli_real_escape_string($con, $_POST['skills_required']);
-        $deadline = mysqli_real_escape_string($con, $_POST['deadline']);
-        $vacancy_count = intval($_POST['vacancy_count']);
-        $status = mysqli_real_escape_string($con, $_POST['status']);
+        // CSRF Verification
+        require_csrf();
+        
+        $job_title = trim($_POST['job_title'] ?? '');
+        $job_category = trim($_POST['job_category'] ?? '');
+        $job_description = trim($_POST['job_description'] ?? '');
+        $requirements = trim($_POST['requirements'] ?? '');
+        $responsibilities = trim($_POST['responsibilities'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+        $employment_type = trim($_POST['employment_type'] ?? '');
+        $salary_range = trim($_POST['salary_range'] ?? '');
+        $experience_required = trim($_POST['experience_required'] ?? '');
+        $skills_required = trim($_POST['skills_required'] ?? '');
+        $deadline = trim($_POST['deadline'] ?? '');
+        $vacancy_count = intval($_POST['vacancy_count'] ?? 1);
+        $status = trim($_POST['status'] ?? 'active');
+        
+        // Calculate salary range for filtering
+        $salary_min = 0;
+        $salary_max = 0;
+        if (preg_match('/(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)/', $salary_range, $matches)) {
+            $salary_min = intval(str_replace(',', '', $matches[1]));
+            $salary_max = intval(str_replace(',', '', $matches[2]));
+        }
 
-        $insert_query = "INSERT INTO company_jobs (company_id, job_title, job_category, job_description, requirements, responsibilities, location, employment_type, salary_range, experience_required, skills_required, deadline, vacancy_count, status) 
-                        VALUES ($company_id, '$job_title', '$job_category', '$job_description', '$requirements', '$responsibilities', '$location', '$employment_type', '$salary_range', '$experience_required', '$skills_required', '$deadline', $vacancy_count, '$status')";
-
-        if (mysqli_query($con, $insert_query)) {
+        // Use prepared statement
+        $insert_stmt = mysqli_prepare($con, "INSERT INTO company_jobs (company_id, job_title, job_category, job_description, requirements, responsibilities, location, employment_type, salary_range, salary_min, salary_max, experience_required, skills_required, deadline, vacancy_count, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        mysqli_stmt_bind_param($insert_stmt, "issssssssiisssi", $company_id, $job_title, $job_category, $job_description, $requirements, $responsibilities, $location, $employment_type, $salary_range, $salary_min, $salary_max, $experience_required, $skills_required, $deadline, $vacancy_count, $status);
+        
+        if (mysqli_stmt_execute($insert_stmt)) {
             $job_id = mysqli_insert_id($con);
+            
+            // Log activity
+            create_activity_log('company', $company_id, 'job_posted', ['job_id' => $job_id, 'title' => $job_title]);
+            
+            // Send email notifications to matching job alert subscribers
+            send_job_alerts_to_subscribers($con, $job_id);
+            
             header("Location: post_job.php?success=$job_id");
             exit;
         } else {
             $error_msg = "Failed to post job. Please try again.";
         }
+        mysqli_stmt_close($insert_stmt);
     }
 
     $categories = [
@@ -56,8 +82,8 @@
             --pj-border: #e5e9f2;
             --pj-text: #1e293b;
             --pj-muted: #64748b;
-            --pj-primary: #4f46e5;
-            --pj-primary-2: #7c3aed;
+            --pj-primary: #1a56db;
+            --pj-primary-2: #0ea5e9;
             --pj-soft: #eef2ff;
             --pj-input: #f8fafc;
             --pj-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -68,8 +94,8 @@
             --pj-border: #28334a;
             --pj-text: #e8edff;
             --pj-muted: #94a3b8;
-            --pj-primary: #8b5cf6;
-            --pj-primary-2: #a78bfa;
+            --pj-primary: #06b6d4;
+            --pj-primary-2: #38bdf8;
             --pj-soft: #1e293b;
             --pj-input: #0d1526;
             --pj-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -91,7 +117,7 @@
         .pj-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -122,7 +148,7 @@
         .pj-step .n {
             width: 22px; height: 22px;
             border-radius: 50%;
-            background: #fff; color: #4f46e5;
+            background: #fff; color: #1a56db;
             display: inline-flex; align-items: center; justify-content: center;
             font-size: 0.72rem; font-weight: 800;
         }
@@ -166,7 +192,7 @@
             font-size: 0.86rem; font-weight: 600; color: var(--pj-text);
             margin-bottom: 7px;
         }
-        .pj-label .req { color: #ef4444; margin-left: 3px; }
+        .pj-label .req { color: #dc2626; margin-left: 3px; }
         .pj-label .opt { color: var(--pj-muted); font-size: 0.75rem; font-weight: 500; }
         .pj-count { color: var(--pj-muted); font-size: 0.72rem; font-weight: 500; }
 
@@ -202,7 +228,7 @@
         /* AI button */
         .pj-ai-btn {
             display: inline-flex; align-items: center; gap: 7px;
-            background: linear-gradient(135deg, #f59e0b, #f97316);
+            background: linear-gradient(135deg, #d97706, #f97316);
             border: none; color: #fff;
             font-size: 0.8rem; font-weight: 700;
             padding: 8px 16px; border-radius: 30px;
@@ -251,7 +277,7 @@
             font-size: 0.8rem; cursor: pointer; line-height: 1;
             padding: 0;
         }
-        .pj-tag button:hover { color: #ef4444; }
+        .pj-tag button:hover { color: #dc2626; }
 
         /* Toggle status pills */
         .pj-status { display: flex; gap: 10px; }
@@ -319,7 +345,7 @@
             position: fixed; top: 84px; right: 24px; z-index: 9999;
             background: var(--pj-card);
             border: 1px solid var(--pj-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 14px;
             padding: 15px 20px;
             display: flex; align-items: center; gap: 12px;
@@ -329,7 +355,7 @@
             pointer-events: none;
         }
         .pj-toast.show { opacity: 1; transform: translateX(0); }
-        .pj-toast i { color: #10b981; font-size: 1.3rem; }
+        .pj-toast i { color: #059669; font-size: 1.3rem; }
         .pj-toast b { color: var(--pj-text); font-size: 0.9rem; }
         .pj-toast a { color: var(--pj-primary); font-weight: 700; margin-left: 6px; }
 
@@ -358,15 +384,16 @@
         </div>
 
         <?php if (isset($error_msg)): ?>
-            <div class="pj-section" style="border-left: 4px solid #ef4444;">
+            <div class="pj-section" style="border-left: 4px solid #dc2626;">
                 <div style="display:flex;align-items:center;gap:12px;color:var(--pj-text);">
-                    <i class="fas fa-circle-exclamation" style="color:#ef4444;font-size:1.3rem;"></i>
+                    <i class="fas fa-circle-exclamation" style="color:#dc2626;font-size:1.3rem;"></i>
                     <span style="font-size:.92rem;font-weight:600;"><?php echo htmlspecialchars($error_msg); ?></span>
                 </div>
             </div>
         <?php endif; ?>
 
         <form method="POST" action="" id="postJobForm" onsubmit="return validateJobForm()">
+            <?php echo csrf_input(); ?>
 
             <!-- Step 1: Basic Information -->
             <div class="pj-section">

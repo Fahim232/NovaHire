@@ -4,7 +4,7 @@
 
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
 
@@ -58,10 +58,10 @@
     }
 
     $avatar_gradients = [
-        ['#6366f1', '#8b5cf6'],
+        ['#3b82f6', '#06b6d4'],
         ['#0ea5e9', '#06b6d4'],
-        ['#10b981', '#34d399'],
-        ['#f59e0b', '#f97316'],
+        ['#059669', '#34d399'],
+        ['#d97706', '#f97316'],
         ['#ec4899', '#f43f5e'],
         ['#14b8a6', '#0d9488'],
     ];
@@ -71,13 +71,13 @@
 
     $quiz_score = isset($app['score_percentage']) ? floatval($app['score_percentage']) : intval($app['quiz_score']);
     $score_pct = round($quiz_score);
-    $score_color = $score_pct >= 60 ? '#10b981' : ($score_pct >= 30 ? '#f59e0b' : '#ef4444');
+    $score_color = $score_pct >= 60 ? '#059669' : ($score_pct >= 30 ? '#d97706' : '#dc2626');
 
     $status_colors = [
         'pending'    => ['#94a3b8', 'Pending Review'],
         'reviewed'   => ['#06b6d4', 'Reviewed'],
         'shortlisted'=> ['#3b82f6', 'Shortlisted'],
-        'rejected'   => ['#ef4444', 'Rejected'],
+        'rejected'   => ['#dc2626', 'Rejected'],
     ];
     $app_status = $app['application_status'] ?: 'pending';
     $app_color = isset($status_colors[$app_status]) ? $status_colors[$app_status][0] : '#94a3b8';
@@ -95,8 +95,8 @@
             --ad-border: #e5e9f2;
             --ad-text: #1e293b;
             --ad-muted: #64748b;
-            --ad-primary: #4f46e5;
-            --ad-primary-2: #7c3aed;
+            --ad-primary: #1a56db;
+            --ad-primary-2: #0ea5e9;
             --ad-soft: #eef2ff;
             --ad-input: #f8fafc;
             --ad-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -107,8 +107,8 @@
             --ad-border: #28334a;
             --ad-text: #e8edff;
             --ad-muted: #94a3b8;
-            --ad-primary: #8b5cf6;
-            --ad-primary-2: #a78bfa;
+            --ad-primary: #06b6d4;
+            --ad-primary-2: #38bdf8;
             --ad-soft: #1e293b;
             --ad-input: #0d1526;
             --ad-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -130,7 +130,7 @@
         .ad-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -188,7 +188,7 @@
             transition: all .2s ease;
             display: inline-flex; align-items: center; gap: 8px;
         }
-        .ad-back:hover { background: #fff; color: #4f46e5; text-decoration: none; }
+        .ad-back:hover { background: #fff; color: #1a56db; text-decoration: none; }
 
         /* ── Section cards ── */
         .ad-section {
@@ -360,12 +360,12 @@
             transition: all .18s ease;
         }
         .ad-act:hover { transform: translateY(-2px); text-decoration: none; }
-        .ad-act-interview { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; }
-        .ad-act-interview:hover { background: #f59e0b; color: #fff; }
-        .ad-act-cv { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); color: #10b981; }
-        .ad-act-cv:hover { background: #10b981; color: #fff; }
-        .ad-act-msg { background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.4); color: #8b5cf6; }
-        .ad-act-msg:hover { background: #8b5cf6; color: #fff; }
+        .ad-act-interview { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: #d97706; }
+        .ad-act-interview:hover { background: #d97706; color: #fff; }
+        .ad-act-cv { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); color: #059669; }
+        .ad-act-cv:hover { background: #059669; color: #fff; }
+        .ad-act-msg { background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.4); color: #06b6d4; }
+        .ad-act-msg:hover { background: #06b6d4; color: #fff; }
         .ad-act-mail { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.4); color: #3b82f6; }
         .ad-act-mail:hover { background: #3b82f6; color: #fff; }
         .ad-act-call { background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.4); color: #06b6d4; }
@@ -388,7 +388,7 @@
             position: fixed; top: 84px; right: 24px; z-index: 9999;
             background: var(--ad-card);
             border: 1px solid var(--ad-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 14px;
             padding: 15px 20px;
             display: flex; align-items: center; gap: 12px;
@@ -398,7 +398,7 @@
             pointer-events: none;
         }
         .ad-toast.show { opacity: 1; transform: translateX(0); }
-        .ad-toast i { color: #10b981; font-size: 1.3rem; }
+        .ad-toast i { color: #059669; font-size: 1.3rem; }
         .ad-toast b { color: var(--ad-text); font-size: 0.9rem; }
 
         @media (max-width: 768px) {
@@ -490,7 +490,7 @@
                     <div class="ad-score-stats">
                         <div class="ad-score-stat">
                             <b><?php echo $app['correct_answers']; ?> / <?php echo $app['total_questions']; ?></b>
-                            <span><i class="fas fa-check-circle mr-1" style="color:#10b981;"></i>Correct</span>
+                            <span><i class="fas fa-check-circle mr-1" style="color:#059669;"></i>Correct</span>
                         </div>
                         <div class="ad-score-stat">
                             <b><?php echo $app['time_taken'] ? gmdate("i:s", $app['time_taken']) : 'N/A'; ?></b>
@@ -498,7 +498,7 @@
                         </div>
                         <div class="ad-score-stat">
                             <b><?php echo date('M d, Y', strtotime($app['attempt_date'])); ?></b>
-                            <span><i class="fas fa-calendar-check mr-1" style="color:#f59e0b;"></i>Attempted</span>
+                            <span><i class="fas fa-calendar-check mr-1" style="color:#d97706;"></i>Attempted</span>
                         </div>
                     </div>
                 </div>

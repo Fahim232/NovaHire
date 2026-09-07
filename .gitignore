@@ -1,0 +1,42 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# XAMPP / Local dev
+*.sql.bak
+*.sql.old
+
+# Upload directories (user data - never commit)
+uploads/company_logos/*
+uploads/*.DS_Store
+files/*.pdf
+files/*.doc
+files/*.docx
+
+# Keep directory structure
+!uploads/.htaccess
+!uploads/company_logos/.htaccess
+!files/.htaccess
+!uploads/company_logos/index.php
+
+# Environment / secrets
+.env
+.env.local
+config_local.php
+
+# Logs
+*.log
+error_log
+
+# Composer (if added later)
+/vendor/
+composer.lock
+composer.phar

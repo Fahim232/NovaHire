@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
 
-require_once 'dbcon.php';
 include 'header.php';
 
 $success = null;
@@ -63,7 +63,7 @@ if (isset($_POST['submit'])) {
         width: 38%;
         padding: 48px 40px;
         color: #fff;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #4f46e5 130%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #1a56db 130%);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -76,7 +76,7 @@ if (isset($_POST['submit'])) {
         pointer-events: none;
     }
     .adm-side::before { top: -90px; right: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%); }
-    .adm-side::after { bottom: -110px; left: -40px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(99,102,241,0.35), transparent 70%); }
+    .adm-side::after { bottom: -110px; left: -40px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(59,130,246,0.35), transparent 70%); }
     .adm-side-inner { position: relative; z-index: 2; }
     .adm-side-tile {
         width: 56px; height: 56px; border-radius: 16px;
@@ -110,7 +110,7 @@ if (isset($_POST['submit'])) {
         font-weight: 700; font-size: .8rem; color: var(--text); margin-bottom: 8px;
     }
     .adm-field label i { color: var(--primary); width: 15px; text-align: center; }
-    .adm-req { color: #ef4444; }
+    .adm-req { color: #dc2626; }
     .adm-input, .adm-input:focus {
         width: 100%;
         border: 1.5px solid var(--border-light);
@@ -122,19 +122,19 @@ if (isset($_POST['submit'])) {
         transition: border-color .2s ease, box-shadow .2s ease;
         outline: none;
     }
-    .adm-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .adm-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
     .adm-input::placeholder { color: var(--text-light); }
 
     .adm-btn {
         width: 100%;
         border: none; padding: 13px 20px; border-radius: 13px;
         font-weight: 800; font-size: .92rem; color: #fff;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        box-shadow: 0 8px 18px -6px rgba(99,102,241,.55);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
+        box-shadow: 0 8px 18px -6px rgba(59,130,246,.55);
         transition: all .3s ease;
         display: inline-flex; align-items: center; justify-content: center; gap: 9px;
     }
-    .adm-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(99,102,241,.7); color: #fff; }
+    .adm-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(59,130,246,.7); color: #fff; }
 
     .adm-alert {
         display: flex; align-items: center; gap: 10px;
@@ -142,7 +142,7 @@ if (isset($_POST['submit'])) {
         font-weight: 600; font-size: .88rem; margin-bottom: 22px;
         border: 1px solid transparent;
     }
-    .adm-alert.ok { background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.3); }
+    .adm-alert.ok { background: rgba(5,150,105,.12); color: #047857; border-color: rgba(5,150,105,.3); }
     .adm-alert.err { background: rgba(239,68,68,.1); color: #b91c1c; border-color: rgba(239,68,68,.3); }
 
     @media (max-width: 991px) {

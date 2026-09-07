@@ -16,6 +16,14 @@ if (!isset($_GET['job_id'])) {
 $job_id = mysqli_real_escape_string($con, $_GET['job_id']);
 $user_id = $_SESSION['id'];
 
+require_once __DIR__ . '/../includes/premium.php';
+$quiz_access = nh_check_access($con, $user_id, 'job_apply');
+if (!$quiz_access['allowed']) {
+    require_once __DIR__ . '/../includes/header.php';
+    nh_render_pro_gate('job_apply');
+    exit;
+}
+
 $job_query = "SELECT cj.*, c.company_name, c.industry
               FROM company_jobs cj
               JOIN companies c ON cj.company_id = c.id
@@ -302,9 +310,9 @@ mysqli_data_seek($questions_result, 0);
             line-height: 1;
         }
 
-        .timer-time.color-green { color: #10b981; }
-        .timer-time.color-yellow { color: #f59e0b; }
-        .timer-time.color-red { color: #ef4444; }
+        .timer-time.color-green { color: #059669; }
+        .timer-time.color-yellow { color: #d97706; }
+        .timer-time.color-red { color: #dc2626; }
 
         .timer-progress {
             width: 100%;
@@ -320,14 +328,14 @@ mysqli_data_seek($questions_result, 0);
             transition: width 1s linear, background 0.5s ease;
         }
 
-        .timer-progress-fill.fill-green { background: linear-gradient(90deg, #10b981, #34d399); }
-        .timer-progress-fill.fill-yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-        .timer-progress-fill.fill-red { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .timer-progress-fill.fill-green { background: linear-gradient(90deg, #059669, #34d399); }
+        .timer-progress-fill.fill-yellow { background: linear-gradient(90deg, #d97706, #fbbf24); }
+        .timer-progress-fill.fill-red { background: linear-gradient(90deg, #dc2626, #f87171); }
 
         .timer-timeouts-msg {
             display: none;
             font-size: 13px;
-            color: #ef4444;
+            color: #dc2626;
             font-weight: 700;
         }
 
@@ -401,7 +409,7 @@ mysqli_data_seek($questions_result, 0);
         /* ── Warning Box ── */
         .quiz-warning {
             background: #fffbeb;
-            border: 2px solid #f59e0b;
+            border: 2px solid #d97706;
             border-radius: 16px;
             padding: 18px 24px;
             margin-bottom: 28px;
@@ -411,7 +419,7 @@ mysqli_data_seek($questions_result, 0);
         }
 
         .quiz-warning i {
-            color: #f59e0b;
+            color: #d97706;
             font-size: 22px;
             margin-top: 2px;
             flex-shrink: 0;
@@ -479,7 +487,7 @@ mysqli_data_seek($questions_result, 0);
         }
 
         .question-card.answered {
-            border-color: #10b981;
+            border-color: #059669;
         }
 
         .q-number {
@@ -568,7 +576,7 @@ mysqli_data_seek($questions_result, 0);
 
         .q-answered-check {
             display: none;
-            color: #10b981;
+            color: #059669;
             font-size: 20px;
             margin-left: auto;
         }
@@ -600,7 +608,7 @@ mysqli_data_seek($questions_result, 0);
         }
 
         .btn-submit-quiz {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #059669, #059669);
             color: white;
             padding: 16px 60px;
             border-radius: 50px;
@@ -1073,7 +1081,7 @@ mysqli_data_seek($questions_result, 0);
 
 <!-- Anti-Cheat Overlay -->
 <div id="antiCheatOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; color:white; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
-    <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #f59e0b; margin-bottom: 20px;"></i>
+    <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #d97706; margin-bottom: 20px;"></i>
     <h2 style="font-weight: bold; margin-bottom: 10px;">Warning!</h2>
     <p id="antiCheatMsg" style="font-size: 1.2rem; max-width: 600px;">You are not allowed to switch tabs or exit fullscreen mode during the quiz.</p>
     <p style="font-size: 1rem; color: #cbd5e1; margin-top: 10px;">Warnings remaining: <span id="warningsLeft">3</span>/3</p>

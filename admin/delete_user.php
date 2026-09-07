@@ -1,19 +1,25 @@
 <?php
-    include 'dbcon.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
 
-    $id = $_GET['id'];
+if (!isset($_SESSION['admin_username'])) {
+    header('Location: admin_login.php');
+    exit;
+}
 
-    $deletequery = " delete from user_info where id = $id ";
-    $dquery = mysqli_query($con, $deletequery);
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        header('location: show_users.php');
+        exit;
+    }
+
+    $stmt = mysqli_prepare($con, "DELETE FROM user_info WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    $dquery = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
 
     if ($dquery){
-        ?>
-            <script>alert("Deleted Successfully!");</script>
-        <?php
-        header('location: show_users.php');
+        header('location: show_users.php?success=deleted');
     }else{
-        ?>
-            <script>alert("Deletion Unsuccessful!!!");</script>
-        <?php
-        header('location: show_users.php');
+        header('location: show_users.php?error=delete_failed');
     }
+    exit;

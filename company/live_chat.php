@@ -1,11 +1,9 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
 if (!isset($_SESSION['company_id'])) {
     header('location: ../auth/login.php');
     exit();
 }
-include '../admin/dbcon.php';
-include '../includes/functions.php';
 
 $company_id = $_SESSION['company_id'];
 
@@ -26,8 +24,8 @@ $company = mysqli_fetch_assoc($comp_q);
             --lc-border: #e5e9f2;
             --lc-text: #1e293b;
             --lc-muted: #64748b;
-            --lc-primary: #4f46e5;
-            --lc-primary-2: #7c3aed;
+            --lc-primary: #1a56db;
+            --lc-primary-2: #0ea5e9;
             --lc-soft: #eef2ff;
             --lc-input: #f8fafc;
             --lc-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -39,8 +37,8 @@ $company = mysqli_fetch_assoc($comp_q);
             --lc-border: #28334a;
             --lc-text: #e8edff;
             --lc-muted: #94a3b8;
-            --lc-primary: #8b5cf6;
-            --lc-primary-2: #a78bfa;
+            --lc-primary: #60a5fa;
+            --lc-primary-2: #38bdf8;
             --lc-soft: #1e293b;
             --lc-input: #0d1526;
             --lc-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -64,7 +62,7 @@ $company = mysqli_fetch_assoc($comp_q);
         .lc-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
             border-radius: 22px;
             padding: 26px 34px;
             color: #fff;
@@ -165,7 +163,7 @@ $company = mysqli_fetch_assoc($comp_q);
         .lc-cavatar .lc-on {
             position: absolute; bottom: 1px; right: 1px;
             width: 12px; height: 12px; border-radius: 50%;
-            background: #10b981; border: 2.5px solid #fff;
+            background: #059669; border: 2.5px solid #fff;
         }
 
         .lc-cinfo { flex: 1; min-width: 0; }
@@ -227,8 +225,8 @@ $company = mysqli_fetch_assoc($comp_q);
         .lc-top-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .lc-top-info { flex: 1; min-width: 0; }
         .lc-top-name { font-weight: 800; font-size: 0.98rem; color: var(--lc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lc-top-status { font-size: 0.76rem; color: #10b981; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-        .lc-top-status .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; }
+        .lc-top-status { font-size: 0.76rem; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+        .lc-top-status .dot { width: 8px; height: 8px; border-radius: 50%; background: #059669; display: inline-block; }
         .lc-back {
             display: none;
             background: var(--lc-soft);
@@ -435,10 +433,10 @@ let convTimer = null;
 let lastRenderDate = '';
 
 const GRADIENTS = [
-    ['#6366f1', '#8b5cf6'],
+    ['#1a56db', '#0ea5e9'],
     ['#0ea5e9', '#06b6d4'],
-    ['#10b981', '#34d399'],
-    ['#f59e0b', '#f97316'],
+    ['#059669', '#34d399'],
+    ['#d97706', '#f97316'],
     ['#ec4899', '#f43f5e'],
     ['#14b8a6', '#0d9488'],
 ];
@@ -523,7 +521,7 @@ function dayLabel(iso) {
 
 function loadMessages() {
     if (!activeUser) return;
-    fetch('api_chat_poll.php?with_type=user&with_id=' + activeUser.id + '&since=' + lastMsgId)
+    fetch('../api/chat_poll.php?with_type=user&with_id=' + activeUser.id + '&since=' + lastMsgId)
     .then(r => r.json()).then(data => {
         if (!data.success) return;
         const msgs = document.getElementById('chatMessages');
@@ -564,7 +562,7 @@ function sendMessage() {
     fd.append('receiver_type', 'user');
     fd.append('receiver_id', activeUser.id);
     fd.append('message', msg);
-    fetch('api_chat_send.php', { method: 'POST', body: fd })
+    fetch('../api/chat_send.php', { method: 'POST', body: fd })
     .then(r => r.json()).then(data => {
         document.getElementById('sendBtn').disabled = false;
         if (data.success) { loadMessages(); loadConversations(true); }
@@ -578,7 +576,7 @@ function handleKey(e) {
 
 function loadConversations(keepScroll) {
     const list = document.getElementById('convList');
-    fetch('api_chat_conversations.php').then(r => r.json()).then(data => {
+    fetch('../api/chat_conversations.php').then(r => r.json()).then(data => {
         if (!data.success) return;
         const scroll = list.scrollTop;
         if (data.conversations.length === 0) {

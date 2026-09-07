@@ -43,6 +43,21 @@ if (!empty($user['user_skills'])) {
 }
 $has_user_skills = count($user_skills) > 0;
 
+require_once __DIR__ . '/../includes/premium.php';
+$is_pro = is_user_pro($con, $user_id);
+
+$featured_mentors = nh_get_mentors($con, []);
+$featured_mentors = array_slice($featured_mentors, 0, 3);
+
+$my_sessions = nh_user_sessions($con, $user_id);
+$upcoming_sessions = [];
+foreach ($my_sessions as $ms) {
+    if ($ms['status'] === 'confirmed' && strtotime($ms['scheduled_at']) > time()) {
+        $upcoming_sessions[] = $ms;
+    }
+    if (count($upcoming_sessions) >= 2) break;
+}
+
 $rec_jobs = [];
 $no_match_jobs = [];
 
@@ -114,10 +129,10 @@ function statusBadge($status) {
        DASHBOARD — MODERN RESPONSIVE STYLES
        ═══════════════════════════════════════════ */
     :root {
-        --dash-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #38bdf8 100%);
-        --dash-grad-soft: linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10));
-        --dash-accent: #2563eb;
-        --dash-accent-2: #38bdf8;
+        --dash-grad: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
+        --dash-grad-soft: var(--grad-soft, linear-gradient(135deg, rgba(26,86,219,.10), rgba(14,165,233,.10)));
+        --dash-accent: var(--primary, #1a56db);
+        --dash-accent-2: var(--primary-light, #3b82f6);
     }
 
     body { font-family: 'Inter', sans-serif; }
@@ -128,7 +143,7 @@ function statusBadge($status) {
 
     /* ── Hero Section ── */
     .dash-hero {
-        background: var(--dash-grad);
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1a56db 100%);
         padding: 44px 0 58px;
         position: relative;
         overflow: hidden;
@@ -140,7 +155,7 @@ function statusBadge($status) {
         right: -12%;
         width: 620px;
         height: 620px;
-        background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
         border-radius: 50%;
         animation: heroFloat 9s ease-in-out infinite;
     }
@@ -151,7 +166,7 @@ function statusBadge($status) {
         left: -8%;
         width: 480px;
         height: 480px;
-        background: radial-gradient(circle, rgba(56,189,248,0.22) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(14,165,233,0.16) 0%, transparent 70%);
         border-radius: 50%;
         animation: heroFloat 11s ease-in-out infinite reverse;
     }
@@ -161,16 +176,16 @@ function statusBadge($status) {
     }
     .dash-welcome { position: relative; z-index: 2; }
     .dash-welcome h1 {
-        color: white;
+        color: #ffffff;
         font-size: 2.05rem;
         font-weight: 800;
         margin-bottom: 6px;
         letter-spacing: -0.5px;
         line-height: 1.2;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-shadow: 0 2px 12px rgba(0,0,0,0.15);
     }
     .dash-welcome .dash-subtitle {
-        color: rgba(255,255,255,0.88);
+        color: rgba(255,255,255,0.78);
         font-size: 1rem;
         font-weight: 400;
         margin: 0 0 22px;
@@ -179,19 +194,19 @@ function statusBadge($status) {
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        border: 3px solid rgba(255,255,255,0.35);
+        border: 3px solid rgba(255,255,255,0.3);
         object-fit: cover;
     }
     .profile-avatar-placeholder {
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        border: 3px solid rgba(255,255,255,0.35);
-        background: rgba(255,255,255,0.18);
+        border: 3px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.12);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: rgba(255,255,255,0.85);
+        color: rgba(255,255,255,0.8);
         font-size: 1.4rem;
         flex-shrink: 0;
     }
@@ -209,28 +224,28 @@ function statusBadge($status) {
         transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
     }
     .hero-cta-primary {
-        background: #fff;
-        color: #2563eb;
-        box-shadow: 0 10px 26px -10px rgba(15,23,42,.4);
+        background: #ffffff;
+        color: #1a56db;
+        box-shadow: 0 8px 24px -8px rgba(0,0,0,0.3);
     }
-    .hero-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -10px rgba(15,23,42,.45); color: #1d4ed8; text-decoration: none; }
+    .hero-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 32px -10px rgba(0,0,0,0.35); color: #1e40af; text-decoration: none; }
     .hero-cta-ghost {
-        background: rgba(255,255,255,0.14);
-        border: 1px solid rgba(255,255,255,0.35);
-        color: #fff;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #ffffff;
         backdrop-filter: blur(8px);
     }
-    .hero-cta-ghost:hover { background: rgba(255,255,255,0.24); transform: translateY(-3px); color: #fff; text-decoration: none; }
+    .hero-cta-ghost:hover { background: rgba(255,255,255,0.2); transform: translateY(-3px); color: #ffffff; text-decoration: none; }
 
     /* ── Hero glass profile card ── */
     .hero-profile-card {
-        background: rgba(255,255,255,0.13);
-        border: 1px solid rgba(255,255,255,0.28);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.18);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         border-radius: 22px;
         padding: 22px;
-        box-shadow: 0 18px 44px -16px rgba(15,23,42,.35);
+        box-shadow: 0 18px 44px -16px rgba(0,0,0,0.3);
         max-width: 340px;
         margin-left: auto;
     }
@@ -248,12 +263,12 @@ function statusBadge($status) {
     }
     .profile-ring-bg {
         fill: none;
-        stroke: rgba(255,255,255,0.25);
+        stroke: rgba(255,255,255,0.18);
         stroke-width: 7;
     }
     .profile-ring-fill {
         fill: none;
-        stroke: #fff;
+        stroke: #ffffff;
         stroke-width: 7;
         stroke-linecap: round;
         transition: stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -266,14 +281,14 @@ function statusBadge($status) {
         text-align: center;
     }
     .profile-ring-text .pct {
-        color: white;
+        color: #ffffff;
         font-size: 1.25rem;
         font-weight: 800;
         line-height: 1;
         display: block;
     }
     .profile-ring-text .lbl {
-        color: rgba(255,255,255,0.75);
+        color: rgba(255,255,255,0.65);
         font-size: 0.58rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -287,7 +302,7 @@ function statusBadge($status) {
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .completion-link {
-        color: #fde68a;
+        color: #93c5fd;
         font-weight: 600;
         text-decoration: none;
         font-size: 0.84rem;
@@ -296,30 +311,30 @@ function statusBadge($status) {
         align-items: center;
         gap: 4px;
     }
-    .completion-link:hover { color: #fff; gap: 8px; text-decoration: none; }
+    .completion-link:hover { color: #ffffff; gap: 8px; text-decoration: none; }
     .completion-done {
-        color: #bbf7d0;
+        color: #86efac;
         font-weight: 600;
         font-size: 0.84rem;
         display: inline-flex;
         align-items: center;
         gap: 5px;
     }
-    .hero-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.22); }
+    .hero-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); }
     .hero-chip {
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        background: rgba(255,255,255,0.16);
-        border: 1px solid rgba(255,255,255,0.25);
-        color: #fff;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #ffffff;
         font-size: 0.76rem;
         font-weight: 600;
         padding: 7px 13px;
         border-radius: 999px;
         transition: all .25s;
     }
-    .hero-chip:hover { background: rgba(255,255,255,0.28); transform: translateY(-2px); }
+    .hero-chip:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
     .hero-chip i { font-size: 0.7rem; }
 
     /* ── Stat Cards ── */
@@ -380,10 +395,10 @@ function statusBadge($status) {
         margin: 5px 0 0;
         letter-spacing: 0.2px;
     }
-    .stat-card.stat-apps::before { background: #2563eb; }
-    .stat-card.stat-interviews::before { background: #f59e0b; }
-    .stat-card.stat-saved::before { background: #ec4899; }
-    .stat-card.stat-profile::before { background: #10b981; }
+    .stat-card.stat-apps::before { background: #1a56db; }
+    .stat-card.stat-interviews::before { background: #d97706; }
+    .stat-card.stat-saved::before { background: #e11d48; }
+    .stat-card.stat-profile::before { background: #059669; }
 
     /* ── Quick Actions ── */
     .action-card {
@@ -432,10 +447,10 @@ function statusBadge($status) {
     .action-card:hover .action-icon { transform: scale(1.15) translateY(-3px); }
     .action-card h6 { font-weight: 700; color: var(--text); margin: 0 0 3px; font-size: 0.95rem; }
     .action-card small { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
-    .action-browse::after { background: #2563eb; }
+    .action-browse::after { background: #1a56db; }
     .action-profile::after { background: #ec4899; }
-    .action-saved::after { background: #f59e0b; }
-    .action-apps::after { background: #10b981; }
+    .action-saved::after { background: #d97706; }
+    .action-apps::after { background: #059669; }
 
     /* ── Scroll reveal + stat hover extras ── */
     .reveal {
@@ -743,7 +758,7 @@ function statusBadge($status) {
         border-color: rgba(22,101,52,0.1);
     }
     .btn-rec-apply {
-        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        background: linear-gradient(135deg, #1a56db, #3b82f6);
         color: white;
         border: none;
         padding: 12px 20px;
@@ -769,7 +784,7 @@ function statusBadge($status) {
         text-decoration: none;
     }
     .btn-rec-quiz {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: linear-gradient(135deg, #d97706, #d97706);
         color: white;
         border: none;
         padding: 12px 20px;
@@ -817,10 +832,10 @@ function statusBadge($status) {
         height: 100%;
         border-radius: 4px 0 0 4px;
     }
-    .recent-app-row.status-pending::before { background: #f59e0b; }
+    .recent-app-row.status-pending::before { background: #d97706; }
     .recent-app-row.status-reviewed::before { background: #3b82f6; }
-    .recent-app-row.status-shortlisted::before { background: #10b981; }
-    .recent-app-row.status-rejected::before { background: #ef4444; }
+    .recent-app-row.status-shortlisted::before { background: #059669; }
+    .recent-app-row.status-rejected::before { background: #dc2626; }
     .recent-app-row:hover {
         transform: translateX(4px);
         box-shadow: var(--shadow-md);
@@ -900,7 +915,7 @@ function statusBadge($status) {
     /* ── Footer ── */
     .site-footer {
         position: relative;
-        background: #0b1220;
+        background: #0c1222;
         color: #94a3b8;
         padding: 56px 0 0;
         margin-top: 60px;
@@ -912,8 +927,8 @@ function statusBadge($status) {
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: var(--dash-grad);
+        height: 3px;
+        background: linear-gradient(90deg, #1a56db, #0ea5e9, #1a56db);
     }
     .site-footer::after {
         content: '';
@@ -921,7 +936,7 @@ function statusBadge($status) {
         width: 520px;
         height: 520px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(109, 94, 252, 0.16), transparent 70%);
+        background: radial-gradient(circle, rgba(26, 86, 219, 0.12), transparent 70%);
         top: -220px;
         right: -160px;
         pointer-events: none;
@@ -933,7 +948,7 @@ function statusBadge($status) {
         font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 1.35rem;
         font-weight: 800;
-        color: #fff;
+        color: #ffffff;
         margin-bottom: 14px;
         letter-spacing: -0.02em;
         position: relative;
@@ -944,23 +959,23 @@ function statusBadge($status) {
         height: 38px;
         border-radius: 12px;
         flex-shrink: 0;
-        background: var(--dash-grad);
+        background: linear-gradient(135deg, #1a56db, #0ea5e9);
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         font-size: 1rem;
-        box-shadow: 0 6px 18px -6px rgba(109, 94, 252, 0.65);
+        box-shadow: 0 6px 18px -6px rgba(26, 86, 219, 0.65);
     }
     .footer-brand .fb-highlight {
-        background: var(--dash-grad);
+        background: linear-gradient(135deg, #3b82f6, #38bdf8);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
         color: transparent;
     }
     .footer-desc {
-        color: #8b96ab;
+        color: #94a3b8;
         font-size: 0.85rem;
         line-height: 1.75;
         max-width: 300px;
@@ -973,7 +988,7 @@ function statusBadge($status) {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -983,11 +998,11 @@ function statusBadge($status) {
         text-decoration: none;
     }
     .footer-social a:hover {
-        background: var(--dash-grad);
+        background: linear-gradient(135deg, #1a56db, #0ea5e9);
         border-color: transparent;
         color: #fff;
         transform: translateY(-3px);
-        box-shadow: 0 8px 18px -6px rgba(109, 94, 252, 0.55);
+        box-shadow: 0 8px 18px -6px rgba(26, 86, 219, 0.55);
     }
     .footer-link {
         color: #94a3b8;
@@ -1000,11 +1015,11 @@ function statusBadge($status) {
         gap: 5px;
     }
     .footer-link i { font-size: 0.6rem; opacity: 0; transform: translateX(-4px); transition: all 0.2s; }
-    .footer-link:hover { color: #fff; }
+    .footer-link:hover { color: #ffffff; }
     .footer-link:hover i { opacity: 1; transform: translateX(0); }
     .footer-heading {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        color: #fff;
+        color: #ffffff;
         font-weight: 700;
         font-size: 0.82rem;
         text-transform: uppercase;
@@ -1021,10 +1036,10 @@ function statusBadge($status) {
         width: 26px;
         height: 3px;
         border-radius: 3px;
-        background: var(--dash-grad);
+        background: linear-gradient(135deg, #1a56db, #0ea5e9);
     }
     .footer-bottom {
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
         margin-top: 34px;
         padding: 20px 0;
         display: flex;
@@ -1153,7 +1168,7 @@ function statusBadge($status) {
         background: white;
         border-radius: 16px;
         box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-        border-left: 5px solid #10b981;
+        border-left: 5px solid #059669;
         padding: 20px 24px;
         display: flex;
         align-items: flex-start;
@@ -1323,6 +1338,10 @@ setTimeout(function() {
 </script>
 <?php unset($_SESSION['app_success_msg']); endif; ?>
 
+<?php if (!$is_pro): ?>
+    <?php nh_render_upgrade_banner(); ?>
+<?php endif; ?>
+
 <!-- Welcome Hero -->
 <div class="dash-hero">
     <div class="container dash-welcome">
@@ -1395,7 +1414,7 @@ setTimeout(function() {
     <div class="row mb-4 reveal" style="margin-top: 28px;">
         <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .05s;">
             <a href="my_application.php" class="stat-card stat-apps">
-                <div class="stat-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;"><i class="fas fa-paper-plane"></i></div>
+                <div class="stat-icon" style="background: rgba(26,86,219,0.1); color: #1a56db;"><i class="fas fa-paper-plane"></i></div>
                 <div class="stat-info">
                     <h3 id="countTotalApps" data-count="<?php echo $total_apps; ?>"><?php echo $total_apps; ?></h3>
                     <p>Applications</p>
@@ -1404,7 +1423,7 @@ setTimeout(function() {
         </div>
         <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .1s;">
             <div class="stat-card stat-interviews">
-                <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: #d97706;"><i class="fas fa-calendar-check"></i></div>
+                <div class="stat-icon" style="background: rgba(217,119,6,0.1); color: #d97706;"><i class="fas fa-calendar-check"></i></div>
                 <div class="stat-info">
                     <h3 id="countInterviews" data-count="<?php echo $total_interviews; ?>"><?php echo $total_interviews; ?></h3>
                     <p>Interviews</p>
@@ -1422,7 +1441,7 @@ setTimeout(function() {
         </div>
         <div class="col-lg-3 col-md-6 col-6 mb-3" style="animation-delay: .2s;">
             <div class="stat-card stat-profile">
-                <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: #10b981;"><i class="fas fa-user-check"></i></div>
+                <div class="stat-icon" style="background: rgba(5,150,105,0.1); color: #059669;"><i class="fas fa-user-check"></i></div>
                 <div class="stat-info">
                     <h3 id="countProfile" data-count="<?php echo $completion; ?>"><?php echo $completion; ?><small style="font-size:.85rem;">%</small></h3>
                     <p>Profile Done</p>
@@ -1432,14 +1451,33 @@ setTimeout(function() {
     </div>
 
     <!-- Quick Actions -->
+    <?php if (!$is_pro): ?>
+    <div class="mb-4 reveal">
+        <div class="nh-usage-widget">
+            <h4><i class="fas fa-chart-line" style="color:var(--primary)"></i> Your Usage This Month</h4>
+            <div class="nh-usage-row">
+                <div class="nh-usage-row-label"><i class="fas fa-paper-plane"></i> Job Applications</div>
+                <div class="nh-usage-row-value"><?= nh_get_usage_count($con, $user_id, 'job_apply') ?> / 10 free</div>
+            </div>
+            <div class="nh-usage-row">
+                <div class="nh-usage-row-label"><i class="fas fa-robot"></i> AI Tools</div>
+                <div class="nh-usage-row-value" style="color:#dc2626"><i class="fas fa-lock" style="margin-right:4px"></i> Pro only</div>
+            </div>
+            <div style="margin-top:14px">
+                <a href="pro.php" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;font-weight:700;font-size:.84rem;text-decoration:none;transition:.2s"><i class="fas fa-crown"></i> Upgrade to Pro</a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-bolt" style="background: rgba(245,158,11,0.1); color: #d97706;"></i>Quick Actions</h4>
+            <h4><i class="fas fa-bolt" style="background: rgba(217,119,6,0.1); color: #d97706;"></i>Quick Actions</h4>
         </div>
         <div class="row">
             <div class="col-lg-3 col-md-6 col-6 mb-3">
                 <a href="browse_jobs.php" class="action-card action-browse">
-                    <div class="action-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;"><i class="fas fa-search"></i></div>
+                    <div class="action-icon" style="background: rgba(26,86,219,0.1); color: #1a56db;"><i class="fas fa-search"></i></div>
                     <h6>Browse Jobs</h6>
                     <small>Find opportunities</small>
                 </a>
@@ -1453,39 +1491,138 @@ setTimeout(function() {
             </div>
             <div class="col-lg-3 col-md-6 col-6 mb-3">
                 <a href="saved_jobs.php" class="action-card action-saved">
-                    <div class="action-icon" style="background: rgba(245,158,11,0.1); color: #d97706;"><i class="fas fa-heart"></i></div>
+                    <div class="action-icon" style="background: rgba(217,119,6,0.1); color: #d97706;"><i class="fas fa-heart"></i></div>
                     <h6>Saved Jobs</h6>
                     <small>Your bookmarks</small>
                 </a>
             </div>
             <div class="col-lg-3 col-md-6 col-6 mb-3">
                 <a href="my_application.php" class="action-card action-apps">
-                    <div class="action-icon" style="background: rgba(16,185,129,0.1); color: #10b981;"><i class="fas fa-file-alt"></i></div>
+                    <div class="action-icon" style="background: rgba(5,150,105,0.1); color: #059669;"><i class="fas fa-file-alt"></i></div>
                     <h6>Applications</h6>
                     <small>Track progress</small>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6 col-6 mb-3">
+                <a href="resume_builder.php" class="action-card" style="--ab: #1a56db;">
+                    <div class="action-icon" style="background: rgba(26,86,219,0.1); color: #1a56db;"><i class="fas fa-file-pdf"></i></div>
+                    <h6>Resume Builder</h6>
+                    <small>Create & download</small>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6 col-6 mb-3">
+                <a href="job_alerts.php" class="action-card" style="--ab: #d97706;">
+                    <div class="action-icon" style="background: rgba(217,119,6,0.1); color: #d97706;"><i class="fas fa-bell"></i></div>
+                    <h6>Job Alerts</h6>
+                    <small>Get notified</small>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6 col-6 mb-3">
+                <a href="../blog/" class="action-card" style="--ab: #06b6d4;">
+                    <div class="action-icon" style="background: rgba(6,182,212,0.1); color: #0ea5e9;"><i class="fas fa-pen-nib"></i></div>
+                    <h6>Career Blog</h6>
+                    <small>Tips & insights</small>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6 col-6 mb-3">
+                <a href="mentors.php" class="action-card" style="--ab: #ec4899;">
+                    <div class="action-icon" style="background: rgba(236,72,153,0.1); color: #db2777;"><i class="fas fa-chalkboard-user"></i></div>
+                    <h6>Find a Mentor</h6>
+                    <small>1-on-1 coaching</small>
                 </a>
             </div>
         </div>
     </div>
 
+    <!-- Find a Mentor -->
+    <div class="mb-4 reveal">
+        <div class="section-title">
+            <h4><i class="fas fa-chalkboard-user" style="background: rgba(236,72,153,0.1); color: #db2777;"></i>Find a Mentor</h4>
+            <a href="mentors.php">View All <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:18px">Book a 1-on-1 video session with industry experts. Practice interviews, polish your CV, or map your next career move.</p>
+        <div class="row">
+            <?php if (!empty($featured_mentors)): ?>
+                <?php foreach ($featured_mentors as $fm): ?>
+                <div class="col-lg-4 col-md-6 mb-3">
+                    <div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-xs);height:100%;display:flex;flex-direction:column;transition:.18s" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-xs)'">
+                        <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+                            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:grid;place-items:center;font-weight:800;font-size:1.2rem;flex-shrink:0">
+                                <?= htmlspecialchars(strtoupper(substr($fm['name'],0,1))) ?>
+                            </div>
+                            <div style="min-width:0">
+                                <div style="font-weight:700;color:var(--text);font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fm['name']) ?></div>
+                                <div style="color:var(--text-muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fm['headline'] ?: $fm['category'].' Mentor') ?></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+                            <span style="color:#d97706;font-weight:700;font-size:.85rem"><i class="fas fa-star"></i> <?= number_format((float)$fm['rating'],1) ?></span>
+                            <span style="color:var(--text-light);font-size:.78rem">(<?= (int)$fm['total_reviews'] ?> reviews)</span>
+                            <span style="margin-left:auto;font-weight:800;color:var(--text);font-size:1rem"><?= nh_price($fm['hourly_rate']) ?><span style="font-weight:600;font-size:.7rem;color:var(--text-muted)">/session</span></span>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:.83rem;line-height:1.55;flex:1;margin-bottom:14px"><?= htmlspecialchars($fm['bio'] ? (mb_strlen($fm['bio'])>100 ? mb_substr($fm['bio'],0,100).'…' : $fm['bio']) : 'Experienced '.$fm['category'].' professional.') ?></p>
+                        <a href="book_session.php?mentor=<?= (int)$fm['id'] ?>" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:var(--radius-full);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;font-size:.85rem;text-decoration:none;transition:.2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                            <i class="fas fa-calendar-check"></i> Book Session
+                        </a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="col-12">
+                    <div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:40px 20px;text-align:center;box-shadow:var(--shadow-xs)">
+                        <i class="fas fa-chalkboard-user" style="font-size:2.5rem;color:var(--text-light);margin-bottom:12px"></i>
+                        <h5 style="color:var(--text);font-weight:700;margin-bottom:6px">No mentors yet</h5>
+                        <p style="color:var(--text-muted);font-size:.9rem">Mentors are being onboarded. Check back soon!</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($upcoming_sessions)): ?>
+        <div style="margin-top:20px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-xs)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div style="font-weight:700;color:var(--text);font-size:.95rem"><i class="fas fa-calendar-check" style="color:var(--success);margin-right:6px"></i>Upcoming Sessions</div>
+                <a href="my_sessions.php" style="font-size:.82rem;font-weight:600;color:var(--primary);text-decoration:none">View all <i class="fas fa-arrow-right" style="font-size:.7rem"></i></a>
+            </div>
+            <?php foreach ($upcoming_sessions as $us):
+                $ts = strtotime($us['scheduled_at']); ?>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 0;<?= !$us === end($upcoming_sessions) ? 'border-bottom:1px solid var(--border-light)' : '' ?>">
+                    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:grid;place-items:center;font-weight:800;font-size:.95rem;flex-shrink:0">
+                        <?= htmlspecialchars(strtoupper(substr($us['mentor_name'],0,1))) ?>
+                    </div>
+                    <div style="min-width:0;flex:1">
+                        <div style="font-weight:700;color:var(--text);font-size:.88rem"><?= htmlspecialchars(nh_session_type_label($us['session_type'])) ?></div>
+                        <div style="color:var(--text-muted);font-size:.8rem">with <?= htmlspecialchars($us['mentor_name']) ?> · <?= date('D, M j · g:i A', $ts) ?></div>
+                    </div>
+                    <?php if (!empty($us['meeting_link'])): ?>
+                        <a href="<?= htmlspecialchars($us['meeting_link']) ?>" target="_blank" rel="noopener" style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:700;border-radius:var(--radius-full);padding:7px 16px;text-decoration:none;font-size:.82rem;display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+                            <i class="fas fa-video"></i> Join
+                        </a>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+
     <!-- Browse by Category -->
     <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-th-large" style="background: rgba(37,99,235,0.1); color: #2563eb;"></i>Browse by Category</h4>
+            <h4><i class="fas fa-th-large" style="background: rgba(26,86,219,0.1); color: #1a56db;"></i>Browse by Category</h4>
             <a href="browse_jobs.php">View All <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="cat-grid">
             <?php
             $all_cats_q = mysqli_query($con, "SELECT DISTINCT job_category, COUNT(*) as cnt FROM company_jobs WHERE status='active' GROUP BY job_category ORDER BY cnt DESC");
             $pill_styles = [
-                'PHP' => ['bg' => '#eef2ff', 'color' => '#4f46e5', 'icon' => 'fa-brands fa-php'],
+                'PHP' => ['bg' => '#eef2ff', 'color' => '#1a56db', 'icon' => 'fa-brands fa-php'],
                 'Java' => ['bg' => '#fef2f2', 'color' => '#dc2626', 'icon' => 'fa-brands fa-java'],
-                'Python' => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => 'fa-brands fa-python'],
+                'Python' => ['bg' => '#eff6ff', 'color' => '#1a56db', 'icon' => 'fa-brands fa-python'],
                 'Frontend' => ['bg' => '#fff7ed', 'color' => '#ea580c', 'icon' => 'fa-code'],
                 'Finance' => ['bg' => '#ecfdf5', 'color' => '#059669', 'icon' => 'fa-dollar-sign'],
                 'Healthcare' => ['bg' => '#fef2f2', 'color' => '#dc2626', 'icon' => 'fa-heart-pulse'],
-                'Education' => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => 'fa-graduation-cap'],
-                'Engineering' => ['bg' => '#f5f3ff', 'color' => '#7c3aed', 'icon' => 'fa-gears'],
+                'Education' => ['bg' => '#eff6ff', 'color' => '#1a56db', 'icon' => 'fa-graduation-cap'],
+                'Engineering' => ['bg' => '#f5f3ff', 'color' => '#0ea5e9', 'icon' => 'fa-gears'],
                 'Sales' => ['bg' => '#fff7ed', 'color' => '#ea580c', 'icon' => 'fa-bullhorn'],
                 'HR' => ['bg' => '#fdf2f8', 'color' => '#db2777', 'icon' => 'fa-users'],
                 'Legal' => ['bg' => '#fefce8', 'color' => '#ca8a04', 'icon' => 'fa-gavel'],
@@ -1519,7 +1656,7 @@ setTimeout(function() {
     <!-- Recommended Jobs -->
     <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-star" style="background: rgba(245,158,11,0.1); color: #d97706;"></i><?php echo $has_user_skills ? 'Jobs Matching Your Skills' : 'Recommended Jobs'; ?></h4>
+            <h4><i class="fas fa-star" style="background: rgba(217,119,6,0.1); color: #d97706;"></i><?php echo $has_user_skills ? 'Jobs Matching Your Skills' : 'Recommended Jobs'; ?></h4>
             <a href="browse_jobs.php">View All <i class="fas fa-arrow-right"></i></a>
         </div>
 
@@ -1597,7 +1734,7 @@ setTimeout(function() {
     <?php if ($interviews_list_q && mysqli_num_rows($interviews_list_q) > 0): ?>
     <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-video" style="background: rgba(16,185,129,0.1); color: #10b981;"></i>Scheduled Interviews</h4>
+            <h4><i class="fas fa-video" style="background: rgba(5,150,105,0.1); color: #059669;"></i>Scheduled Interviews</h4>
         </div>
         <div class="row">
             <?php while ($int = mysqli_fetch_assoc($interviews_list_q)): ?>
@@ -1631,7 +1768,7 @@ setTimeout(function() {
     <!-- Recent Applications -->
     <div class="mb-4 reveal">
         <div class="section-title">
-            <h4><i class="fas fa-history" style="background: rgba(37,99,235,0.1); color: #2563eb;"></i>Recent Applications</h4>
+            <h4><i class="fas fa-history" style="background: rgba(26,86,219,0.1); color: #1a56db;"></i>Recent Applications</h4>
             <a href="my_application.php">View All <i class="fas fa-arrow-right"></i></a>
         </div>
         <?php if (mysqli_num_rows($recent_apps_q) > 0): ?>
@@ -1696,7 +1833,7 @@ setTimeout(function() {
             <div class="col-lg-2 col-md-4 mb-4">
                 <div class="footer-heading">For Employers</div>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/company_registration.php" class="footer-link">Register Company <i class="fas fa-arrow-right"></i></a></li>
+                    <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/auth/company_registration.php" class="footer-link">Register Company <i class="fas fa-arrow-right"></i></a></li>
                     <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="footer-link">Employer Login <i class="fas fa-arrow-right"></i></a></li>
                     <li style="margin-bottom:11px;"><a href="<?php echo BASE_URL; ?>/auth/login.php" class="footer-link">Post a Job <i class="fas fa-arrow-right"></i></a></li>
                 </ul>
@@ -1733,7 +1870,7 @@ setTimeout(function() {
     <div class="dash-theme-swatches" id="dashSwatches"></div>
     <div class="dash-theme-custom">
         <label for="dashCustomColor">Custom</label>
-        <input type="color" id="dashCustomColor" value="#2563eb">
+        <input type="color" id="dashCustomColor" value="#1a56db">
     </div>
     <h6>Mode</h6>
     <div class="dash-theme-mode">
@@ -1745,17 +1882,17 @@ setTimeout(function() {
 
 <script>
 (function() {
-    var DEFAULT_GRAD = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%)';
-    var DEFAULT_SOFT = 'linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10))';
+    var DEFAULT_GRAD = 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1a56db 100%)';
+    var DEFAULT_SOFT = 'linear-gradient(135deg, rgba(26,86,219,.10), rgba(14,165,233,.10))';
     var DASH_ACCENT_KEY = 'dashAccent';
 
     var PRESETS = [
-        { name: 'Blue', grad: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 45%, #38bdf8 100%)', soft: 'linear-gradient(135deg, rgba(37,99,235,.10), rgba(56,189,248,.10))' },
-        { name: 'Purple', grad: 'linear-gradient(135deg, #6d5efc 0%, #8b5cf6 45%, #d946ef 100%)', soft: 'linear-gradient(135deg, rgba(109,94,252,.12), rgba(217,70,239,.12))' },
+        { name: 'Blue', grad: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1a56db 100%)', soft: 'linear-gradient(135deg, rgba(26,86,219,.10), rgba(14,165,233,.10))' },
+        { name: 'Purple', grad: 'linear-gradient(135deg, #1a56db 0%, #06b6d4 45%, #22d3ee 100%)', soft: 'linear-gradient(135deg, rgba(26,86,219,.12), rgba(217,70,239,.12))' },
         { name: 'Teal', grad: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 45%, #2dd4bf 100%)', soft: 'linear-gradient(135deg, rgba(13,148,136,.12), rgba(45,212,191,.12))' },
         { name: 'Orange', grad: 'linear-gradient(135deg, #ea580c 0%, #f97316 45%, #fbbf24 100%)', soft: 'linear-gradient(135deg, rgba(234,88,12,.12), rgba(251,191,36,.12))' },
         { name: 'Rose', grad: 'linear-gradient(135deg, #e11d48 0%, #ec4899 45%, #f472b6 100%)', soft: 'linear-gradient(135deg, rgba(225,29,72,.12), rgba(244,114,182,.12))' },
-        { name: 'Emerald', grad: 'linear-gradient(135deg, #059669 0%, #10b981 45%, #34d399 100%)', soft: 'linear-gradient(135deg, rgba(5,150,105,.12), rgba(52,211,153,.12))' }
+        { name: 'Emerald', grad: 'linear-gradient(135deg, #059669 0%, #059669 45%, #34d399 100%)', soft: 'linear-gradient(135deg, rgba(5,150,105,.12), rgba(52,211,153,.12))' }
     ];
 
     function hexToRgb(hex) {
@@ -1813,7 +1950,7 @@ setTimeout(function() {
     });
 
     document.getElementById('dashThemeReset').addEventListener('click', function() {
-        document.getElementById('dashCustomColor').value = '#2563eb';
+        document.getElementById('dashCustomColor').value = '#1a56db';
         activeName = 'Blue';
         applyAccent(DEFAULT_GRAD, DEFAULT_SOFT, true, 'Blue');
     });
@@ -1850,7 +1987,7 @@ setTimeout(function() {
         if (saved && saved.grad) {
             activeName = saved.name || 'Custom';
             if (saved.name && PRESETS.some(function(p) { return p.name === saved.name; })) {
-                document.getElementById('dashCustomColor').value = '#2563eb';
+                document.getElementById('dashCustomColor').value = '#1a56db';
             }
             applyAccent(saved.grad, saved.soft, false, activeName);
         } else {

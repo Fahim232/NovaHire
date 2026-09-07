@@ -4,7 +4,7 @@
     
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
     

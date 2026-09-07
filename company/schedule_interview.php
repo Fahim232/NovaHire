@@ -1,10 +1,8 @@
 <?php
-session_start();
-include '../admin/dbcon.php';
-require_once '../includes/functions.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
 
 if (!isset($_SESSION['company_id'])) {
-    header('Location: ../company_login.php');
+    header('Location: ../auth/login.php');
     exit;
 }
 
@@ -95,6 +93,13 @@ if (isset($_POST['schedule_interview']) && $app) {
             $notif_message = "Your interview for <strong>{$app['job_title']}</strong> at <strong>$company_name</strong> has been scheduled for <strong>$formatted_date</strong> at <strong>$formatted_time</strong> ($int_type).";
             create_notification($con, 'user', $app['user_id'], 'company', $company_id, $notif_title, $notif_message, 'interview', 'interviews', mysqli_insert_id($con));
 
+            // Send interview scheduled email
+            require_once __DIR__ . '/../includes/mail.php';
+            $seeker_email = get_user_email($app['user_id'], 'user');
+            if ($seeker_email && email_pref_enabled($app['user_id'], 'user', 'email_applications')) {
+                send_interview_scheduled($seeker_email, $app['username'], $app['job_title'], $company_name, $formatted_date, $formatted_time, $int_type, $meeting_link);
+            }
+
             header("Location: schedule_interview.php?done=scheduled&app=" . $app['id']);
             exit;
         } else {
@@ -129,20 +134,20 @@ foreach ($interviews as $int) {
 }
 
 $type_colors = [
-    'Online'    => ['#6366f1', 'fa-video'],
-    'Phone'     => ['#f59e0b', 'fa-phone'],
-    'In-Person' => ['#10b981', 'fa-building'],
+    'Online'    => ['#3b82f6', 'fa-video'],
+    'Phone'     => ['#d97706', 'fa-phone'],
+    'In-Person' => ['#059669', 'fa-building'],
 ];
 $status_colors = [
     'scheduled' => ['#3b82f6', 'fa-calendar-check'],
-    'completed' => ['#10b981', 'fa-circle-check'],
-    'cancelled' => ['#ef4444', 'fa-ban'],
+    'completed' => ['#059669', 'fa-circle-check'],
+    'cancelled' => ['#dc2626', 'fa-ban'],
 ];
 $avatar_gradients = [
-    ['#6366f1', '#8b5cf6'],
+    ['#3b82f6', '#06b6d4'],
     ['#0ea5e9', '#06b6d4'],
-    ['#10b981', '#34d399'],
-    ['#f59e0b', '#f97316'],
+    ['#059669', '#34d399'],
+    ['#d97706', '#f97316'],
     ['#ec4899', '#f43f5e'],
     ['#14b8a6', '#0d9488'],
 ];
@@ -165,8 +170,8 @@ function si_avatar($username, $gradients) {
             --si-border: #e5e9f2;
             --si-text: #1e293b;
             --si-muted: #64748b;
-            --si-primary: #4f46e5;
-            --si-primary-2: #7c3aed;
+            --si-primary: #1a56db;
+            --si-primary-2: #0ea5e9;
             --si-soft: #eef2ff;
             --si-input: #f8fafc;
             --si-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -177,8 +182,8 @@ function si_avatar($username, $gradients) {
             --si-border: #28334a;
             --si-text: #e8edff;
             --si-muted: #94a3b8;
-            --si-primary: #8b5cf6;
-            --si-primary-2: #a78bfa;
+            --si-primary: #06b6d4;
+            --si-primary-2: #38bdf8;
             --si-soft: #1e293b;
             --si-input: #0d1526;
             --si-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -200,7 +205,7 @@ function si_avatar($username, $gradients) {
         .si-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -218,16 +223,16 @@ function si_avatar($username, $gradients) {
         .si-hero p { color: rgba(255, 255, 255, 0.85); margin: 0; font-size: 0.95rem; }
         .si-hero-btn {
             position: relative; z-index: 1;
-            background: #fff; color: #4f46e5;
+            background: #fff; color: #1a56db;
             font-weight: 700; border: none;
             padding: 11px 22px; border-radius: 13px;
             display: inline-flex; align-items: center; gap: 8px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             transition: transform .2s ease, box-shadow .2s ease;
         }
-        .si-hero-btn:hover { transform: translateY(-2px); color: #4f46e5; text-decoration: none; }
+        .si-hero-btn:hover { transform: translateY(-2px); color: #1a56db; text-decoration: none; }
         .si-hero-btn.ghost { background: rgba(255, 255, 255, 0.16); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
-        .si-hero-btn.ghost:hover { background: #fff; color: #4f46e5; }
+        .si-hero-btn.ghost:hover { background: #fff; color: #1a56db; }
 
         /* ── Stats ── */
         .si-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 22px; }
@@ -324,7 +329,7 @@ function si_avatar($username, $gradients) {
             font-size: 0.86rem; font-weight: 600; color: var(--si-text);
             margin-bottom: 7px;
         }
-        .si-label .req { color: #ef4444; margin-left: 3px; }
+        .si-label .req { color: #dc2626; margin-left: 3px; }
         .si-label i { color: var(--si-primary); margin-right: 6px; }
         .si-input {
             width: 100%;
@@ -423,8 +428,8 @@ function si_avatar($username, $gradients) {
         }
         .si-badge i { font-size: 0.6rem; }
         .si-badge.scheduled { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
-        .si-badge.completed { background: rgba(16, 185, 129, 0.14); color: #10b981; }
-        .si-badge.cancelled { background: rgba(239, 68, 68, 0.14); color: #ef4444; }
+        .si-badge.completed { background: rgba(16, 185, 129, 0.14); color: #059669; }
+        .si-badge.cancelled { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
         .si-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
         .si-act {
             display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -441,10 +446,10 @@ function si_avatar($username, $gradients) {
         .si-act:hover { transform: translateY(-2px); text-decoration: none; }
         .si-act-join { background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.4); color: #06b6d4; }
         .si-act-join:hover { background: #06b6d4; color: #fff; }
-        .si-act-complete { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); color: #10b981; }
-        .si-act-complete:hover { background: #10b981; color: #fff; }
-        .si-act-cancel { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: #ef4444; }
-        .si-act-cancel:hover { background: #ef4444; color: #fff; }
+        .si-act-complete { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); color: #059669; }
+        .si-act-complete:hover { background: #059669; color: #fff; }
+        .si-act-cancel { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: #dc2626; }
+        .si-act-cancel:hover { background: #dc2626; color: #fff; }
 
         .si-location {
             display: inline-flex; align-items: center; gap: 6px;
@@ -472,7 +477,7 @@ function si_avatar($username, $gradients) {
             position: fixed; top: 84px; right: 24px; z-index: 9999;
             background: var(--si-card);
             border: 1px solid var(--si-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 14px;
             padding: 15px 20px;
             display: flex; align-items: center; gap: 12px;
@@ -482,7 +487,7 @@ function si_avatar($username, $gradients) {
             pointer-events: none;
         }
         .si-toast.show { opacity: 1; transform: translateX(0); }
-        .si-toast i { color: #10b981; font-size: 1.3rem; }
+        .si-toast i { color: #059669; font-size: 1.3rem; }
         .si-toast b { color: var(--si-text); font-size: 0.9rem; }
 
         /* Message box for errors */
@@ -493,7 +498,7 @@ function si_avatar($username, $gradients) {
             font-size: 0.9rem; font-weight: 600;
             margin-bottom: 16px;
         }
-        .si-alert.error { background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; }
+        .si-alert.error { background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.35); color: #dc2626; }
 
         @media (max-width: 768px) {
             .si-wrap { padding: 22px 14px 60px; }
@@ -529,7 +534,7 @@ function si_avatar($username, $gradients) {
         <!-- Stats -->
         <div class="si-stats">
             <div class="si-stat">
-                <div class="si-stat-ico" style="background: rgba(99,102,241,.12); color:#6366f1;"><i class="fas fa-calendar-alt"></i></div>
+                <div class="si-stat-ico" style="background: rgba(59,130,246,.12); color:#3b82f6;"><i class="fas fa-calendar-alt"></i></div>
                 <div><b><?php echo count($interviews); ?></b><span>Total</span></div>
             </div>
             <div class="si-stat">
@@ -537,11 +542,11 @@ function si_avatar($username, $gradients) {
                 <div><b><?php echo $scheduled_count; ?></b><span>Upcoming</span></div>
             </div>
             <div class="si-stat">
-                <div class="si-stat-ico" style="background: rgba(16,185,129,.12); color:#10b981;"><i class="fas fa-circle-check"></i></div>
+                <div class="si-stat-ico" style="background: rgba(5,150,105,.12); color:#059669;"><i class="fas fa-circle-check"></i></div>
                 <div><b><?php echo $completed_count; ?></b><span>Completed</span></div>
             </div>
             <div class="si-stat">
-                <div class="si-stat-ico" style="background: rgba(239,68,68,.12); color:#ef4444;"><i class="fas fa-ban"></i></div>
+                <div class="si-stat-ico" style="background: rgba(239,68,68,.12); color:#dc2626;"><i class="fas fa-ban"></i></div>
                 <div><b><?php echo $cancelled_count; ?></b><span>Cancelled</span></div>
             </div>
         </div>
@@ -656,7 +661,7 @@ function si_avatar($username, $gradients) {
             <?php else: ?>
                 <div class="si-list">
                     <?php foreach ($interviews as $int):
-                        $tcolor = $type_colors[$int['interview_type']] ?? ['#6366f1', 'fa-video'];
+                        $tcolor = $type_colors[$int['interview_type']] ?? ['#3b82f6', 'fa-video'];
                         $scolor = $status_colors[$int['status']] ?? ['#3b82f6', 'fa-calendar-check'];
                         $is_upcoming = $int['status'] == 'scheduled' && strtotime($int['interview_date'] . ' ' . $int['interview_time']) >= time();
                     ?>
@@ -675,7 +680,7 @@ function si_avatar($username, $gradients) {
                                 <b><?php echo date('M d', strtotime($int['interview_date'])); ?></b>
                                 <span><?php echo date('g:i A', strtotime($int['interview_time'])); ?></span>
                                 <?php if ($is_upcoming): ?>
-                                    <span style="color:#f59e0b; font-size:.66rem; text-transform:none; letter-spacing:0;">Upcoming</span>
+                                    <span style="color:#d97706; font-size:.66rem; text-transform:none; letter-spacing:0;">Upcoming</span>
                                 <?php endif; ?>
                             </div>
 

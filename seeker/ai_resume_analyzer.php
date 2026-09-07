@@ -6,10 +6,17 @@ if (!isset($_SESSION['id'])) {
     exit();
 }
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../ai/resume.php';
 
 $user_id = $_SESSION['id'];
+
+require_once __DIR__ . '/../includes/premium.php';
+$access = nh_check_access($con, $user_id, 'ai_resume_analyzer');
+if (!$access['allowed']) {
+    nh_render_pro_gate('ai_resume_analyzer');
+    exit;
+}
+
 $user_q = mysqli_query($con, "SELECT * FROM user_info WHERE id = '$user_id'");
 $user = mysqli_fetch_assoc($user_q);
 
@@ -73,7 +80,7 @@ mysqli_stmt_close($stmt);
         <!-- Middle: dimensions -->
         <div class="col-lg-4 mb-4">
             <div class="ai-card">
-                <h4 class="mb-3"><i class="fas fa-chart-pie mr-2" style="color:#4f46e5;"></i>Dimension Breakdown</h4>
+                <h4 class="mb-3"><i class="fas fa-chart-pie mr-2" style="color:#1a56db;"></i>Dimension Breakdown</h4>
                 <?php
                 $labels = array('skills' => 'Skills', 'education' => 'Education', 'experience' => 'Experience', 'completeness' => 'Profile Completeness', 'career' => 'Career Activity');
                 foreach ($analysis['dimensions'] as $key => $d) {
@@ -114,7 +121,7 @@ mysqli_stmt_close($stmt);
             <?php foreach ($analysis['suggestions'] as $i => $s): ?>
                 <div class="col-md-6 mb-2">
                     <div class="d-flex align-items-start">
-                        <span class="badge badge-primary mr-2 mt-1" style="background:#4f46e5;"><?php echo $i + 1; ?></span>
+                        <span class="badge badge-primary mr-2 mt-1" style="background:#1a56db;"><?php echo $i + 1; ?></span>
                         <span style="font-size:0.88rem; color:#334155;"><?php echo $s; ?></span>
                     </div>
                 </div>

@@ -45,12 +45,12 @@ $type_icons = [
     'job_recommendation' => 'fa-star',
 ];
 $type_colors = [
-    'application_status' => '#10b981',
+    'application_status' => '#059669',
     'new_application' => '#3b82f6',
-    'message' => '#8b5cf6',
-    'quiz_result' => '#f59e0b',
+    'message' => '#06b6d4',
+    'quiz_result' => '#d97706',
     'job_update' => '#06b6d4',
-    'system' => '#6366f1',
+    'system' => '#3b82f6',
     'job_recommendation' => '#ec4899',
 ];
 $type_labels = [
@@ -74,7 +74,7 @@ $type_labels = [
             margin: 40px auto;
         }
         .notif-page-header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: white;
             padding: 40px;
             border-radius: 20px;
@@ -172,17 +172,17 @@ $type_labels = [
         }
         .notif-list-actions a:hover {
             background: #f1f5f9;
-            color: #4f46e5;
+            color: #1a56db;
         }
         .notif-list-actions a.delete:hover {
             background: #fee2e2;
-            color: #ef4444;
+            color: #dc2626;
         }
         .unread-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #4f46e5;
+            background: #1a56db;
             position: absolute;
             top: 25px;
             right: 25px;
@@ -259,7 +259,7 @@ $type_labels = [
     <?php else: ?>
         <?php foreach ($notifications as $notif):
             $icon = isset($type_icons[$notif['notification_type']]) ? $type_icons[$notif['notification_type']] : 'fa-bell';
-            $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#6366f1';
+            $color = isset($type_colors[$notif['notification_type']]) ? $type_colors[$notif['notification_type']] : '#3b82f6';
             $label = isset($type_labels[$notif['notification_type']]) ? $type_labels[$notif['notification_type']] : 'System';
             $read_class = $notif['is_read'] ? '' : 'unread';
             $time = time_ago($notif['created_at']);

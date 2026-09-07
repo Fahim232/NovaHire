@@ -1,5 +1,10 @@
 <?php 
-include 'dbcon.php'; 
+require_once __DIR__ . '/../includes/bootstrap.php';
+
+if (!isset($_SESSION['admin_username'])) {
+    header('Location: admin_login.php');
+    exit;
+}
 
 // Check if ID parameter is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {

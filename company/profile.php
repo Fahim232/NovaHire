@@ -1,122 +1,139 @@
 <?php
-    session_start();
-    include '../admin/dbcon.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
 
     // Check if company is logged in
     if (!isset($_SESSION['company_id'])) {
-        header('Location: ../company_login.php');
+        header('Location: ../auth/login.php');
         exit;
     }
 
-    $company_id = $_SESSION['company_id'];
+    $company_id = (int)$_SESSION['company_id'];
 
     // Fetch company details
-    $company_query = "SELECT * FROM companies WHERE id = $company_id";
-    $company_result = mysqli_query($con, $company_query);
-    $company = mysqli_fetch_assoc($company_result);
+    $company_stmt = mysqli_prepare($con, "SELECT * FROM companies WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($company_stmt, "i", $company_id);
+    mysqli_stmt_execute($company_stmt);
+    $company = mysqli_fetch_assoc(mysqli_stmt_get_result($company_stmt));
+    mysqli_stmt_close($company_stmt);
+
+    /** Re-read the row after an update so the form reflects what was saved. */
+    function cp_reload_company($con, $company_id) {
+        $s = mysqli_prepare($con, "SELECT * FROM companies WHERE id = ? LIMIT 1");
+        mysqli_stmt_bind_param($s, "i", $company_id);
+        mysqli_stmt_execute($s);
+        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($s));
+        mysqli_stmt_close($s);
+        return $row;
+    }
 
     $flash_message = '';
     $flash_type = '';
 
     // Update profile
     if (isset($_POST['update_profile'])) {
-        $company_name = mysqli_real_escape_string($con, trim($_POST['company_name']));
-        $phone = mysqli_real_escape_string($con, trim($_POST['phone']));
-        $address = mysqli_real_escape_string($con, trim($_POST['address']));
-        $website = mysqli_real_escape_string($con, trim($_POST['website']));
-        $industry = mysqli_real_escape_string($con, trim($_POST['industry']));
-        $company_size = mysqli_real_escape_string($con, trim($_POST['company_size']));
-        $description = mysqli_real_escape_string($con, trim($_POST['description']));
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $flash_message = 'Your session expired. Please refresh and try again.';
+            $flash_type = 'danger';
+        } else {
+            $company_name = trim($_POST['company_name'] ?? '');
+            $phone        = trim($_POST['phone'] ?? '');
+            $address      = trim($_POST['address'] ?? '');
+            $website      = trim($_POST['website'] ?? '');
+            $industry     = trim($_POST['industry'] ?? '');
+            $company_size = trim($_POST['company_size'] ?? '');
+            $description  = trim($_POST['description'] ?? '');
 
-        // Handle logo upload
-        $logo_name = $company['logo']; // Keep existing logo by default (bare filename)
-        if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] == 0) {
-            $allowed_types = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
-            $max_size = 2 * 1024 * 1024; // 2MB
-
-            if (in_array($_FILES['company_logo']['type'], $allowed_types) && $_FILES['company_logo']['size'] <= $max_size) {
-                $upload_dir = '../uploads/company_logos/';
-                if (!file_exists($upload_dir)) {
-                    mkdir($upload_dir, 0777, true);
-                }
-
-                $file_extension = pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION);
-                $new_filename = 'company_' . $company_id . '_' . time() . '.' . $file_extension;
-                $target_path = $upload_dir . $new_filename;
-
-                if (move_uploaded_file($_FILES['company_logo']['tmp_name'], $target_path)) {
-                    // Delete old logo if exists (bare filename)
-                    $old_path = $upload_dir . $company['logo'];
-                    if (!empty($company['logo']) && file_exists($old_path)) {
-                        @unlink($old_path);
+            // Handle logo upload via the hardened, content-verifying helper
+            $logo_name = $company['logo']; // Keep existing logo by default (bare filename)
+            if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $up = nh_store_upload(
+                    $_FILES['company_logo'],
+                    __DIR__ . '/../uploads/company_logos',
+                    'image',
+                    'company_' . $company_id
+                );
+                if ($up['ok']) {
+                    // Remove the previous logo (basename() so a stored value can't escape the folder)
+                    if (!empty($company['logo'])) {
+                        $old_path = __DIR__ . '/../uploads/company_logos/' . basename($company['logo']);
+                        if (is_file($old_path)) @unlink($old_path);
                     }
-                    $logo_name = $new_filename; // store bare filename (site convention)
+                    $logo_name = $up['filename']; // store bare filename (site convention)
                 } else {
-                    $flash_message = 'Failed to upload logo. Please check folder permissions.';
+                    $flash_message = $up['error'];
                     $flash_type = 'danger';
                 }
-            } else {
-                $flash_message = 'Invalid file. Please upload an image (JPG, PNG, GIF, WEBP) under 2MB.';
-                $flash_type = 'danger';
             }
-        }
 
-        if (empty($flash_message)) {
-            $update_query = "UPDATE companies SET
-                            company_name = '$company_name',
-                            company_phone = '$phone',
-                            company_address = '$address',
-                            company_website = '$website',
-                            industry = '$industry',
-                            company_size = '$company_size',
-                            description = '$description',
-                            logo = '$logo_name'
-                            WHERE id = $company_id";
+            if (empty($flash_message)) {
+                $update_stmt = mysqli_prepare($con, "UPDATE companies SET
+                                    company_name = ?,
+                                    company_phone = ?,
+                                    company_address = ?,
+                                    company_website = ?,
+                                    industry = ?,
+                                    company_size = ?,
+                                    description = ?,
+                                    logo = ?
+                                WHERE id = ?");
+                mysqli_stmt_bind_param(
+                    $update_stmt, "ssssssssi",
+                    $company_name, $phone, $address, $website,
+                    $industry, $company_size, $description, $logo_name, $company_id
+                );
 
-            if (mysqli_query($con, $update_query)) {
-                $_SESSION['company_name'] = $company_name;
-                $_SESSION['company_logo'] = $logo_name;
-                $flash_message = 'Profile updated successfully!';
-                $flash_type = 'success';
-                // Refresh company data
-                $company_result = mysqli_query($con, $company_query);
-                $company = mysqli_fetch_assoc($company_result);
-            } else {
-                $flash_message = 'Failed to update profile.';
-                $flash_type = 'danger';
+                if (mysqli_stmt_execute($update_stmt)) {
+                    $_SESSION['company_name'] = $company_name;
+                    $_SESSION['company_logo'] = $logo_name;
+                    $flash_message = 'Profile updated successfully!';
+                    $flash_type = 'success';
+                    $company = cp_reload_company($con, $company_id);
+                } else {
+                    $flash_message = 'Failed to update profile.';
+                    $flash_type = 'danger';
+                }
+                mysqli_stmt_close($update_stmt);
             }
         }
     }
 
     // Change password
     if (isset($_POST['change_password'])) {
-        $current_password = $_POST['current_password'];
-        $new_password = $_POST['new_password'];
-        $confirm_password = $_POST['confirm_password'];
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $flash_message = 'Your session expired. Please refresh and try again.';
+            $flash_type = 'danger';
+        } else {
+            $current_password = $_POST['current_password'] ?? '';
+            $new_password     = $_POST['new_password'] ?? '';
+            $confirm_password = $_POST['confirm_password'] ?? '';
 
-        if (password_verify($current_password, $company['password'])) {
-            if ($new_password === $confirm_password) {
-                if (strlen($new_password) >= 6) {
-                    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                    $password_query = "UPDATE companies SET password = '$hashed_password' WHERE id = $company_id";
-                    if (mysqli_query($con, $password_query)) {
-                        $flash_message = 'Password changed successfully!';
-                        $flash_type = 'success';
+            if (password_verify($current_password, $company['password'])) {
+                if ($new_password === $confirm_password) {
+                    if (strlen($new_password) >= 8) {
+                        $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
+                        $pw_stmt = mysqli_prepare($con, "UPDATE companies SET password = ? WHERE id = ?");
+                        mysqli_stmt_bind_param($pw_stmt, "si", $hashed_password, $company_id);
+                        if (mysqli_stmt_execute($pw_stmt)) {
+                            $flash_message = 'Password changed successfully!';
+                            $flash_type = 'success';
+                            $company = cp_reload_company($con, $company_id);
+                        } else {
+                            $flash_message = 'Failed to change password.';
+                            $flash_type = 'danger';
+                        }
+                        mysqli_stmt_close($pw_stmt);
                     } else {
-                        $flash_message = 'Failed to change password.';
+                        $flash_message = 'New password must be at least 8 characters.';
                         $flash_type = 'danger';
                     }
                 } else {
-                    $flash_message = 'New password must be at least 6 characters.';
+                    $flash_message = 'New passwords do not match.';
                     $flash_type = 'danger';
                 }
             } else {
-                $flash_message = 'New passwords do not match.';
+                $flash_message = 'Current password is incorrect.';
                 $flash_type = 'danger';
             }
-        } else {
-            $flash_message = 'Current password is incorrect.';
-            $flash_type = 'danger';
         }
     }
 
@@ -152,8 +169,8 @@
             --pp-border: #e5e9f2;
             --pp-text: #1e293b;
             --pp-muted: #64748b;
-            --pp-primary: #4f46e5;
-            --pp-primary-2: #7c3aed;
+            --pp-primary: #1a56db;
+            --pp-primary-2: #0ea5e9;
             --pp-soft: #eef2ff;
             --pp-input: #f8fafc;
             --pp-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -164,8 +181,8 @@
             --pp-border: #28334a;
             --pp-text: #e8edff;
             --pp-muted: #94a3b8;
-            --pp-primary: #8b5cf6;
-            --pp-primary-2: #a78bfa;
+            --pp-primary: #06b6d4;
+            --pp-primary-2: #38bdf8;
             --pp-soft: #1e293b;
             --pp-input: #0d1526;
             --pp-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -187,7 +204,7 @@
         .pp-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -429,14 +446,14 @@
             display: flex; align-items: center; gap: 12px;
             background: var(--pp-card);
             border: 1px solid var(--pp-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 13px;
             padding: 14px 18px;
             box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
             font-size: 0.9rem; font-weight: 600; color: var(--pp-text);
             animation: ppToastIn .35s ease;
         }
-        .pp-toast.danger { border-left-color: #ef4444; }
+        .pp-toast.danger { border-left-color: #dc2626; }
         @keyframes ppToastIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         @media (max-width: 768px) {
@@ -480,11 +497,11 @@
         <!-- Stats -->
         <div class="pp-stats">
             <div class="pp-stat">
-                <div class="pp-stat-ico" style="background: rgba(99,102,241,.12); color:#6366f1;"><i class="fas fa-briefcase"></i></div>
+                <div class="pp-stat-ico" style="background: rgba(59,130,246,.12); color:#3b82f6;"><i class="fas fa-briefcase"></i></div>
                 <div><b><?php echo $stats['jobs']; ?></b><span>Total Jobs</span></div>
             </div>
             <div class="pp-stat">
-                <div class="pp-stat-ico" style="background: rgba(16,185,129,.12); color:#10b981;"><i class="fas fa-circle-check"></i></div>
+                <div class="pp-stat-ico" style="background: rgba(5,150,105,.12); color:#059669;"><i class="fas fa-circle-check"></i></div>
                 <div><b><?php echo $stats['active']; ?></b><span>Active Jobs</span></div>
             </div>
             <div class="pp-stat">
@@ -492,7 +509,7 @@
                 <div><b><?php echo $stats['applications']; ?></b><span>Applications</span></div>
             </div>
             <div class="pp-stat">
-                <div class="pp-stat-ico" style="background: rgba(245,158,11,.12); color:#f59e0b;"><i class="fas fa-layer-group"></i></div>
+                <div class="pp-stat-ico" style="background: rgba(217,119,6,.12); color:#d97706;"><i class="fas fa-layer-group"></i></div>
                 <div><b><?php echo $stats['category_apps']; ?></b><span>Category Apps</span></div>
             </div>
         </div>
@@ -561,6 +578,7 @@
                 <h3 class="pp-card-title"><i class="fas fa-pen-to-square"></i>Edit Profile</h3>
 
                 <form method="POST" action="" enctype="multipart/form-data">
+                    <?php echo csrf_field(); ?>
                     <div class="pp-form-grid">
                         <div class="pp-field">
                             <label for="company_name"><i class="fas fa-building"></i>Company Name *</label>
@@ -637,6 +655,7 @@
                 <h3 class="pp-card-title"><i class="fas fa-shield-halved"></i>Change Password</h3>
 
                 <form method="POST" action="">
+                    <?php echo csrf_field(); ?>
                     <div class="pp-form-grid">
                         <div class="pp-field">
                             <label for="current_password"><i class="fas fa-key"></i>Current Password *</label>
@@ -648,16 +667,16 @@
                         <div class="pp-field">
                             <label for="new_password"><i class="fas fa-lock"></i>New Password *</label>
                             <div class="pp-pass-wrap">
-                                <input type="password" class="pp-input" id="new_password" name="new_password" required minlength="6" oninput="strengthMeter(this.value)">
+                                <input type="password" class="pp-input" id="new_password" name="new_password" required minlength="8" oninput="strengthMeter(this.value)">
                                 <button type="button" class="pp-eye" onclick="togglePass('new_password', this)"><i class="far fa-eye"></i></button>
                             </div>
                             <div class="pp-strength"><div class="pp-strength-bar" id="strengthBar"></div></div>
-                            <div class="pp-strength-txt" id="strengthTxt">Use at least 6 characters</div>
+                            <div class="pp-strength-txt" id="strengthTxt">Use at least 8 characters</div>
                         </div>
                         <div class="pp-field" style="grid-column: 1 / -1;">
                             <label for="confirm_password"><i class="fas fa-lock"></i>Confirm New Password *</label>
                             <div class="pp-pass-wrap">
-                                <input type="password" class="pp-input" id="confirm_password" name="confirm_password" required minlength="6">
+                                <input type="password" class="pp-input" id="confirm_password" name="confirm_password" required minlength="8">
                                 <button type="button" class="pp-eye" onclick="togglePass('confirm_password', this)"><i class="far fa-eye"></i></button>
                             </div>
                             <small id="confirmHint"></small>
@@ -699,11 +718,11 @@
             if (/\d/.test(v)) score++;
             if (/[^A-Za-z0-9]/.test(v)) score++;
             const levels = [
-                { l: 0, w: '0%', c: '#e2e8f0', t: 'Use at least 6 characters' },
-                { l: 1, w: '25%', c: '#ef4444', t: 'Weak' },
-                { l: 2, w: '50%', c: '#f59e0b', t: 'Fair' },
+                { l: 0, w: '0%', c: '#e2e8f0', t: 'Use at least 8 characters' },
+                { l: 1, w: '25%', c: '#dc2626', t: 'Weak' },
+                { l: 2, w: '50%', c: '#d97706', t: 'Fair' },
                 { l: 3, w: '75%', c: '#3b82f6', t: 'Good' },
-                { l: 4, w: '100%', c: '#10b981', t: 'Strong' }
+                { l: 4, w: '100%', c: '#059669', t: 'Strong' }
             ];
             const lv = levels[Math.min(score, 4)];
             bar.style.width = lv.w;
@@ -744,7 +763,7 @@
                 const check = () => {
                     if (!cp.value) { hint.textContent = ''; return; }
                     hint.textContent = np.value === cp.value ? 'Passwords match' : 'Passwords do not match';
-                    hint.style.color = np.value === cp.value ? '#10b981' : '#ef4444';
+                    hint.style.color = np.value === cp.value ? '#059669' : '#dc2626';
                 };
                 np.addEventListener('input', check);
                 cp.addEventListener('input', check);

@@ -4,7 +4,6 @@ require_once __DIR__ . '/../includes/bootstrap.php';
  
 
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['id'])) {
@@ -109,10 +108,11 @@ $status_badge = [
 
 <head>
     <title>Available Companies | NovaHire</title>
+    <?php require_once __DIR__ . '/../includes/links.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ac-grad: linear-gradient(135deg, #6d5efc 0%, #8b5cf6 45%, #d946ef 100%);
+            --ac-grad: var(--grad, linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%));
             --ac-grad-soft: linear-gradient(135deg, rgba(109, 94, 252, .12), rgba(217, 70, 239, .12));
         }
 
@@ -172,7 +172,7 @@ $status_badge = [
             position: relative; z-index: 5;
             max-width: 1080px; margin: -76px auto 0; padding: 24px 26px;
             background: var(--bg-card); border: 1px solid var(--border-light);
-            border-radius: 22px; box-shadow: 0 24px 50px -22px rgba(79,70,229,.35);
+            border-radius: 22px; box-shadow: 0 24px 50px -22px rgba(26,86,219,.35);
         }
         .ac-cats-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
         .ac-cats-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--text); }
@@ -180,7 +180,7 @@ $status_badge = [
             width: 38px; height: 38px; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-size: .95rem; background: var(--ac-grad);
-            box-shadow: 0 6px 14px -6px rgba(139,92,246,.6);
+            box-shadow: 0 6px 14px -6px rgba(6,182,212,.6);
         }
         .ac-cats-desc { margin-left: auto; font-size: .82rem; font-weight: 600; color: var(--text-light); }
 
@@ -194,7 +194,7 @@ $status_badge = [
             transition: all .25s;
         }
         .ac-pill i { font-size: 1rem; }
-        .ac-pill:hover { transform: translateY(-2px); border-color: rgba(139,92,246,.45); color: var(--primary); text-decoration: none; box-shadow: 0 10px 20px -12px rgba(109,94,252,.5); }
+        .ac-pill:hover { transform: translateY(-2px); border-color: rgba(6,182,212,.45); color: var(--primary); text-decoration: none; box-shadow: 0 10px 20px -12px rgba(26,86,219,.5); }
         .ac-pill.active {
             background: var(--ac-grad); color: #fff; border-color: transparent;
             box-shadow: 0 12px 24px -10px rgba(217,70,239,.55);
@@ -208,7 +208,7 @@ $status_badge = [
             width: 42px; height: 42px; border-radius: 13px;
             display: flex; align-items: center; justify-content: center;
             color: var(--primary); font-size: 1.05rem; background: var(--ac-grad-soft);
-            border: 1px solid rgba(139,92,246,.22);
+            border: 1px solid rgba(6,182,212,.22);
         }
         .ac-section-head h2 { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--text); margin: 0; letter-spacing: -.01em; }
         .ac-section-head p { color: var(--text-muted); font-size: .85rem; margin: 2px 0 0; }
@@ -230,7 +230,7 @@ $status_badge = [
             background: var(--ac-grad);
             opacity: 0; transition: opacity .3s;
         }
-        .ac-card:hover { transform: translateY(-5px); box-shadow: 0 24px 48px -18px rgba(79,70,229,.35); border-color: rgba(139,92,246,.35); }
+        .ac-card:hover { transform: translateY(-5px); box-shadow: 0 24px 48px -18px rgba(26,86,219,.35); border-color: rgba(6,182,212,.35); }
         .ac-card:hover::before { opacity: 1; }
 
         .ac-card-top { display: flex; align-items: flex-start; gap: 16px; }
@@ -260,7 +260,7 @@ $status_badge = [
             color: var(--text-muted); font-size: .78rem; font-weight: 700;
             padding: 6px 12px; border-radius: 10px;
         }
-        .ac-tag.cat { color: var(--primary); background: var(--ac-grad-soft); border: 1px solid rgba(139,92,246,.22); }
+        .ac-tag.cat { color: var(--primary); background: var(--ac-grad-soft); border: 1px solid rgba(6,182,212,.22); }
         .ac-tag i { font-size: .8rem; width: 14px; text-align: center; }
 
         .ac-desc { color: var(--text-muted); font-size: .86rem; line-height: 1.65; margin: 0 0 18px; }
@@ -275,7 +275,7 @@ $status_badge = [
             font-family: 'Sora', sans-serif; font-weight: 700; font-size: .85rem;
             color: #fff; background: var(--ac-grad); background-size: 150% 150%;
             padding: 12px 22px; border-radius: 13px; border: 0; cursor: pointer;
-            box-shadow: 0 10px 22px -10px rgba(139,92,246,.6);
+            box-shadow: 0 10px 22px -10px rgba(6,182,212,.6);
             transition: transform .25s, box-shadow .3s, background-position .4s;
         }
         .ac-apply:hover { transform: translateY(-2px); background-position: 100% 50%; box-shadow: 0 16px 30px -12px rgba(217,70,239,.65); }
@@ -284,8 +284,8 @@ $status_badge = [
             display: inline-flex; align-items: center; gap: 8px;
             font-size: .8rem; font-weight: 800; padding: 10px 18px; border-radius: 999px;
         }
-        .ac-pill-status.pill-ok { color: #047857; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.22); }
-        .ac-pill-status.pill-warn { color: #b45309; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.24); }
+        .ac-pill-status.pill-ok { color: #047857; background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.22); }
+        .ac-pill-status.pill-warn { color: #b45309; background: rgba(217,119,6,.1); border: 1px solid rgba(217,119,6,.24); }
         .ac-pill-status.pill-info { color: #1d4ed8; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22); }
         .ac-pill-status.pill-danger { color: #b91c1c; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.22); }
         [data-theme="dark"] .ac-pill-status.pill-ok { color: #34d399; }
@@ -301,11 +301,11 @@ $status_badge = [
             padding: 16px 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);
         }
         .ac-alert .ic { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-        .ac-alert.success { border-left-color: #10b981; }
-        .ac-alert.success .ic { color: #047857; background: rgba(16,185,129,.12); }
-        .ac-alert.warning { border-left-color: #f59e0b; }
-        .ac-alert.warning .ic { color: #b45309; background: rgba(245,158,11,.12); }
-        .ac-alert.danger { border-left-color: #ef4444; }
+        .ac-alert.success { border-left-color: #059669; }
+        .ac-alert.success .ic { color: #047857; background: rgba(5,150,105,.12); }
+        .ac-alert.warning { border-left-color: #d97706; }
+        .ac-alert.warning .ic { color: #b45309; background: rgba(217,119,6,.12); }
+        .ac-alert.danger { border-left-color: #dc2626; }
         .ac-alert.danger .ic { color: #b91c1c; background: rgba(239,68,68,.12); }
         .ac-alert strong { display: block; color: var(--text); font-weight: 800; font-size: .92rem; }
         .ac-alert p { margin: 0; color: var(--text-muted); font-size: .83rem; }
@@ -369,12 +369,12 @@ $status_badge = [
             font-family: 'Manrope', sans-serif; font-size: .88rem;
             padding: 13px 15px; transition: all .2s;
         }
-        .ac-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.14); background: var(--bg-card); }
+        .ac-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59,130,246,.14); background: var(--bg-card); }
         .ac-tip { display: flex; align-items: flex-start; gap: 9px; font-size: .8rem; font-weight: 600; color: var(--text-light); margin-top: 9px; }
-        .ac-tip i { color: #f59e0b; margin-top: 2px; }
+        .ac-tip i { color: #d97706; margin-top: 2px; }
         .ac-share {
             display: flex; align-items: flex-start; gap: 9px;
-            background: var(--ac-grad-soft); border: 1px solid rgba(139,92,246,.2);
+            background: var(--ac-grad-soft); border: 1px solid rgba(6,182,212,.2);
             border-radius: 12px; padding: 12px 14px;
             color: var(--text-muted); font-size: .8rem; font-weight: 600; margin: 16px 0;
         }
@@ -412,6 +412,15 @@ $status_badge = [
 </head>
 
 <body>
+<nav style="position:sticky;top:0;z-index:1030;background:var(--bg-card);border-bottom:1px solid var(--border-light);padding:0 20px">
+    <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;height:56px;gap:16px">
+        <a href="seeker_dashboard.php" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-weight:700;font-size:.9rem">
+            <i class="fas fa-arrow-left"></i> Dashboard
+        </a>
+        <span style="color:var(--text-light);font-size:.8rem"><i class="fas fa-chevron-right"></i></span>
+        <span style="font-weight:700;color:var(--text);font-size:.9rem">Available Companies</span>
+    </div>
+</nav>
 <div class="ac-wrap">
 
     <!-- Hero -->
@@ -552,16 +561,21 @@ $status_badge = [
 
                                 <div class="ac-foot">
                                     <span class="ac-hint"><i class="fas fa-shield-alt"></i> Profile &amp; quiz score shared on apply</span>
-                                    <?php if ($application): ?>
-                                        <?php $bs = $status_badge[$application['status']] ?? ['pill-info', $application['status']]; ?>
-                                        <span class="ac-pill-status <?php echo $bs[0]; ?>">
-                                            <i class="fas fa-check-circle"></i> Applied &middot; <?php echo $bs[1]; ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <button class="ac-apply" onclick="openApplyModal(<?php echo $company['id']; ?>, '<?php echo htmlspecialchars($company['company_name']); ?>', '<?php echo $selected_category; ?>')">
-                                            <i class="fas fa-paper-plane"></i> Apply Now
-                                        </button>
-                                    <?php endif; ?>
+                                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                        <a href="company_reviews.php?company_id=<?php echo $company['id']; ?>" style="color:var(--primary);font-size:0.8rem;font-weight:600;text-decoration:none;white-space:nowrap;">
+                                            <i class="fas fa-star mr-1"></i>Reviews
+                                        </a>
+                                        <?php if ($application): ?>
+                                            <?php $bs = $status_badge[$application['status']] ?? ['pill-info', $application['status']]; ?>
+                                            <span class="ac-pill-status <?php echo $bs[0]; ?>">
+                                                <i class="fas fa-check-circle"></i> Applied &middot; <?php echo $bs[1]; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <button class="ac-apply" onclick="openApplyModal(<?php echo $company['id']; ?>, '<?php echo htmlspecialchars($company['company_name']); ?>', '<?php echo $selected_category; ?>')">
+                                                <i class="fas fa-paper-plane"></i> Apply Now
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>

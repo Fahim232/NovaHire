@@ -31,7 +31,8 @@ if (!$quiz_passed) {
     exit();
 }
 
-require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../includes/premium.php';
+$app_access = nh_check_access($con, $user_id, 'job_apply');
 
 $job_query = "SELECT cj.*, c.company_name, c.industry, c.logo,
                (SELECT COUNT(*) FROM company_job_questions WHERE job_id = cj.id) as quiz_count
@@ -93,15 +94,20 @@ if (isset($_POST['submit_application'])) {
             $app_id = $existing_app['id'];
             mysqli_query($con, $update_query);
         } else {
-            $quiz_status_val = $quiz_passed ? 'passed' : 'failed';
-            $insert_query = "INSERT INTO job_applications 
-                            (user_id, job_id, company_id, cover_letter, quiz_score, quiz_status, applied_date, application_status) 
-                            VALUES 
-                            ('$user_id', '$job_id', '$company_id', '$cover_letter', '$quiz_score', '$quiz_status_val', NOW(), 'pending')";
-            if (mysqli_query($con, $insert_query)) {
-                $app_id = mysqli_insert_id($con);
+            if (!$app_access['allowed']) {
+                $error_message = "You've reached your free application limit (10/month). Upgrade to Pro for unlimited applications.";
             } else {
-                $error_message = "Failed to submit application. Please try again.";
+                $quiz_status_val = $quiz_passed ? 'passed' : 'failed';
+                $insert_query = "INSERT INTO job_applications 
+                                (user_id, job_id, company_id, cover_letter, quiz_score, quiz_status, applied_date, application_status) 
+                                VALUES 
+                                ('$user_id', '$job_id', '$company_id', '$cover_letter', '$quiz_score', '$quiz_status_val', NOW(), 'pending')";
+                if (mysqli_query($con, $insert_query)) {
+                    $app_id = mysqli_insert_id($con);
+                    nh_record_usage($con, $user_id, 'job_apply');
+                } else {
+                    $error_message = "Failed to submit application. Please try again.";
+                }
             }
         }
 
@@ -118,6 +124,17 @@ if (isset($_POST['submit_application'])) {
             $msg_body .= "Status: Assessment Passed\n\n";
             $msg_body .= "Please review the application at your earliest convenience.";
             send_message($con, 'user', $user_id, 'company', $company_id, $msg_subject, $msg_body, $job_id);
+
+            // Send email notifications
+            require_once __DIR__ . '/../includes/mail.php';
+            $seeker_email = get_user_email($user_id, 'user');
+            if ($seeker_email && email_pref_enabled($user_id, 'user', 'email_applications')) {
+                send_application_confirmation($seeker_email, $user_data['username'], $job['job_title'], $job['company_name']);
+            }
+            $company_email = get_user_email($company_id, 'company');
+            if ($company_email && email_pref_enabled($company_id, 'company', 'email_applications')) {
+                send_new_application_alert($company_email, $job['company_name'], $user_data['username'], $job['job_title']);
+            }
 
             $_SESSION['app_success_msg'] = "Your application for <strong>" . htmlspecialchars($job['job_title']) . "</strong> at <strong>" . htmlspecialchars($job['company_name']) . "</strong> has been submitted successfully! The company will review your application and quiz score (" . $quiz_score . "%) and get back to you.";
             echo "<script>window.location.href='seeker_dashboard.php';</script>";
@@ -227,7 +244,7 @@ if ($show_success_banner) {
         .cfa-success::before {
             content: ''; position: absolute; top: -60%; right: -15%;
             width: 420px; height: 420px;
-            background: radial-gradient(circle, rgba(16,185,129,.16), transparent 70%);
+            background: radial-gradient(circle, rgba(5,150,105,.16), transparent 70%);
             border-radius: 50%;
         }
         .cfa-success.show { display: block; animation: cfaIn .5s ease-out; }
@@ -250,13 +267,13 @@ if ($show_success_banner) {
         .cfa-success .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
         .cfa-success .btn-primary-x {
             display: inline-flex; align-items: center; gap: 8px;
-            background: linear-gradient(135deg, #059669, #10b981); color: #fff;
+            background: linear-gradient(135deg, #059669, #059669); color: #fff;
             padding: 13px 28px; border-radius: 13px; text-decoration: none;
             font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
             box-shadow: 0 10px 24px -10px rgba(5,150,105,.6);
             transition: transform .25s, box-shadow .3s;
         }
-        .cfa-success .btn-primary-x:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(16,185,129,.65); color: #fff; text-decoration: none; }
+        .cfa-success .btn-primary-x:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px rgba(5,150,105,.65); color: #fff; text-decoration: none; }
         .cfa-success .btn-ghost-x {
             display: inline-flex; align-items: center; gap: 8px;
             background: #fff; color: #047857;
@@ -264,7 +281,7 @@ if ($show_success_banner) {
             font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: .9rem;
             border: 2px solid #a7f3d0; transition: all .25s;
         }
-        .cfa-success .btn-ghost-x:hover { border-color: #10b981; transform: translateY(-2px); color: #047857; text-decoration: none; }
+        .cfa-success .btn-ghost-x:hover { border-color: #059669; transform: translateY(-2px); color: #047857; text-decoration: none; }
 
         /* ═══ Content sections ═══ */
         .cfa-body { padding: 34px 44px 44px; }
@@ -414,7 +431,7 @@ if ($show_success_banner) {
             font-family: 'Inter', sans-serif; line-height: 1.7;
             transition: all .2s;
         }
-        .cfa-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.14); background: var(--bg-card); }
+        .cfa-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59,130,246,.14); background: var(--bg-card); }
         .cfa-textarea::placeholder { color: var(--text-light); }
         .cfa-count-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 8px; }
         .cfa-count {
@@ -425,13 +442,13 @@ if ($show_success_banner) {
         }
         .cfa-count span { color: var(--primary); font-family: 'Plus Jakarta Sans', sans-serif; }
         .cfa-tip { font-size: .78rem; font-weight: 600; color: var(--text-muted); display: inline-flex; align-items: center; gap: 7px; }
-        .cfa-tip i { color: #f59e0b; }
+        .cfa-tip i { color: #d97706; }
 
         /* error */
         .cfa-error {
             display: flex; align-items: flex-start; gap: 12px;
             background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.22);
-            border-left: 4px solid #ef4444; border-radius: 13px;
+            border-left: 4px solid #dc2626; border-radius: 13px;
             padding: 14px 16px; margin-bottom: 24px;
         }
         .cfa-error .ic { color: #dc2626; font-size: 1.05rem; margin-top: 1px; }
@@ -536,6 +553,18 @@ if ($show_success_banner) {
                         <i class="fas fa-exclamation-circle ic"></i>
                         <span><?php echo htmlspecialchars($error_message); ?></span>
                     </div>
+                <?php endif; ?>
+
+                <?php if (!$app_access['allowed']): ?>
+                    <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:12px;margin-bottom:18px">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                            <i class="fas fa-lock"></i>
+                            <span style="font-weight:700">You've used all 10 free applications this month.</span>
+                            <a href="pro.php" style="margin-left:auto;background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;padding:6px 16px;border-radius:99px;font-weight:700;font-size:.82rem;text-decoration:none;white-space:nowrap">Upgrade to Pro</a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <?php nh_render_usage_bar($con, $user_id, 'job_apply'); ?>
                 <?php endif; ?>
 
                 <!-- Job banner -->

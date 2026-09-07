@@ -6,10 +6,17 @@ if (!isset($_SESSION['id'])) {
     exit();
 }
 require_once __DIR__ . '/../admin/dbcon.php';
-require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../ai/interview.php';
 
 $user_id = $_SESSION['id'];
+
+require_once __DIR__ . '/../includes/premium.php';
+$access = nh_check_access($con, $user_id, 'ai_mock_interview');
+if (!$access['allowed']) {
+    nh_render_pro_gate('ai_mock_interview');
+    exit;
+}
+
 $user_q = mysqli_query($con, "SELECT * FROM user_info WHERE id = '$user_id'");
 $user = mysqli_fetch_assoc($user_q);
 
@@ -68,8 +75,8 @@ if (isset($_POST['submit_answers'])) {
             border:1.5px solid #e2e8f0; color:#475569; background:white; cursor:pointer;
             text-decoration:none; transition:all 0.25s;
         }
-        .cat-tab:hover { border-color:#4f46e5; color:#4f46e5; text-decoration:none; }
-        .cat-tab.active { background:linear-gradient(135deg,#4f46e5,#7c3aed); color:white; border-color:transparent; }
+        .cat-tab:hover { border-color:#1a56db; color:#1a56db; text-decoration:none; }
+        .cat-tab.active { background:linear-gradient(135deg,#1a56db,#0ea5e9); color:white; border-color:transparent; }
         .res-score { font-weight:800; font-size:1.1rem; }
     </style>
 </head>
@@ -92,7 +99,7 @@ if (isset($_POST['submit_answers'])) {
                 <form method="POST" action="ai_mock_interview.php?category=<?php echo urlencode($category); ?>">
                     <?php foreach ($questions as $i => $q): ?>
                         <div class="ai-qa-box">
-                            <div class="q"><span class="badge badge-primary mr-2" style="background:#4f46e5;">Q<?php echo $i + 1; ?></span><?php echo htmlspecialchars($q['question']); ?></div>
+                            <div class="q"><span class="badge badge-primary mr-2" style="background:#1a56db;">Q<?php echo $i + 1; ?></span><?php echo htmlspecialchars($q['question']); ?></div>
                             <input type="hidden" name="qid_<?php echo $i; ?>" value="<?php echo htmlspecialchars($q['id']); ?>">
                             <textarea name="answer_<?php echo $i; ?>" rows="4" placeholder="Type your answer here..." required></textarea>
                             <small class="text-muted"><?php echo $q['source'] === 'db' ? '<i class="fas fa-database mr-1"></i>Real company assessment question' : '<i class="fas fa-robot mr-1"></i>AI practice question'; ?></small>
@@ -119,12 +126,12 @@ if (isset($_POST['submit_answers'])) {
                 </div>
                 <?php foreach ($results as $i => $r): ?>
                     <div class="ai-qa-box">
-                        <div class="q"><span class="badge badge-primary mr-2" style="background:#4f46e5;">Q<?php echo $i + 1; ?></span><?php echo htmlspecialchars($r['question']); ?></div>
+                        <div class="q"><span class="badge badge-primary mr-2" style="background:#1a56db;">Q<?php echo $i + 1; ?></span><?php echo htmlspecialchars($r['question']); ?></div>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="res-score" style="color:<?php echo ai_readiness_label($r['score'])[1]; ?>;"><?php echo $r['score']; ?>/100</span>
                             <span class="label-chip" style="background:<?php echo ai_readiness_label($r['score'])[1]; ?>15; color:<?php echo ai_readiness_label($r['score'])[1]; ?>;"><?php echo ai_readiness_label($r['score'])[0]; ?></span>
                         </div>
-                        <div class="mb-2" style="background:#eef2ff; padding:10px 14px; border-radius:10px; font-size:0.82rem; color:#312e81;">
+                        <div class="mb-2" style="background:#eef2ff; padding:10px 14px; border-radius:10px; font-size:0.82rem; color:#0c1222;">
                             <strong>Your answer:</strong> <?php echo htmlspecialchars($r['answer']); ?>
                         </div>
                         <div style="font-size:0.85rem; color:#334155;"><?php echo $r['feedback']; ?></div>
@@ -162,7 +169,7 @@ if (isset($_POST['submit_answers'])) {
                 <?php endforeach; ?>
             </div>
             <div class="ai-card">
-                <h4 class="mb-3"><i class="fas fa-link mr-2" style="color:#4f46e5;"></i>Related</h4>
+                <h4 class="mb-3"><i class="fas fa-link mr-2" style="color:#1a56db;"></i>Related</h4>
                 <div class="d-flex flex-column gap-2">
                     <a href="ai_grooming_coach.php?category=<?php echo urlencode($category); ?>" class="btn-ai-outline"><i class="fas fa-graduation-cap"></i> Grooming Coach</a>
                     <a href="ai_resume_analyzer.php" class="btn-ai-outline"><i class="fas fa-file-lines"></i> Resume Analyzer</a>

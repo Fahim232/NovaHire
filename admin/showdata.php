@@ -1,11 +1,10 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 if (!isset($_SESSION['admin_username'])) {
-    echo '<script>alert("You are logged out!"); window.location.href="admin_login.php";</script>';
+    header('Location: admin_login.php');
     exit();
 }
-
-require_once 'dbcon.php';
 
 $records_per_page = 8;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -36,22 +35,22 @@ function sd_avatar_initials($name) {
 }
 function sd_badge_style($str) {
     $palette = [
-        ['bg' => 'rgba(99,102,241,.12)', 'fg' => '#4f46e5'],
-        ['bg' => 'rgba(139,92,246,.12)', 'fg' => '#7c3aed'],
+        ['bg' => 'rgba(59,130,246,.12)', 'fg' => '#1a56db'],
+        ['bg' => 'rgba(6,182,212,.12)', 'fg' => '#0ea5e9'],
         ['bg' => 'rgba(14,165,233,.12)', 'fg' => '#0284c7'],
-        ['bg' => 'rgba(16,185,129,.12)', 'fg' => '#059669'],
-        ['bg' => 'rgba(245,158,11,.14)', 'fg' => '#b45309'],
+        ['bg' => 'rgba(5,150,105,.12)', 'fg' => '#059669'],
+        ['bg' => 'rgba(217,119,6,.14)', 'fg' => '#b45309'],
         ['bg' => 'rgba(236,72,153,.12)', 'fg' => '#be185d'],
     ];
     return $palette[crc32($str) % count($palette)];
 }
 function sd_avatar_style($id) {
     $grads = [
-        'linear-gradient(135deg,#6366f1,#818cf8)',
-        'linear-gradient(135deg,#8b5cf6,#a78bfa)',
+        'linear-gradient(135deg,#3b82f6,#60a5fa)',
+        'linear-gradient(135deg,#06b6d4,#38bdf8)',
         'linear-gradient(135deg,#0ea5e9,#38bdf8)',
-        'linear-gradient(135deg,#10b981,#34d399)',
-        'linear-gradient(135deg,#f59e0b,#fbbf24)',
+        'linear-gradient(135deg,#059669,#34d399)',
+        'linear-gradient(135deg,#d97706,#fbbf24)',
         'linear-gradient(135deg,#ec4899,#f472b6)',
     ];
     return $grads[$id % count($grads)];
@@ -70,7 +69,7 @@ include 'header.php';
         position: relative;
         margin-top: -72px;
         padding: 96px 0 84px;
-        background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #0ea5e9 120%);
+        background: linear-gradient(120deg, #1a56db 0%, #0ea5e9 55%, #0ea5e9 120%);
         overflow: hidden;
     }
     .sd-hero::before, .sd-hero::after {
@@ -151,7 +150,7 @@ include 'header.php';
         color: var(--text); transition: border-color .2s ease; outline: none;
         min-width: 220px;
     }
-    .sd-search:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+    .sd-search:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
     .sd-search::placeholder { color: var(--text-light); }
 
     .sd-table { width: 100%; border-collapse: collapse; }
@@ -191,7 +190,7 @@ include 'header.php';
         text-decoration: none; transition: all .2s ease; white-space: nowrap;
     }
     .sd-act:hover { text-decoration: none; transform: translateY(-1px); }
-    .sd-act.v { background: #eef2ff; color: #4f46e5; }
+    .sd-act.v { background: #eef2ff; color: #1a56db; }
     .sd-act.v:hover { background: #e0e7ff; color: #3730a3; }
     .sd-act.e { background: rgba(14,165,233,.12); color: #0369a1; }
     .sd-act.e:hover { background: rgba(14,165,233,.22); color: #075985; }
@@ -220,12 +219,12 @@ include 'header.php';
         border: 1px solid var(--border-light);
         text-decoration: none; transition: all .2s ease;
     }
-    .sd-pg:hover { color: var(--primary); border-color: #6366f1; text-decoration: none; transform: translateY(-2px); }
+    .sd-pg:hover { color: var(--primary); border-color: #3b82f6; text-decoration: none; transform: translateY(-2px); }
     .sd-pg.active {
         color: #fff;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
         border-color: transparent;
-        box-shadow: 0 6px 14px -6px rgba(99,102,241,.55);
+        box-shadow: 0 6px 14px -6px rgba(59,130,246,.55);
     }
 
     @media (max-width: 767px) {
@@ -253,7 +252,7 @@ include 'header.php';
         <!-- KPI CARDS -->
         <div class="row">
             <div class="col-xl-3 col-md-6 mb-3 sd-reveal sd-d1">
-                <div class="sd-stat" style="--nd-accent:#6366f1;--nd-accent-2:#818cf8;--nd-glow:rgba(99,102,241,.35);">
+                <div class="sd-stat" style="--nd-accent:#3b82f6;--nd-accent-2:#60a5fa;--nd-glow:rgba(59,130,246,.35);">
                     <div class="sd-stat-top">
                         <div class="sd-stat-ico"><i class="fas fa-file-alt"></i></div>
                         <span class="sd-stat-badge">Submitted</span>
@@ -263,7 +262,7 @@ include 'header.php';
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 sd-reveal sd-d2">
-                <div class="sd-stat" style="--nd-accent:#8b5cf6;--nd-accent-2:#a78bfa;--nd-glow:rgba(139,92,246,.35);">
+                <div class="sd-stat" style="--nd-accent:#06b6d4;--nd-accent-2:#38bdf8;--nd-glow:rgba(6,182,212,.35);">
                     <div class="sd-stat-top">
                         <div class="sd-stat-ico"><i class="fas fa-users"></i></div>
                         <span class="sd-stat-badge">Unique</span>
@@ -273,7 +272,7 @@ include 'header.php';
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 sd-reveal sd-d3">
-                <div class="sd-stat" style="--nd-accent:#10b981;--nd-accent-2:#34d399;--nd-glow:rgba(16,185,129,.35);">
+                <div class="sd-stat" style="--nd-accent:#059669;--nd-accent-2:#34d399;--nd-glow:rgba(5,150,105,.35);">
                     <div class="sd-stat-top">
                         <div class="sd-stat-ico"><i class="fas fa-file-pdf"></i></div>
                         <span class="sd-stat-badge">Uploaded</span>
@@ -283,7 +282,7 @@ include 'header.php';
                 </div>
             </div>
             <div class="col-xl-3 col-md-6 mb-3 sd-reveal sd-d4">
-                <div class="sd-stat" style="--nd-accent:#f59e0b;--nd-accent-2:#fbbf24;--nd-glow:rgba(245,158,11,.35);">
+                <div class="sd-stat" style="--nd-accent:#d97706;--nd-accent-2:#fbbf24;--nd-glow:rgba(217,119,6,.35);">
                     <div class="sd-stat-top">
                         <div class="sd-stat-ico"><i class="fas fa-share-alt"></i></div>
                         <span class="sd-stat-badge">Mentioned</span>
@@ -299,7 +298,7 @@ include 'header.php';
             <div class="col-12">
                 <div class="sd-card">
                     <div class="sd-card-head">
-                        <h5><span class="sd-ico" style="background:rgba(79,70,229,.1);color:var(--primary);"><i class="fas fa-users"></i></span>Application Records</h5>
+                        <h5><span class="sd-ico" style="background:rgba(26,86,219,.1);color:var(--primary);"><i class="fas fa-users"></i></span>Application Records</h5>
                         <div class="d-flex align-items-center">
                             <div class="input-group" style="width:auto;">
                                 <input type="text" class="sd-search" id="sdSearch" placeholder="Search name, email, phone, degree..." onkeyup="sdFilter('sdSearch','sdTable')">
@@ -348,8 +347,8 @@ include 'header.php';
                                                 <td>
                                                     <span class="sd-badge" style="background:<?php echo $bs['bg']; ?>;color:<?php echo $bs['fg']; ?>;"><?php echo htmlspecialchars($result['degree']); ?></span>
                                                 </td>
-                                                <td><?php echo $result['refer'] !== '' ? '<span class="sd-badge" style="background:rgba(245,158,11,.14);color:#b45309;"><i class="fas fa-user-tag mr-1"></i>' . htmlspecialchars($result['refer']) . '</span>' : '<span class="sd-muted">—</span>'; ?></td>
-                                                <td><span class="sd-badge" style="background:rgba(99,102,241,.1);color:#4f46e5;"><i class="fas fa-code mr-1"></i><?php echo htmlspecialchars($result['planguage']); ?></span></td>
+                                                <td><?php echo $result['refer'] !== '' ? '<span class="sd-badge" style="background:rgba(217,119,6,.14);color:#b45309;"><i class="fas fa-user-tag mr-1"></i>' . htmlspecialchars($result['refer']) . '</span>' : '<span class="sd-muted">—</span>'; ?></td>
+                                                <td><span class="sd-badge" style="background:rgba(59,130,246,.1);color:#1a56db;"><i class="fas fa-code mr-1"></i><?php echo htmlspecialchars($result['planguage']); ?></span></td>
                                                 <td>
                                                     <a class="sd-act v" href="../seeker/view_cv.php?id=<?php echo $result['id']; ?>" target="_blank"><i class="fas fa-eye"></i> View</a>
                                                 </td>

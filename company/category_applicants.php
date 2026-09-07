@@ -4,7 +4,7 @@ include('../admin/dbcon.php');
 
 // Check if company is logged in
 if (!isset($_SESSION['company_id'])) {
-    header('Location: ../company_login.php');
+    header('Location: ../auth/login.php');
     exit();
 }
 
@@ -106,16 +106,16 @@ mysqli_stmt_close($stmt_stats);
 $category_styles = [
     'Java'        => ['icon' => 'fa-brands fa-java', 'color' => '#f89820'],
     'Python'      => ['icon' => 'fa-brands fa-python', 'color' => '#3776ab'],
-    'Frontend'    => ['icon' => 'fa-code', 'color' => '#7c3aed'],
+    'Frontend'    => ['icon' => 'fa-code', 'color' => '#0ea5e9'],
     'PHP'         => ['icon' => 'fa-brands fa-php', 'color' => '#8993be'],
-    'Finance'     => ['icon' => 'fa-chart-line', 'color' => '#10b981'],
+    'Finance'     => ['icon' => 'fa-chart-line', 'color' => '#059669'],
     'Healthcare'  => ['icon' => 'fa-heart-pulse', 'color' => '#f43f5e'],
-    'Education'   => ['icon' => 'fa-graduation-cap', 'color' => '#f59e0b'],
+    'Education'   => ['icon' => 'fa-graduation-cap', 'color' => '#d97706'],
     'Engineering' => ['icon' => 'fa-gears', 'color' => '#0ea5e9'],
-    'Sales'       => ['icon' => 'fa-bullhorn', 'color' => '#8b5cf6'],
+    'Sales'       => ['icon' => 'fa-bullhorn', 'color' => '#06b6d4'],
     'HR'          => ['icon' => 'fa-users', 'color' => '#ec4899'],
-    'Legal'       => ['icon' => 'fa-gavel', 'color' => '#6366f1'],
-    'Media'       => ['icon' => 'fa-video', 'color' => '#ef4444'],
+    'Legal'       => ['icon' => 'fa-gavel', 'color' => '#3b82f6'],
+    'Media'       => ['icon' => 'fa-video', 'color' => '#dc2626'],
     'Logistics'   => ['icon' => 'fa-truck-fast', 'color' => '#14b8a6'],
     'Consulting'  => ['icon' => 'fa-comments', 'color' => '#06b6d4'],
     'Retail'      => ['icon' => 'fa-store', 'color' => '#f97316'],
@@ -124,15 +124,15 @@ $category_styles = [
     'DevOps'      => ['icon' => 'fa-server', 'color' => '#f97316'],
     'Data Science'=> ['icon' => 'fa-chart-bar', 'color' => '#06b6d4'],
     'UI/UX'       => ['icon' => 'fa-pen-ruler', 'color' => '#ec4899'],
-    'Other'       => ['icon' => 'fa-briefcase', 'color' => '#4f46e5'],
+    'Other'       => ['icon' => 'fa-briefcase', 'color' => '#1a56db'],
 ];
-$default_style = ['icon' => 'fa-briefcase', 'color' => '#4f46e5'];
+$default_style = ['icon' => 'fa-briefcase', 'color' => '#1a56db'];
 
 $avatar_gradients = [
-    ['#6366f1', '#8b5cf6'],
+    ['#3b82f6', '#06b6d4'],
     ['#0ea5e9', '#06b6d4'],
-    ['#10b981', '#34d399'],
-    ['#f59e0b', '#f97316'],
+    ['#059669', '#34d399'],
+    ['#d97706', '#f97316'],
     ['#ec4899', '#f43f5e'],
     ['#14b8a6', '#0d9488'],
 ];
@@ -144,10 +144,10 @@ function category_applicant_avatar($username, $gradients) {
 }
 
 $status_meta = [
-    'Pending'   => ['icon' => 'fa-clock', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,.12)'],
+    'Pending'   => ['icon' => 'fa-clock', 'color' => '#d97706', 'bg' => 'rgba(217,119,6,.12)'],
     'Interview' => ['icon' => 'fa-calendar-check', 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,.12)'],
-    'Approved'  => ['icon' => 'fa-circle-check', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,.12)'],
-    'Rejected'  => ['icon' => 'fa-circle-xmark', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,.12)'],
+    'Approved'  => ['icon' => 'fa-circle-check', 'color' => '#059669', 'bg' => 'rgba(5,150,105,.12)'],
+    'Rejected'  => ['icon' => 'fa-circle-xmark', 'color' => '#dc2626', 'bg' => 'rgba(239,68,68,.12)'],
 ];
 
 function category_style_for($category, $category_styles, $default_style) {
@@ -168,8 +168,8 @@ function category_style_for($category, $category_styles, $default_style) {
             --ca-border: #e5e9f2;
             --ca-text: #1e293b;
             --ca-muted: #64748b;
-            --ca-primary: #4f46e5;
-            --ca-primary-2: #7c3aed;
+            --ca-primary: #1a56db;
+            --ca-primary-2: #0ea5e9;
             --ca-soft: #eef2ff;
             --ca-input: #f8fafc;
             --ca-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
@@ -180,8 +180,8 @@ function category_style_for($category, $category_styles, $default_style) {
             --ca-border: #28334a;
             --ca-text: #e8edff;
             --ca-muted: #94a3b8;
-            --ca-primary: #8b5cf6;
-            --ca-primary-2: #a78bfa;
+            --ca-primary: #06b6d4;
+            --ca-primary-2: #38bdf8;
             --ca-soft: #1e293b;
             --ca-input: #0d1526;
             --ca-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -203,7 +203,7 @@ function category_style_for($category, $category_styles, $default_style) {
         .ca-hero {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+            background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 55%, #38bdf8 100%);
             border-radius: 22px;
             padding: 30px 34px;
             color: #fff;
@@ -349,13 +349,13 @@ function category_style_for($category, $category_styles, $default_style) {
             padding: 4px 12px; border-radius: 20px;
         }
         .ca-badge i { font-size: 0.55rem; }
-        .ca-badge.passed { background: rgba(16,185,129,.12); color: #10b981; }
-        .ca-badge.failed { background: rgba(239,68,68,.12); color: #ef4444; }
+        .ca-badge.passed { background: rgba(5,150,105,.12); color: #059669; }
+        .ca-badge.failed { background: rgba(239,68,68,.12); color: #dc2626; }
         .ca-badge.none { background: var(--ca-soft); color: var(--ca-muted); }
         .ca-badge.Interview { background: rgba(59,130,246,.12); color: #3b82f6; }
-        .ca-badge.Pending { background: rgba(245,158,11,.12); color: #f59e0b; }
-        .ca-badge.Approved { background: rgba(16,185,129,.12); color: #10b981; }
-        .ca-badge.Rejected { background: rgba(239,68,68,.12); color: #ef4444; }
+        .ca-badge.Pending { background: rgba(217,119,6,.12); color: #d97706; }
+        .ca-badge.Approved { background: rgba(5,150,105,.12); color: #059669; }
+        .ca-badge.Rejected { background: rgba(239,68,68,.12); color: #dc2626; }
 
         .ca-catchip {
             display: inline-flex; align-items: center; gap: 7px;
@@ -408,8 +408,8 @@ function category_style_for($category, $category_styles, $default_style) {
         .ca-act:hover { transform: translateY(-2px); text-decoration: none; }
         .ca-act-detail { background: rgba(79, 70, 229, 0.10); border-color: rgba(79, 70, 229, 0.35); color: var(--ca-primary); }
         .ca-act-detail:hover { background: var(--ca-primary); color: #fff; }
-        .ca-act-cv { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #10b981; }
-        .ca-act-cv:hover { background: #10b981; color: #fff; }
+        .ca-act-cv { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); color: #059669; }
+        .ca-act-cv:hover { background: #059669; color: #fff; }
         .ca-act-contact { background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.35); color: #3b82f6; }
         .ca-act-contact:hover { background: #3b82f6; color: #fff; }
 
@@ -452,7 +452,7 @@ function category_style_for($category, $category_styles, $default_style) {
             position: sticky; top: 0;
             display: flex; justify-content: space-between; align-items: center;
             padding: 18px 24px;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a56db, #0ea5e9);
             color: #fff;
             border-radius: 20px 20px 0 0;
             z-index: 2;
@@ -491,10 +491,10 @@ function category_style_for($category, $category_styles, $default_style) {
             padding: 6px 16px; border-radius: 20px;
             font-size: 0.83rem; font-weight: 700;
         }
-        .ca-modal-body .status-Pending { background: rgba(245,158,11,.14); color: #f59e0b; }
+        .ca-modal-body .status-Pending { background: rgba(217,119,6,.14); color: #d97706; }
         .ca-modal-body .status-Interview { background: rgba(59,130,246,.14); color: #3b82f6; }
-        .ca-modal-body .status-Approved { background: rgba(16,185,129,.14); color: #10b981; }
-        .ca-modal-body .status-Rejected { background: rgba(239,68,68,.14); color: #ef4444; }
+        .ca-modal-body .status-Approved { background: rgba(5,150,105,.14); color: #059669; }
+        .ca-modal-body .status-Rejected { background: rgba(239,68,68,.14); color: #dc2626; }
         .ca-modal-body .quiz-score {
             display: flex; align-items: center; gap: 14px;
             padding: 14px 16px;
@@ -505,7 +505,7 @@ function category_style_for($category, $category_styles, $default_style) {
         .ca-modal-body .score-circle {
             width: 54px; height: 54px;
             border-radius: 50%;
-            background: #10b981;
+            background: #059669;
             color: #fff;
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; font-size: 1.1rem;
@@ -543,14 +543,14 @@ function category_style_for($category, $category_styles, $default_style) {
             display: flex; align-items: center; gap: 12px;
             background: var(--ca-card);
             border: 1px solid var(--ca-border);
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #059669;
             border-radius: 13px;
             padding: 14px 18px;
             box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
             font-size: 0.9rem; font-weight: 600; color: var(--ca-text);
             animation: caToastIn .35s ease;
         }
-        .ca-toast.danger { border-left-color: #ef4444; }
+        .ca-toast.danger { border-left-color: #dc2626; }
         .ca-toast .ca-toast-ico { font-size: 1.2rem; }
         @keyframes caToastIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
@@ -587,11 +587,11 @@ function category_style_for($category, $category_styles, $default_style) {
         ?>
         <div class="ca-stats">
             <a class="ca-stat <?php echo $filter_status == 'all' ? 'on' : ''; ?>" href="?status=all<?php echo $qs; ?>">
-                <div class="ca-stat-ico" style="background: rgba(99,102,241,.12); color:#6366f1;"><i class="fas fa-file-signature"></i></div>
+                <div class="ca-stat-ico" style="background: rgba(59,130,246,.12); color:#3b82f6;"><i class="fas fa-file-signature"></i></div>
                 <div><b><?php echo intval($stats['total']); ?></b><span>Applications</span></div>
             </a>
             <a class="ca-stat <?php echo $filter_status == 'Pending' ? 'on' : ''; ?>" href="?status=Pending<?php echo $qs; ?>">
-                <div class="ca-stat-ico" style="background: rgba(245,158,11,.12); color:#f59e0b;"><i class="fas fa-clock"></i></div>
+                <div class="ca-stat-ico" style="background: rgba(217,119,6,.12); color:#d97706;"><i class="fas fa-clock"></i></div>
                 <div><b><?php echo intval($stats['pending']); ?></b><span>Pending</span></div>
             </a>
             <a class="ca-stat <?php echo $filter_status == 'Interview' ? 'on' : ''; ?>" href="?status=Interview<?php echo $qs; ?>">
@@ -599,11 +599,11 @@ function category_style_for($category, $category_styles, $default_style) {
                 <div><b><?php echo intval($stats['interview']); ?></b><span>Interview</span></div>
             </a>
             <a class="ca-stat <?php echo $filter_status == 'Approved' ? 'on' : ''; ?>" href="?status=Approved<?php echo $qs; ?>">
-                <div class="ca-stat-ico" style="background: rgba(16,185,129,.12); color:#10b981;"><i class="fas fa-circle-check"></i></div>
+                <div class="ca-stat-ico" style="background: rgba(5,150,105,.12); color:#059669;"><i class="fas fa-circle-check"></i></div>
                 <div><b><?php echo intval($stats['approved']); ?></b><span>Approved</span></div>
             </a>
             <a class="ca-stat <?php echo $filter_status == 'Rejected' ? 'on' : ''; ?>" href="?status=Rejected<?php echo $qs; ?>">
-                <div class="ca-stat-ico" style="background: rgba(239,68,68,.12); color:#ef4444;"><i class="fas fa-circle-xmark"></i></div>
+                <div class="ca-stat-ico" style="background: rgba(239,68,68,.12); color:#dc2626;"><i class="fas fa-circle-xmark"></i></div>
                 <div><b><?php echo intval($stats['rejected']); ?></b><span>Rejected</span></div>
             </a>
         </div>
