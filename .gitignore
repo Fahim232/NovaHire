@@ -1,42 +1,63 @@
-# OS files
+# ===========================
+# NovaHire .gitignore
+# ===========================
+
+# ---------- OS ----------
 .DS_Store
 Thumbs.db
 desktop.ini
+ehthumbs.db
 
-# IDE files
+# ---------- IDEs / Editors ----------
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+nbproject/
 
-# XAMPP / Local dev
-*.sql.bak
-*.sql.old
+# ---------- Environment / Secrets ----------
+.env
+.env.local
+.env.production
+config_local.php
+api_keys.php
 
-# Upload directories (user data - never commit)
-uploads/company_logos/*
-uploads/*.DS_Store
+# ---------- Logs ----------
+*.log
+error_log
+php_error.log
+access_log
+
+# ---------- Uploads (user-generated content) ----------
+uploads/profile_*.jpeg
+uploads/profile_*.jpg
+uploads/profile_*.png
+uploads/company_logos/company_*.png
+uploads/company_logos/company_*.jpg
+uploads/company_logos/company_*.jpeg
 files/*.pdf
 files/*.doc
 files/*.docx
 
-# Keep directory structure
+# Keep security configs
 !uploads/.htaccess
 !uploads/company_logos/.htaccess
-!files/.htaccess
-!uploads/company_logos/index.php
 
-# Environment / secrets
-.env
-.env.local
-config_local.php
+# ---------- XAMPP / Local ----------
+*.sql.bak
+*.sql.old
+*.sql~
 
-# Logs
-*.log
-error_log
-
-# Composer (if added later)
+# ---------- Composer ----------
 /vendor/
-composer.lock
 composer.phar
+
+# ---------- Temp files ----------
+tmp/
+temp/
+*.tmp
