@@ -1,0 +1,40 @@
+# NovaHire — legacy URL redirects
+# After the folder reorg, seeker/auth pages moved into seeker/ and auth/.
+# Old bookmarks, cached pages and old links that point at the root-level
+# file names are 301-redirected here so nothing ever breaks.
+
+RewriteEngine On
+RewriteBase /Job-portal-and-grooming/
+
+# --- auth/ pages ---
+RewriteRule ^login\.php$           auth/login.php            [L,R=301]
+RewriteRule ^registration\.php$    auth/registration.php     [L,R=301]
+RewriteRule ^forgot_password\.php$ auth/forgot_password.php  [L,R=301]
+RewriteRule ^reset_password\.php$  auth/reset_password.php   [L,R=301]
+RewriteRule ^logout\.php$          auth/logout.php           [L,R=301]
+RewriteRule ^company_login\.php$   auth/login.php            [L,R=301]
+
+# --- seeker/ pages ---
+RewriteRule ^seeker_dashboard\.php$              seeker/seeker_dashboard.php            [L,R=301]
+RewriteRule ^profile\.php$                       seeker/profile.php                     [L,R=301]
+RewriteRule ^view_cv\.php$                       seeker/view_cv.php                     [L,R=301]
+RewriteRule ^browse_jobs\.php$                   seeker/browse_jobs.php                 [L,R=301]
+RewriteRule ^job_details\.php$                   seeker/job_details.php                 [L,R=301]
+RewriteRule ^available_companies\.php$           seeker/available_companies.php         [L,R=301]
+RewriteRule ^saved_jobs\.php$                    seeker/saved_jobs.php                  [L,R=301]
+RewriteRule ^application\.php$                   seeker/application.php                 [L,R=301]
+RewriteRule ^my_application\.php$                seeker/my_application.php              [L,R=301]
+RewriteRule ^company_job_application\.php$       seeker/company_job_application.php     [L,R=301]
+RewriteRule ^company_job_quiz\.php$              seeker/company_job_quiz.php            [L,R=301]
+RewriteRule ^grooming\.php$                      seeker/grooming.php                    [L,R=301]
+RewriteRule ^quiz\.php$                          seeker/quiz.php                        [L,R=301]
+RewriteRule ^video_interview\.php$               seeker/video_interview.php             [L,R=301]
+RewriteRule ^live_chat\.php$                     seeker/live_chat.php                   [L,R=301]
+RewriteRule ^message_center\.php$                seeker/message_center.php              [L,R=301]
+RewriteRule ^notifications\.php$                 seeker/notifications.php               [L,R=301]
+RewriteRule ^ai_hub\.php$                        seeker/ai_hub.php                      [L,R=301]
+RewriteRule ^ai_assistant\.php$                  seeker/ai_assistant.php                [L,R=301]
+RewriteRule ^ai_resume_analyzer\.php$            seeker/ai_resume_analyzer.php          [L,R=301]
+RewriteRule ^ai_cover_letter_generator\.php$     seeker/ai_cover_letter_generator.php   [L,R=301]
+RewriteRule ^ai_grooming_coach\.php$             seeker/ai_grooming_coach.php           [L,R=301]
+RewriteRule ^ai_mock_interview\.php$             seeker/ai_mock_interview.php           [L,R=301]
