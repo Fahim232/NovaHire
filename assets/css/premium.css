@@ -1,0 +1,444 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NovaHire — Premium Gating System Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pro Gate Overlay ─────────────────────────────────────────────────────── */
+
+.nh-pro-gate-overlay {
+  position: relative;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.nh-pro-gate-card {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, .2);
+  position: relative;
+  z-index: 2;
+  animation: nhGateSlideUp .4s ease-out;
+}
+
+@keyframes nhGateSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nh-pro-gate-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, .12), rgba(124, 58, 237, .12));
+  color: #3b82f6;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  margin: 0 auto 18px;
+}
+
+.nh-pro-gate-title {
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  font-size: 1.4rem;
+  letter-spacing: -.3px;
+  margin-bottom: 4px;
+}
+
+.nh-pro-gate-sub {
+  color: var(--text-muted, #64748b);
+  font-size: .9rem;
+  margin-bottom: 12px;
+}
+
+.nh-pro-gate-desc {
+  color: var(--text-muted, #64748b);
+  font-size: .88rem;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.nh-pro-gate-benefits {
+  text-align: left;
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nh-pro-gate-benefit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+}
+
+.nh-pro-gate-benefit i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, .12);
+  color: #059669;
+  display: grid;
+  place-items: center;
+  font-size: .7rem;
+  flex-shrink: 0;
+}
+
+.nh-pro-gate-price {
+  margin-bottom: 18px;
+}
+
+.nh-pro-gate-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  letter-spacing: -.5px;
+}
+
+.nh-pro-gate-period {
+  font-size: .9rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+}
+
+.nh-pro-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1a56db, #0ea5e9);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: .2s;
+  box-shadow: 0 8px 24px -6px rgba(79, 70, 229, .45);
+}
+
+.nh-pro-gate-btn:hover {
+  opacity: .92;
+  transform: translateY(-1px);
+  color: #fff;
+  text-decoration: none;
+}
+
+.nh-pro-gate-back {
+  display: block;
+  margin-top: 14px;
+  color: var(--text-muted, #64748b);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nh-pro-gate-back:hover {
+  color: var(--primary, #1a56db);
+  text-decoration: none;
+}
+
+/* ── Soft Limit Gate ──────────────────────────────────────────────────────── */
+
+.nh-soft-gate {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.nh-soft-gate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.nh-soft-gate-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  color: var(--text, #0f172a);
+}
+
+.nh-soft-gate-info i {
+  color: #d97706;
+}
+
+.nh-soft-gate-upgrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #1a56db, #0ea5e9);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .2s;
+  white-space: nowrap;
+}
+
+.nh-soft-gate-upgrade:hover {
+  opacity: .9;
+  color: #fff;
+  text-decoration: none;
+}
+
+.nh-soft-gate-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--bg-hover, #f1f5f9);
+  overflow: hidden;
+}
+
+.nh-soft-gate-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #059669, #34d399);
+  transition: width .4s ease;
+}
+
+.nh-soft-gate-fill.warning {
+  background: linear-gradient(135deg, #d97706, #fbbf24);
+}
+
+.nh-soft-gate-fill.danger {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+}
+
+.nh-soft-gate-hint {
+  font-size: .78rem;
+  color: var(--text-muted, #64748b);
+  margin: 8px 0 0;
+}
+
+/* ── Usage Bar ────────────────────────────────────────────────────────────── */
+
+.nh-usage-bar-wrap {
+  margin-bottom: 16px;
+}
+
+.nh-usage-bar-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: .8rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.nh-usage-bar-remaining {
+  color: var(--primary, #1a56db);
+}
+
+.nh-usage-bar {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--bg-hover, #f1f5f9);
+  overflow: hidden;
+}
+
+.nh-usage-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #059669, #34d399);
+  transition: width .4s ease;
+}
+
+.nh-usage-bar-fill.warning {
+  background: linear-gradient(135deg, #d97706, #fbbf24);
+}
+
+.nh-usage-bar-fill.danger {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+}
+
+/* ── Pro Badge ────────────────────────────────────────────────────────────── */
+
+.nh-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #1a56db, #0ea5e9);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  vertical-align: middle;
+}
+
+/* ── Upgrade Banner ───────────────────────────────────────────────────────── */
+
+.nh-upgrade-banner {
+  background: linear-gradient(135deg, #1a56db, #0ea5e9 60%, #a21caf);
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.nh-upgrade-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.nh-upgrade-banner-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.nh-upgrade-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nh-upgrade-banner-text strong {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.nh-upgrade-banner-text span {
+  color: rgba(255, 255, 255, .8);
+  font-size: .84rem;
+}
+
+.nh-upgrade-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1a56db;
+  font-weight: 700;
+  font-size: .88rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: .2s;
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, .2);
+}
+
+.nh-upgrade-banner-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px -4px rgba(0, 0, 0, .25);
+  color: #1a56db;
+  text-decoration: none;
+}
+
+/* ── Dashboard Usage Widget ───────────────────────────────────────────────── */
+
+.nh-usage-widget {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0,0,0,.04));
+}
+
+.nh-usage-widget h4 {
+  font-weight: 700;
+  color: var(--text, #0f172a);
+  font-size: 1rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nh-usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+}
+
+.nh-usage-row:last-child {
+  border-bottom: none;
+}
+
+.nh-usage-row-label {
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nh-usage-row-label i {
+  color: var(--text-muted, #94a3b8);
+  width: 18px;
+  text-align: center;
+  font-size: .82rem;
+}
+
+.nh-usage-row-value {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+}
+
+.nh-usage-row-value.unlimited {
+  color: #059669;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .nh-pro-gate-card {
+    padding: 30px 22px;
+    margin: 0 8px;
+  }
+
+  .nh-pro-gate-amount {
+    font-size: 1.6rem;
+  }
+
+  .nh-upgrade-banner-content {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+  }
+
+  .nh-upgrade-banner-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nh-soft-gate-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
