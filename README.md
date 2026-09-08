@@ -638,6 +638,40 @@ All prices are in **BDT (Bangladeshi Taka)** — ৳ symbol.
 
 ---
 
+## Team Members
+
+| Name | Role | Branch | Responsibility |
+|------|------|--------|----------------|
+| Kazi Fahim | Project Lead / Infrastructure | `infrastructure` | Core infrastructure, authentication, security, database design, shared libraries, assets |
+| Member 2 | Job Seeker Developer | `dev-seeker` | Job seeker portal, browse jobs, applications, AI tools, resume builder |
+| Member 3 | Company Developer | `dev-company` | Company portal, job posting, applicant management, payment integration |
+| Member 4 | Admin & AI Developer | `dev-admin-ai` | Admin panel, mentor portal, AI engine, chatbot |
+
+---
+
+## Branches
+
+| Branch | Description |
+|--------|-------------|
+| `main` | Production branch with merged features |
+| `infrastructure` | Core infrastructure, auth, security, database |
+| `dev-seeker` | Job seeker portal development |
+| `dev-company` | Company portal development |
+| `dev-admin-ai` | Admin, mentor, and AI development |
+
+---
+
+## Contribution Guidelines
+
+1. Clone the repository
+2. Switch to your assigned branch
+3. Make your changes
+4. Commit with descriptive messages
+5. Push to your branch
+6. Create a pull request to merge into `main`
+
+---
+
 ## License
 
 This project is for educational purposes.
