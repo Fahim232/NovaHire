@@ -107,6 +107,21 @@ function sanitize_url($input) {
     return filter_var($input, FILTER_SANITIZE_URL);
 }
 
+function sanitize_phone($input) {
+    $cleaned = preg_replace('/[^0-9+\-\(\)\s]/', '', trim($input));
+    return $cleaned;
+}
+
+function sanitize_name($input) {
+    $cleaned = preg_replace('/[^a-zA-Z\s\'\-]/', '', trim($input));
+    return ucwords(strtolower($cleaned));
+}
+
+function validate_input_length($input, $min = 1, $max = 255) {
+    $length = strlen(trim($input));
+    return $length >= $min && $length <= $max;
+}
+
 /* ── Output Escaping ─────────────────────────────────────────────────────── */
 function e($input) {
     return htmlspecialchars($input ?? '', ENT_QUOTES, 'UTF-8');
@@ -119,23 +134,17 @@ function ej($input) {
 /* ── Security Headers ────────────────────────────────────────────────────── */
 function set_security_headers() {
     if (!headers_sent()) {
-        // Prevent clickjacking
         header('X-Frame-Options: SAMEORIGIN');
-        
-        // Prevent MIME sniffing
         header('X-Content-Type-Options: nosniff');
-        
-        // XSS Protection
         header('X-XSS-Protection: 1; mode=block');
-        
-        // Referrer Policy
         header('Referrer-Policy: strict-origin-when-cross-origin');
-        
-        // Content Security Policy (permissive for CDN resources)
-        header("Content-Security-Policy: default-src 'self' http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: http: https:; frame-src https://meet.jit.si http: https:;");
-        
-        // Permissions Policy
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        header('X-Permitted-Cross-Domain-Policies: none');
+        header('Cross-Origin-Embedder-Policy: require-corp');
+        header('Cross-Origin-Opener-Policy: same-origin');
+        header('Cross-Origin-Resource-Policy: same-origin');
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: http: https:; frame-src https://meet.jit.si; connect-src 'self';");
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
     }
 }
 

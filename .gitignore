@@ -1,0 +1,63 @@
+# ===========================
+# NovaHire .gitignore
+# ===========================
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ---------- IDEs / Editors ----------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+nbproject/
+
+# ---------- Environment / Secrets ----------
+.env
+.env.local
+.env.production
+config_local.php
+api_keys.php
+
+# ---------- Logs ----------
+*.log
+error_log
+php_error.log
+access_log
+
+# ---------- Uploads (user-generated content) ----------
+uploads/profile_*.jpeg
+uploads/profile_*.jpg
+uploads/profile_*.png
+uploads/company_logos/company_*.png
+uploads/company_logos/company_*.jpg
+uploads/company_logos/company_*.jpeg
+files/*.pdf
+files/*.doc
+files/*.docx
+
+# Keep security configs
+!uploads/.htaccess
+!uploads/company_logos/.htaccess
+
+# ---------- XAMPP / Local ----------
+*.sql.bak
+*.sql.old
+*.sql~
+
+# ---------- Composer ----------
+/vendor/
+composer.phar
+
+# ---------- Temp files ----------
+tmp/
+temp/
+*.tmp
