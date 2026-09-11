@@ -1,0 +1,10 @@
+# Prevent PHP execution in upload directories
+php_flag engine off
+
+# Prevent directory listing
+Options -Indexes
+
+# Deny access to hidden files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
