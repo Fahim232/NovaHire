@@ -45,9 +45,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /* ── 2b. Error display (production-safe defaults) ─────────────────────────── */
-if (!defined('NOVAHIRE_DEBUG') || !NOVAHIRE_DEBUG) {
-    @ini_set('display_errors', '0');
-    @ini_set('log_errors', '1');
+if (empty(NOVAHIRE_DEBUG)) {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
     error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
 }
 
