@@ -1,0 +1,9 @@
+# Uploaded files are DATA, never code. Do not remove.
+php_flag engine off
+AddType text/plain .php .php3 .php4 .php5 .php7 .phtml .phps .pl .py .cgi .asp .aspx .sh .shtml
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>
+<FilesMatch "\.(?i:php|php3|php4|php5|php7|phtml|phps|pl|py|cgi|asp|aspx|sh|shtml|htaccess)$">
+    Require all denied
+</FilesMatch>

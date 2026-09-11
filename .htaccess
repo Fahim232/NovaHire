@@ -1,0 +1,47 @@
+# ===========================
+# NovaHire Apache Configuration
+# ===========================
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS (uncomment in production)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    RewriteBase /
+
+    # Block direct access to hidden files / directories
+    RewriteRule (^\.|/\.) - [F]
+
+    # Block access to sensitive files
+    RewriteRule ^(admin/dbcon\.php|\.env.*|composer\.(json|lock))$ - [F,L]
+</IfModule>
+
+# Disable directory browsing
+<Files ".DS_Store">
+    Require all denied
+</Files>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# PHP error handling
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
