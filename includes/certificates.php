@@ -13,10 +13,10 @@ define('NOVAHIRE_CERTIFICATES', true);
 function nh_cert_title($category) {
     return $category . ' Proficiency Certificate';
 }
-
 function nh_generate_cert_code() {
-    // e.g. NH-4F9A-2C71
-    return 'NH-' . strtoupper(bin2hex(random_bytes(2))) . '-' . strtoupper(bin2hex(random_bytes(2)));
+    $bytes = bin2hex(random_bytes(4)); // ৮ অক্ষরের হেক্স স্ট্রিং
+    
+    return strtoupper(vsprintf('NH-%s%s%s%s-%s%s%s%s', str_split($bytes)));
 }
 
 /* ── Eligibility ───────────────────────────────────────────────────────────── */
