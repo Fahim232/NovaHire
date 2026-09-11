@@ -4,11 +4,9 @@
  */
 require_once __DIR__ . '/../includes/bootstrap.php';
 
-if (isset($_POST['register'])) {
-    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
-        $error_msg = 'Your session expired. Please refresh the page and try again.';
-        $error = true;
-    }
+if (isset($_POST['register']) && !verify_csrf_token($_POST['csrf_token'] ?? '')) {
+    $error_msg = 'Your session expired. Please refresh the page and try again.';
+    $error = true;
 }
 
 if (isset($_POST['register']) && !isset($error)) {

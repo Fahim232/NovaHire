@@ -93,8 +93,8 @@ function validatePhone() {
     }
 
     // Success feedback icon
-    if (phoneError) phoneError.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
-    return true;
+phoneError && (phoneError.innerHTML = '<i class="fas fa-check-circle text-success"></i>');
+return true;
 }
 
 /**
