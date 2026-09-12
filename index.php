@@ -503,8 +503,11 @@ if ($dbConnection) {
             color: #94a3b8;
         }
         .lh-footer-brand {
-            font-family: 'Sora', sans-serif; font-weight: 800;
-            font-size: 1.4rem; color: #fff; margin-bottom: 12px;
+            margin-bottom: 12px;
+            font-family: 'Sora', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
         }
         .lh-footer-brand span { color: #fbbf24; }
         .lh-footer-desc { font-size: 0.88rem; line-height: 1.7; max-width: 300px; }
