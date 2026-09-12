@@ -436,10 +436,12 @@ if ($dbConnection) {
         /* ═══ TESTIMONIALS ═══ */
         .lh-testimonials { padding: 100px 0; }
         .lh-testimonial-card {
-            background: #fff; border: 1px solid #f1f5f9;
-            border-radius: 20px; padding: 32px;
-            transition: all 0.3s;
             position: relative;
+            padding: 32px;
+            background: #fff;
+            border: 1px solid #f1f5f9;
+            border-radius: 20px;
+            transition: all 0.3s;
         }
         .lh-testimonial-card:hover {
             transform: translateY(-4px);
