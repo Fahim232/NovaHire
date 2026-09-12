@@ -482,7 +482,9 @@ if ($dbConnection) {
 
         /* ═══ FOOTER ═══ */
         .lh-footer {
-            background: #0f172a; color: #94a3b8; padding: 60px 0 0;
+            padding: 60px 0 0;
+            background: #0f172a;
+            color: #94a3b8;
         }
         .lh-footer-brand {
             font-family: 'Sora', sans-serif; font-weight: 800;
