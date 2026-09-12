@@ -217,12 +217,19 @@ if ($dbConnection) {
             animation: fadeInUp 0.8s ease 0.45s both;
         }
         .lh-hero-btn-primary {
-            display: inline-flex; align-items: center; gap: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
             background: linear-gradient(135deg, #fbbf24, #d97706);
-            color: #1e293b; font-weight: 800; font-size: 1rem;
-            padding: 16px 36px; border-radius: 16px; text-decoration: none;
-            border: none; transition: all 0.3s;
+            border: none;
+            border-radius: 16px;
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 800;
+            text-decoration: none;
             box-shadow: 0 8px 30px rgba(217,119,6,0.4);
+            transition: all 0.3s;
         }
         .lh-hero-btn-primary:hover {
             transform: translateY(-3px);
