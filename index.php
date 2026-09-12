@@ -732,7 +732,8 @@ if ($dbConnection) {
                         <i class="fas fa-search"></i>
                     </div>
                     <h4>Smart Job Search</h4>
-                    <p>AI-powered job matching that understands your skills, experience, and career goals to find the perfect fit.</p>
+                    <p>AI-powered job matching that understands your skills, experience, and career goals to find the perfect fit.
+                    </p>
                 </div>
             </div>
             <div class="col-lg-4 col-md-6 mb-4 reveal">
