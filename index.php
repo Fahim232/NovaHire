@@ -313,8 +313,12 @@ if ($dbConnection) {
             margin-bottom: 24px;
         }
         .lh-trusted-logos {
-            display: flex; align-items: center; justify-content: center;
-            gap: 48px; flex-wrap: wrap; opacity: 0.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 48px;
+            opacity: 0.5;
         }
         .lh-trusted-logos i { font-size: 2.2rem; color: #94a3b8; }
 
