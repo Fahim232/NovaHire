@@ -596,7 +596,8 @@ if ($dbConnection) {
         </ul>
         <div class="lh-nav-btns">
             <a href="auth/login.php" class="lh-btn-getstarted">
-                <i class="fas fa-rocket mr-1"></i> Get Started
+                <i class="fas fa-rocket mr-1"></i>
+                Get Started
             </a>
         </div>
         <button class="lh-mobile-toggle" onclick="toggleMobileMenu()">
