@@ -657,7 +657,7 @@ if ($dbConnection) {
     </div>
 </nav>
 
-<!-- Mobile Menu -->
+<!-- Mobile Navigation Menu -->
 <div class="lh-mobile-menu" id="mobileMenu">
     <button class="lh-mobile-close" onclick="toggleMobileMenu()"><i class="fas fa-times"></i></button>
     <a href="#features" onclick="toggleMobileMenu()">Features</a>
