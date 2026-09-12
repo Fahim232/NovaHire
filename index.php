@@ -862,7 +862,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ TESTIMONIALS ═══ -->
+<!-- Testimonials Section -->
 <section class="lh-testimonials">
     <div class="container">
         <div class="lh-section-center">
