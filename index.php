@@ -3,37 +3,41 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 session_start();
 
-$is_logged_in = isset($_SESSION['id']);
-$is_company_logged_in = isset($_SESSION['company_id']);
-$is_admin_logged_in = isset($_SESSION['admin_username']);
+$isLoggedIn      = isset($_SESSION['id']);
+$isCompanyLoggedIn = isset($_SESSION['company_id']);
+$isAdminLoggedIn  = isset($_SESSION['admin_username']);
 
-// If logged in, redirect to appropriate dashboard
-if ($is_logged_in && !$is_company_logged_in) {
+// Redirect logged-in users to their respective dashboards
+if ($isLoggedIn && !$isCompanyLoggedIn) {
     header('Location: ' . BASE_URL . '/seeker/seeker_dashboard.php');
     exit;
-} elseif ($is_company_logged_in) {
+} elseif ($isCompanyLoggedIn) {
     header('Location: ' . BASE_URL . '/company/index.php');
     exit;
-} elseif ($is_admin_logged_in) {
+} elseif ($isAdminLoggedIn) {
     header('Location: ' . BASE_URL . '/admin/admin_dashboard.php');
     exit;
 }
 
-// Stats
-$con_db = @mysqli_connect('127.0.0.1', 'root', '', 'projects');
-$total_jobs = 0;
-$total_companies = 0;
-$total_users = 0;
-$total_applications = 0;
-if ($con_db) {
-    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM company_jobs WHERE status='active'");
-    $total_jobs = mysqli_fetch_assoc($r)['cnt'] ?? 0;
-    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM companies WHERE status='active'");
-    $total_companies = mysqli_fetch_assoc($r)['cnt'] ?? 0;
-    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM user_info");
-    $total_users = mysqli_fetch_assoc($r)['cnt'] ?? 0;
-    $r = mysqli_query($con_db, "SELECT COUNT(*) as cnt FROM job_applications");
-    $total_applications = mysqli_fetch_assoc($r)['cnt'] ?? 0;
+// Fetch platform statistics
+$dbConnection = @mysqli_connect('127.0.0.1', 'root', '', 'projects');
+$totalJobs       = 0;
+$totalCompanies  = 0;
+$totalUsers      = 0;
+$totalApplications = 0;
+
+if ($dbConnection) {
+    $result = mysqli_query($dbConnection, "SELECT COUNT(*) as cnt FROM company_jobs WHERE status='active'");
+    $totalJobs = mysqli_fetch_assoc($result)['cnt'] ?? 0;
+    
+    $result = mysqli_query($dbConnection, "SELECT COUNT(*) as cnt FROM companies WHERE status='active'");
+    $totalCompanies = mysqli_fetch_assoc($result)['cnt'] ?? 0;
+    
+    $result = mysqli_query($dbConnection, "SELECT COUNT(*) as cnt FROM user_info");
+    $totalUsers = mysqli_fetch_assoc($result)['cnt'] ?? 0;
+    
+    $result = mysqli_query($dbConnection, "SELECT COUNT(*) as cnt FROM job_applications");
+    $totalApplications = mysqli_fetch_assoc($result)['cnt'] ?? 0;
 }
 ?>
 <!DOCTYPE html>
@@ -613,15 +617,15 @@ if ($con_db) {
                 </div>
                 <div class="lh-hero-stats">
                     <div class="lh-hero-stat">
-                        <h3><?php echo number_format($total_jobs); ?>+</h3>
+                        <h3><?php echo number_format($totalJobs); ?>+</h3>
                         <p>Active Jobs</p>
                     </div>
                     <div class="lh-hero-stat">
-                        <h3><?php echo number_format($total_companies); ?>+</h3>
+                        <h3><?php echo number_format($totalCompanies); ?>+</h3>
                         <p>Companies</p>
                     </div>
                     <div class="lh-hero-stat">
-                        <h3><?php echo number_format($total_users); ?>+</h3>
+                        <h3><?php echo number_format($totalUsers); ?>+</h3>
                         <p>Job Seekers</p>
                     </div>
                 </div>
@@ -784,28 +788,28 @@ if ($con_db) {
             <div class="col-md-3 col-6 mb-4 reveal">
                 <div class="lh-stat-item">
                     <div class="icon"><i class="fas fa-briefcase"></i></div>
-                    <h2><?php echo number_format($total_jobs); ?>+</h2>
+                    <h2><?php echo number_format($totalJobs); ?>+</h2>
                     <p>Job Opportunities</p>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-4 reveal">
                 <div class="lh-stat-item">
                     <div class="icon"><i class="fas fa-building"></i></div>
-                    <h2><?php echo number_format($total_companies); ?>+</h2>
+                    <h2><?php echo number_format($totalCompanies); ?>+</h2>
                     <p>Registered Companies</p>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-4 reveal">
                 <div class="lh-stat-item">
                     <div class="icon"><i class="fas fa-users"></i></div>
-                    <h2><?php echo number_format($total_users); ?>+</h2>
+                    <h2><?php echo number_format($totalUsers); ?>+</h2>
                     <p>Active Job Seekers</p>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-4 reveal">
                 <div class="lh-stat-item">
                     <div class="icon"><i class="fas fa-file-alt"></i></div>
-                    <h2><?php echo number_format($total_applications); ?>+</h2>
+                    <h2><?php echo number_format($totalApplications); ?>+</h2>
                     <p>Applications Sent</p>
                 </div>
             </div>
