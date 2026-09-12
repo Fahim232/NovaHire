@@ -167,11 +167,18 @@ if ($dbConnection) {
 
         .lh-hero-content { position: relative; z-index: 3; }
         .lh-hero-badge {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px); border-radius: 999px;
-            padding: 8px 20px; margin-bottom: 28px;
-            color: rgba(255,255,255,0.9); font-size: 0.82rem; font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            margin-bottom: 28px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 999px;
+            backdrop-filter: blur(8px);
+            color: rgba(255,255,255,0.9);
+            font-size: 0.82rem;
+            font-weight: 700;
             letter-spacing: 0.02em;
             animation: fadeInUp 0.8s ease both;
         }
