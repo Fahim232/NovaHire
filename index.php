@@ -576,10 +576,18 @@ if ($dbConnection) {
 
         /* ═══ MOBILE MENU ═══ */
         .lh-mobile-menu {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15,23,42,0.95); backdrop-filter: blur(10px);
-            z-index: 2000; padding: 80px 24px 40px;
-            flex-direction: column; gap: 8px;
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+            padding: 80px 24px 40px;
+            background: rgba(15,23,42,0.95);
+            backdrop-filter: blur(10px);
+            flex-direction: column;
+            gap: 8px;
         }
         .lh-mobile-menu.active { display: flex; }
         .lh-mobile-menu a {
