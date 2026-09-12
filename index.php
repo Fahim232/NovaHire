@@ -570,7 +570,9 @@ if ($dbConnection) {
 <nav class="lh-nav" id="mainNav">
     <div class="lh-nav-inner">
         <a href="index.php" class="lh-logo">
-            <div class="lh-logo-icon"><i class="fas fa-layer-group"></i></div>
+            <div class="lh-logo-icon">
+                <i class="fas fa-layer-group"></i>
+            </div>
             Nova<span>Hire</span>
         </a>
         <ul class="lh-nav-links">
