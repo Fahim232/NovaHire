@@ -737,12 +737,12 @@ if ($dbConnection) {
     <div class="container">
         <p>Trusted by professionals from leading companies</p>
         <div class="lh-trusted-logos">
-            <i class="fab fa-google"></i>
-            <i class="fab fa-microsoft"></i>
-            <i class="fab fa-amazon"></i>
-            <i class="fab fa-meta"></i>
-            <i class="fab fa-apple"></i>
-            <i class="fab fa-spotify"></i>
+            <i class="fab fa-google" title="Google"></i>
+            <i class="fab fa-microsoft" title="Microsoft"></i>
+            <i class="fab fa-amazon" title="Amazon"></i>
+            <i class="fab fa-meta" title="Meta"></i>
+            <i class="fab fa-apple" title="Apple"></i>
+            <i class="fab fa-spotify" title="Spotify"></i>
         </div>
     </div>
 </div>
