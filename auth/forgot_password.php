@@ -9,10 +9,10 @@ require_once __DIR__ . '/../includes/bootstrap.php';
  */
 
 // Initialize session if not active
+// AFTER (Properly start session)
 if (session_status() === PHP_SESSION_NONE) {
-
+    session_start();
 }
-
 // Include database connection
 require_once __DIR__ . '/../admin/dbcon.php';
 
