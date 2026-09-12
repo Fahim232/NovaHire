@@ -851,7 +851,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ STATS ═══ -->
+<!-- Statistics Section -->
 <section class="lh-stats">
     <div class="container">
         <div class="row text-center">
