@@ -610,7 +610,7 @@ if ($dbConnection) {
     </a>
 </div>
 
-<!-- ═══ HERO ═══ -->
+<!-- Hero Section -->
 <section class="lh-hero">
     <div class="container">
         <div class="row align-items-center">
