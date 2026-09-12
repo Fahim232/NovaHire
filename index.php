@@ -281,8 +281,14 @@ if ($dbConnection) {
         .lh-fc-text small { color: #64748b; font-size: 0.78rem; }
 
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: none; }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
         }
         @keyframes fadeInRight {
             from { opacity: 0; transform: translateX(40px); }
