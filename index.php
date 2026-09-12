@@ -728,7 +728,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ TRUSTED BY ═══ -->
+<!-- Trusted By Section -->
 <div class="lh-trusted">
     <div class="container">
         <p>Trusted by professionals from leading companies</p>
