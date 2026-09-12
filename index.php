@@ -923,7 +923,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ CTA ═══ -->
+<!-- Call to Action Section -->
 <section class="lh-cta">
     <div class="container">
         <div class="lh-cta-card reveal">
