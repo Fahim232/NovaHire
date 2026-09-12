@@ -207,8 +207,11 @@ if ($dbConnection) {
             -webkit-text-fill-color: transparent;
         }
         .lh-hero-desc {
-            font-size: 1.15rem; color: rgba(255,255,255,0.8);
-            max-width: 520px; line-height: 1.7; margin-bottom: 36px;
+            max-width: 520px;
+            margin-bottom: 36px;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.8);
             animation: fadeInUp 0.8s ease 0.3s both;
         }
 
