@@ -469,9 +469,12 @@ if ($dbConnection) {
             background: var(--lh-bg-alt);
         }
         .lh-cta-card {
+            position: relative;
+            padding: 70px 50px;
             background: var(--lh-gradient-hero);
-            border-radius: 28px; padding: 70px 50px;
-            text-align: center; position: relative; overflow: hidden;
+            border-radius: 28px;
+            text-align: center;
+            overflow: hidden;
         }
         .lh-cta-card::before {
             content: ''; position: absolute; top: -40%; right: -15%;
