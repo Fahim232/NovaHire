@@ -80,20 +80,28 @@ if ($dbConnection) {
 
         /* ═══ NAVBAR ═══ */
         .lh-nav {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
             padding: 16px 0;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lh-nav.scrolled {
+            padding: 10px 0;
             background: rgba(255,255,255,0.92);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.04);
-            padding: 10px 0;
         }
         .lh-nav-inner {
-            max-width: 1200px; margin: 0 auto; padding: 0 24px;
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
         }
         .lh-logo {
             display: flex; align-items: center; gap: 10px;
@@ -143,20 +151,33 @@ if ($dbConnection) {
 
         /* ═══ HERO ═══ */
         .lh-hero {
-            position: relative; min-height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            min-height: 100vh;
+            padding: 120px 0 80px;
             background: var(--lh-gradient-hero);
-            display: flex; align-items: center;
-            overflow: hidden; padding: 120px 0 80px;
+            overflow: hidden;
         }
         .lh-hero::before {
-            content: ''; position: absolute; top: -40%; right: -15%;
-            width: 800px; height: 800px; border-radius: 50%;
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -15%;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
             background: radial-gradient(circle, rgba(251,191,36,0.15) 0%, transparent 70%);
             animation: heroPulse 8s ease-in-out infinite;
         }
         .lh-hero::after {
-            content: ''; position: absolute; bottom: -30%; left: -10%;
-            width: 600px; height: 600px; border-radius: 50%;
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
             background: radial-gradient(circle, rgba(6,182,212,0.2) 0%, transparent 70%);
             animation: heroPulse 10s ease-in-out infinite reverse;
         }
