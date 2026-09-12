@@ -327,10 +327,13 @@ if ($dbConnection) {
         .lh-section-center .lh-section-desc { margin: 0 auto; }
 
         .lh-feature-card {
-            background: #fff; border: 1px solid #f1f5f9;
-            border-radius: 20px; padding: 36px 28px;
+            position: relative;
+            padding: 36px 28px;
+            background: #fff;
+            border: 1px solid #f1f5f9;
+            border-radius: 20px;
+            overflow: hidden;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative; overflow: hidden;
         }
         .lh-feature-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
