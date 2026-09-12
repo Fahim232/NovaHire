@@ -395,13 +395,19 @@ if ($dbConnection) {
             text-align: center; position: relative; z-index: 1;
         }
         .lh-step-num {
-            width: 64px; height: 64px; border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #06b6d4);
-            color: #fff; font-size: 1.4rem; font-weight: 900;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
             margin: 0 auto 20px;
-            box-shadow: 0 8px 24px rgba(59,130,246,0.35);
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
             border: 4px solid #fff;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 900;
+            box-shadow: 0 8px 24px rgba(59,130,246,0.35);
         }
         .lh-step h4 { font-size: 1.05rem; font-weight: 800; margin-bottom: 8px; color: var(--lh-text); }
         .lh-step p { color: var(--lh-text-muted); font-size: 0.88rem; line-height: 1.6; }
