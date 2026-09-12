@@ -432,8 +432,11 @@ if ($dbConnection) {
             font-size: 2rem; color: rgba(255,255,255,0.25); margin-bottom: 14px;
         }
         .lh-stat-item h2 {
-            font-size: 2.8rem; font-weight: 900; color: #fff;
-            margin-bottom: 4px; letter-spacing: -1px;
+            margin-bottom: 4px;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: #fff;
         }
         .lh-stat-item p { color: rgba(255,255,255,0.7); font-size: 0.9rem; font-weight: 600; }
 
