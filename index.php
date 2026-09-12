@@ -791,7 +791,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ HOW IT WORKS ═══ -->
+<!-- How It Works Section -->
 <section class="lh-how" id="how-it-works">
     <div class="container">
         <div class="lh-section-center">
