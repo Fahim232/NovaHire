@@ -681,10 +681,12 @@ if ($dbConnection) {
                 </p>
                 <div class="lh-hero-actions">
                     <a href="auth/login.php" class="lh-hero-btn-primary">
-                        <i class="fas fa-rocket"></i> Get Started Free
+                        <i class="fas fa-rocket"></i>
+                        Get Started Free
                     </a>
                     <a href="seeker/browse_jobs.php" class="lh-hero-btn-secondary">
-                        <i class="fas fa-search"></i> Browse Jobs
+                        <i class="fas fa-search"></i>
+                        Browse Jobs
                     </a>
                 </div>
                 <div class="lh-hero-stats">
