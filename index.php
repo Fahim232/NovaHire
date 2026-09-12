@@ -944,7 +944,7 @@ if ($dbConnection) {
     </div>
 </section>
 
-<!-- ═══ FOOTER ═══ -->
+<!-- Footer Section -->
 <footer class="lh-footer">
     <div class="container">
         <div class="row">
