@@ -563,7 +563,7 @@ if ($dbConnection) {
 </head>
 <body>
 
-<!-- ═══ NAVBAR ═══ -->
+<!-- Navigation Bar -->
 <nav class="lh-nav" id="mainNav">
     <div class="lh-nav-inner">
         <a href="index.php" class="lh-logo">
