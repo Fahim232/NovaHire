@@ -712,7 +712,7 @@ if ($dbConnection) {
     </div>
 </div>
 
-<!-- ═══ FEATURES ═══ -->
+<!-- Features Section -->
 <section class="lh-features" id="features">
     <div class="container">
         <div class="lh-section-center">
