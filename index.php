@@ -360,9 +360,14 @@ if ($dbConnection) {
         }
         .lh-feature-card:hover::before { opacity: 1; }
         .lh-feature-icon {
-            width: 64px; height: 64px; border-radius: 18px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            border-radius: 18px;
+            font-size: 1.5rem;
             transition: transform 0.35s;
         }
         .lh-feature-card:hover .lh-feature-icon { transform: scale(1.08) rotate(-3deg); }
