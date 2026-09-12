@@ -518,7 +518,11 @@ if ($dbConnection) {
         .lh-footer-links { list-style: none; padding: 0; margin: 0; }
         .lh-footer-links li { margin-bottom: 10px; }
         .lh-footer-links a {
-            color: #94a3b8; font-size: 0.88rem; text-decoration: none;
+            display: block;
+            padding: 4px 0;
+            color: #94a3b8;
+            font-size: 0.88rem;
+            text-decoration: none;
             transition: all 0.25s;
         }
         .lh-footer-links a:hover { color: #fbbf24; padding-left: 4px; }
