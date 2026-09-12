@@ -193,9 +193,12 @@ if ($dbConnection) {
         }
 
         .lh-hero h1 {
+            margin-bottom: 22px;
             font-size: clamp(2.5rem, 5.5vw, 4rem);
-            font-weight: 900; color: #fff; line-height: 1.08;
-            letter-spacing: -2px; margin-bottom: 22px;
+            font-weight: 900;
+            line-height: 1.08;
+            letter-spacing: -2px;
+            color: #fff;
             animation: fadeInUp 0.8s ease 0.15s both;
         }
         .lh-hero h1 .highlight {
