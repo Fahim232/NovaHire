@@ -1000,7 +1000,9 @@ if ($dbConnection) {
             </div>
         </div>
         <div class="lh-footer-bottom">
-            <p>&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved. Built with <i class="fas fa-heart" style="color: #dc2626;"></i> for your career success.</p>
+            <p>&copy; <?php echo date('Y'); ?> NovaHire. All rights reserved. Built with 
+                <i class="fas fa-heart" style="color: #dc2626;"></i> for your career success.
+            </p>
         </div>
     </div>
 </footer>
