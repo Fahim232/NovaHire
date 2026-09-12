@@ -240,11 +240,19 @@ if ($dbConnection) {
             color: #1e293b; text-decoration: none;
         }
         .lh-hero-btn-secondary {
-            display: inline-flex; align-items: center; gap: 10px;
-            background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25);
-            color: #fff; font-weight: 700; font-size: 1rem;
-            padding: 16px 36px; border-radius: 16px; text-decoration: none;
-            backdrop-filter: blur(4px); transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
+            background: rgba(255,255,255,0.1);
+            border: 1.5px solid rgba(255,255,255,0.25);
+            border-radius: 16px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
         }
         .lh-hero-btn-secondary:hover {
             background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4);
